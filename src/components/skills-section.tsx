@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Feather, PaintBrush, Code } from 'lucide-react';
+import { Feather, Paintbrush, Code } from 'lucide-react';
 
 function useOnScreen(ref: React.RefObject<HTMLElement>) {
   const [isIntersecting, setIntersecting] = useState(false);
@@ -47,7 +47,7 @@ const skillData: SkillCategory[] = [
     ],
   },
   {
-    icon: <PaintBrush className="h-12 w-12 text-primary" />,
+    icon: <Paintbrush className="h-12 w-12 text-primary" />,
     title: 'Melukis',
     description: 'Canvas adalah tempat di mana emosi bertemu warna. Setiap goresan adalah cerita yang tak terucapkan.',
     skills: [

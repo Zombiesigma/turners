@@ -12,7 +12,7 @@ import {
   Laptop,
   Menu,
   Newspaper,
-  PaintBrush,
+  Paintbrush,
   Palette,
   ScrollText,
   Search,
@@ -98,7 +98,7 @@ export function Header() {
                         <h3 className="font-bold font-headline text-primary px-3 py-2 flex items-center gap-2"><Palette size={16}/> Lukisan</h3>
                         <MegaMenuItem href="#paintings" icon={<Image size={16}/>} title="Galeri Lukisan" description="Karya seni visual"/>
                         <MegaMenuItem href="#paintings" icon={<Landmark size={16}/>} title="Pameran" description="Eksibisi terkini"/>
-                        <MegaMenuItem href="#paintings" icon={<PaintBrush size={16}/>} title="Komisi" description="Layanan lukisan"/>
+                        <MegaMenuItem href="#paintings" icon={<Paintbrush size={16}/>} title="Komisi" description="Layanan lukisan"/>
                       </div>
                       <div className="flex flex-col gap-1">
                         <h3 className="font-bold font-headline text-primary px-3 py-2 flex items-center gap-2"><Code size={16}/> Development</h3>
