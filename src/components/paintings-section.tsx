@@ -22,7 +22,7 @@ export function PaintingsSection() {
         <div className="masonry-grid">
           {paintings.map((painting, index) => (
             <div key={painting.id} className="masonry-item animate-in fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
-              <Card className="overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-primary group">
+              <Card className="overflow-hidden transition-all duration-300 group glow-card">
                 <CardContent className="p-0 relative">
                   <Image
                     src={painting.imageUrl}

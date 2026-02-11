@@ -73,16 +73,19 @@ export function HeroSection() {
           </div>
           <div className="relative mx-auto animate-in fade-in-up" style={{ animationDelay: '200ms' }}>
             {profileImage && (
-              <div className="h-72 w-72 md:h-96 md:w-96 rounded-full overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20">
-                <Image
-                  src={profileImage.imageUrl}
-                  alt="Guntur Padilah"
-                  width={400}
-                  height={400}
-                  className="h-full w-full object-cover"
-                  priority
-                  data-ai-hint={profileImage.imageHint}
-                />
+              <div className="relative h-72 w-72 md:h-96 md:w-96 group">
+                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary via-accent to-primary opacity-50 blur-xl transition duration-1000 group-hover:opacity-75 group-hover:duration-200 animate-pulse"></div>
+                <div className="relative rounded-full overflow-hidden border-4 border-primary/80 shadow-2xl shadow-primary/20">
+                    <Image
+                      src={profileImage.imageUrl}
+                      alt="Guntur Padilah"
+                      width={400}
+                      height={400}
+                      className="h-full w-full object-cover"
+                      priority
+                      data-ai-hint={profileImage.imageHint}
+                    />
+                </div>
               </div>
             )}
           </div>

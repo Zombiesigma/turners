@@ -33,7 +33,7 @@ export function Loader() {
     const particlesMesh = new THREE.Points(particlesGeometry, material);
     scene.add(particlesMesh);
 
-    const geometry = new THREE.IcosahedronGeometry(1.5, 0);
+    const geometry = new THREE.TorusKnotGeometry(1, 0.4, 100, 16);
     const wireframe = new THREE.WireframeGeometry(geometry);
     const line = new THREE.LineSegments(wireframe);
     line.material.depthTest = false;
@@ -49,6 +49,7 @@ export function Loader() {
         requestAnimationFrame(animate);
         particlesMesh.rotation.y += 0.001;
         line.rotation.x += 0.002;
+        line.rotation.y += 0.001;
         renderer.render(scene, camera);
     };
     animate();
@@ -98,7 +99,7 @@ export function Loader() {
     )}>
       <div ref={mountRef} className="absolute inset-0 z-0"/>
       <div className="relative z-10 text-center">
-        <p className="text-lg font-mono uppercase tracking-widest text-primary/80 animate-pulse">GUNTUR PADILAH...</p>
+        <p className="text-lg font-mono uppercase tracking-widest text-primary/80 animate-pulse">Menyiapkan Kanvas Kreatif...</p>
         <div className="mt-4 w-48 h-1 bg-primary/20 rounded-full overflow-hidden">
           <div 
             className="h-full bg-primary rounded-full transition-all duration-300"

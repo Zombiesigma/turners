@@ -81,7 +81,7 @@ export function SkillsSection() {
         <div className="grid gap-8 md:grid-cols-3">
           {skillData.map((category, index) => (
             <div key={category.title} className="animate-in fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
-              <Card className="h-full">
+              <Card className="h-full glow-card transition-all duration-300 hover:-translate-y-1">
                 <CardHeader>
                   {category.icon}
                   <CardTitle className="font-headline text-2xl">{category.title}</CardTitle>
