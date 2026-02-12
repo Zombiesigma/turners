@@ -66,9 +66,9 @@ export function HeroSection() {
               </Button>
             </div>
             <div className="flex space-x-4">
-              <Link href="https://www.instagram.com/guntur_padilah" target="_blank" rel="noopener noreferrer" className="text-muted-foreground transition-colors hover:text-primary"><Instagram /></Link>
-              <Link href="https://www.github.com/Zombiesigma" target="_blank" rel="noopener noreferrer" className="text-muted-foreground transition-colors hover:text-primary"><Github /></Link>
-              <Link href="#" className="text-muted-foreground transition-colors hover:text-primary"><Twitter /></Link>
+              <Link href="https://www.instagram.com/guntur_padilah" target="_blank" rel="noopener noreferrer" className="text-muted-foreground transition-colors hover:text-primary hover:animate-pulse"><Instagram /></Link>
+              <Link href="https://www.github.com/Zombiesigma" target="_blank" rel="noopener noreferrer" className="text-muted-foreground transition-colors hover:text-primary hover:animate-pulse"><Github /></Link>
+              <Link href="#" className="text-muted-foreground transition-colors hover:text-primary hover:animate-pulse"><Twitter /></Link>
             </div>
           </div>
           <div className="relative mx-auto animate-in fade-in-up" style={{ animationDelay: '200ms' }}>

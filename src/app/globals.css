@@ -130,3 +130,32 @@
   break-inside: avoid;
   margin-bottom: 1.25rem;
 }
+
+@layer utilities {
+  .bg-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .bg-shimmer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 200%;
+    height: 100%;
+    background-image: linear-gradient(100deg, rgba(255, 255, 255, 0) 20%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0) 80%);
+    animation: shimmer 4s infinite linear;
+  }
+  .dark .bg-shimmer::before {
+    background-image: linear-gradient(100deg, rgba(255, 255, 255, 0) 20%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0) 80%);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(50%);
+  }
+}

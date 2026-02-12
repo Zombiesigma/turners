@@ -1,44 +1,17 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Headset, Loader2, Paperclip, Send } from 'lucide-react';
+import { Bot, Headset, Loader2, Send } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from './ui/scroll-area';
+import { getAiReply } from '@/app/actions';
 
 type Message = {
   text: string;
   sender: 'user' | 'ai';
 };
-
-const personalContext = `
-Anda adalah asisten AI profesional untuk Guntur Padilah bernama Litera.
-IDENTITAS:
-- Nama: Guntur Padilah
-- Profesi: Penulis (Novelis), Pelukis, Web Developer
-- Lokasi: Pelabuhan Ratu, Sukabumi, Jawa Barat, Indonesia
-- Email: gunturfadilah140@gmail.com
-- WhatsApp: +62 856-5554-8656
-- Website: gunturpadilah.web.id
-
-KARYA UTAMA:
-- Buku: "Beri Ruang Untuk Kelelahan" (Best Seller 2024, Penerbit Budhi Mulia)
-- Sertifikat: Dicoding Indonesia (Web & JavaScript), Digitech University
-
-KEAHLIAN:
-- Menulis: Fiksi, Non-Fiksi, Puisi (95% Fiksi)
-- Seni: Oil Painting, Watercolor, Digital Art
-- Tech: Frontend (90%), Backend (80%), UI/UX (87%)
-
-SOPAN RESPON:
-- Jawab dengan ramah, profesional, dan informatif.
-- Jika ada pertanyaan kolaborasi, arahkan ke email atau WhatsApp.
-- Gunakan bahasa Indonesia.
-- Jangan mengaku sebagai Guntur Padilah, tetapi sebagai asisten yang mewakilinya.
-- Jika ditanya siapa pengembang website ini, jawab Guntur Padilah.
-`;
-
 
 export function AiChat() {
   const [isOpen, setIsOpen] = useState(false);
@@ -57,34 +30,13 @@ export function AiChat() {
 
     const userMessage: Message = { text: input, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
     setIsLoading(true);
 
-    const fullPrompt = `${personalContext}\nUser: ${input}\nAsisten:`;
-    const url = "https://api.himmel.web.id/api/ai/gemini";
-    const params = new URLSearchParams({
-        "apikey": "hmlt_hOn2k83lsV2lhZ8LQD4n",
-        "question": fullPrompt
-    });
-
     try {
-        const response = await fetch(`${url}?${params}`);
-        const rawData = await response.json();
-        
-        let reply = "Maaf, sistem sedang sibuk atau terjadi galat.";
-
-        if (rawData.success && rawData.data && rawData.data.response) {
-            reply = rawData.data.response;
-        } else if (typeof rawData === 'string') {
-            try {
-                const parsed = JSON.parse(rawData);
-                reply = parsed.response || parsed.data?.response || rawData;
-            } catch (e) {
-                reply = rawData;
-            }
-        }
-
-        const aiMessage: Message = { text: reply.replace(/\\n/g, '\n').replace(/\*\*(.*?)\*\*/g, '$1'), sender: 'ai' };
+        const reply = await getAiReply({ question: currentInput });
+        const aiMessage: Message = { text: reply, sender: 'ai' };
         setMessages(prev => [...prev, aiMessage]);
 
     } catch (error) {

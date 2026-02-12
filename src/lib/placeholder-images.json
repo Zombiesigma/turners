@@ -38,25 +38,25 @@
     },
     {
       "id": "painting-1",
-      "description": "Lukisan abstrak 1",
+      "description": "Sebuah eksplorasi warna dalam kekacauan yang teratur.",
       "imageUrl": "https://images.unsplash.com/photo-1531056416665-266c4099c928?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMHBhaW50aW5nfGVufDB8fHx8MTc3MDgyMjgwOXww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "abstract painting"
     },
     {
       "id": "painting-2",
-      "description": "Lukisan potret 2",
+      "description": "Potret jiwa yang terperangkap dalam tatapan.",
       "imageUrl": "https://images.unsplash.com/photo-1582562124760-06459ed90888?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwb3J0cmFpdCUyMHBhaW50aW5nfGVufDB8fHx8MTc3MDgyMjgxMHww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "portrait painting"
     },
     {
       "id": "painting-3",
-      "description": "Lukisan pemandangan 3",
+      "description": "Pemandangan senja yang melankolis di atas danau.",
       "imageUrl": "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxsYW5kc2NhcGUlMjBwYWludGluZ3xlbnwwfHx8fDE3NzA4MTc4MTh8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "landscape painting"
     },
     {
       "id": "painting-4",
-      "description": "Lukisan surealis 4",
+      "description": "Dunia mimpi di mana logika menyerah pada imajinasi.",
       "imageUrl": "https://images.unsplash.com/photo-1658828570744-49dbc43a95cb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzdXJyZWFsJTIwcGFpbnRpbmd8ZW58MHx8fHwxNzcwNzg3MTkwfDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "surreal painting"
     },

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { BadgeCheck, Calendar, CheckCircle, Globe, Hourglass, QrCode, Trophy, User, ZoomIn } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { cn } from '@/lib/utils';
 
 type Certificate = {
   id: string;
@@ -88,7 +89,10 @@ export function CertificatesSection() {
                         return (
                             <div key={cert.id} className={`animate-in fade-in-up ${cert.isFeatured ? 'lg:col-span-2' : ''}`} style={{ animationDelay: `${index * 100}ms` }}>
                                 <Dialog>
-                                    <Card className="flex h-full flex-col overflow-hidden glow-card transition-all duration-300 hover:-translate-y-1">
+                                    <Card className={cn(
+                                        "flex h-full flex-col overflow-hidden glow-card transition-all duration-300 hover:-translate-y-1",
+                                        cert.isFeatured && 'bg-shimmer'
+                                    )}>
                                         <CardHeader className="p-0 relative">
                                             <DialogTrigger asChild>
                                                 <div className="cursor-pointer">

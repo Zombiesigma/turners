@@ -32,7 +32,9 @@ export function PaintingsSection() {
                     className="w-full h-auto"
                     data-ai-hint={painting.imageHint}
                   />
-                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                   <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-4 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                     <p className="text-sm text-white">{painting.description}</p>
+                   </div>
                 </CardContent>
                 <CardFooter className="p-4">
                   <h4 className="font-headline font-bold">Karya Guntur Padilah</h4>
