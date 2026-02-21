@@ -189,6 +189,7 @@ export default function GamePage() {
         setIsJumping={setIsJumping}
         playerHealth={playerHealth}
         setPlayerHealth={setPlayerHealth}
+        maxPlayerHealth={initialPlayerHealth}
         enemies={enemies}
         setEnemies={setEnemies}
         playerHealthBarRef={playerHealthBarRef}

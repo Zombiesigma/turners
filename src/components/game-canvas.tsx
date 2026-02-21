@@ -31,6 +31,7 @@ type GameCanvasProps = {
     setIsJumping: (v: boolean) => void;
     playerHealth: number;
     setPlayerHealth: (fn: (h: number) => number) => void;
+    maxPlayerHealth: number;
     enemies: Enemy[];
     setEnemies: (fn: (e: Enemy[]) => Enemy[]) => void;
     playerHealthBarRef: React.RefObject<HTMLDivElement>;
@@ -40,16 +41,16 @@ type GameCanvasProps = {
 export function GameCanvas({ 
     score, setScore, setGameOver, collectibleCount, lavaAudioRef, walkAudioRef,
     onCollect, onAttack, onJump, onEnemyDefeated, joystickDelta, isAttacking, setIsAttacking,
-    isJumping, setIsJumping, playerHealth, setPlayerHealth, enemies, setEnemies,
+    isJumping, setIsJumping, playerHealth, setPlayerHealth, maxPlayerHealth, enemies, setEnemies,
     playerHealthBarRef, enemyHealthBarRefs
 }: GameCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   
-  const gameState = useRef({ score, playerHealth, enemies, isAttacking, isJumping, joystickDelta });
+  const gameState = useRef({ score, playerHealth, enemies, isAttacking, isJumping, joystickDelta, maxPlayerHealth });
 
   useEffect(() => {
-    gameState.current = { score, playerHealth, enemies, isAttacking, isJumping, joystickDelta };
-  }, [score, playerHealth, enemies, isAttacking, isJumping, joystickDelta]);
+    gameState.current = { score, playerHealth, enemies, isAttacking, isJumping, joystickDelta, maxPlayerHealth };
+  }, [score, playerHealth, enemies, isAttacking, isJumping, joystickDelta, maxPlayerHealth]);
   
   useEffect(() => {
     const mountNode = mountRef.current;
@@ -103,7 +104,7 @@ export function GameCanvas({
     });
     const lavaBBs = lavaPools.map(lava => new THREE.Box3().setFromObject(lava).expandByScalar(0.5));
 
-    const createCharacterModel = (isPlayer: boolean): THREE.Group => {
+    const createCharacterModel = (isPlayer: boolean): { model: THREE.Group, limbs: any } => {
         const group = new THREE.Group();
 
         const material = new THREE.MeshStandardMaterial({
@@ -114,46 +115,36 @@ export function GameCanvas({
             emissiveIntensity: 0.3
         });
 
-        // Dimensions based on original capsules
-        const capsuleHeight = isPlayer ? 0.8 : 1.2;
-        const capsuleRadius = isPlayer ? 0.4 : 0.6;
+        const bodyHeight = 1.0;
+        const bodyRadius = 0.4;
+        const headRadius = 0.3;
+        const limbRadius = 0.1;
+        const armLength = 0.8;
+        const legLength = 1.0;
 
-        // Body (main cylinder shape)
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(capsuleRadius * 0.8, capsuleRadius * 0.8, capsuleHeight * 1.1, 16), material);
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(bodyRadius, bodyRadius, bodyHeight, 16), material);
+        body.position.y = legLength / 2 + bodyHeight / 2;
         group.add(body);
 
-        // Head
-        const headRadius = capsuleRadius * 0.9;
         const head = new THREE.Mesh(new THREE.SphereGeometry(headRadius, 16, 16), material);
-        head.position.y = capsuleHeight / 2 + headRadius * 0.6;
+        head.position.y = body.position.y + bodyHeight / 2 + headRadius * 0.9;
         group.add(head);
 
-        // Limbs
-        const limbRadius = capsuleRadius * 0.25;
-        const armLength = capsuleHeight * 0.9;
-        const legLength = capsuleHeight;
-
-        // Arms
-        const arm = new THREE.Mesh(new THREE.CylinderGeometry(limbRadius, limbRadius, armLength, 6), material);
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(limbRadius, limbRadius, armLength, 8), material);
         const leftArm = arm.clone();
-        leftArm.position.set(-(capsuleRadius), capsuleHeight * 0.15, 0);
-        leftArm.rotation.z = Math.PI / 3;
-        group.add(leftArm);
-        
         const rightArm = arm.clone();
-        rightArm.position.x = -leftArm.position.x;
-        rightArm.rotation.z = -leftArm.rotation.z;
-        group.add(rightArm);
+        leftArm.position.set(-(bodyRadius + limbRadius), body.position.y + bodyHeight / 2 - limbRadius, 0);
+        rightArm.position.set(bodyRadius + limbRadius, body.position.y + bodyHeight / 2 - limbRadius, 0);
+        group.add(leftArm, rightArm);
         
-        // Legs
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(limbRadius * 1.2, limbRadius, legLength, 6), material);
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(limbRadius, limbRadius * 0.8, legLength, 8), material);
         const leftLeg = leg.clone();
-        leftLeg.position.set(-(capsuleRadius * 0.45), -capsuleHeight / 1.5, 0);
-        group.add(leftLeg);
-        
         const rightLeg = leg.clone();
-        rightLeg.position.x = -leftLeg.position.x;
-        group.add(rightLeg);
+        leftLeg.position.set(-bodyRadius * 0.5, legLength/2, 0);
+        rightLeg.position.set(bodyRadius * 0.5, legLength/2, 0);
+        group.add(leftLeg, rightLeg);
+        
+        group.position.y = -legLength; // Adjust to stand on the ground
 
         group.traverse(child => {
             if (child instanceof THREE.Mesh) {
@@ -161,10 +152,13 @@ export function GameCanvas({
             }
         });
 
-        return group;
+        const limbs = { head, leftArm, rightArm, leftLeg, rightLeg };
+        return { model: group, limbs };
     };
     
-    const player = createCharacterModel(true);
+    const playerModelData = createCharacterModel(true);
+    const player = playerModelData.model;
+    const playerLimbs = playerModelData.limbs;
     player.position.y = 0.8;
     scene.add(player);
     const playerBB = new THREE.Box3();
@@ -173,14 +167,16 @@ export function GameCanvas({
     const playerVelocity = new THREE.Vector3();
     const gravity = 30.0;
 
-    const enemyMeshes: THREE.Group[] = [];
-    const enemyBBs: (THREE.Box3 | null)[] = [];
+    const enemyObjects: { mesh: THREE.Group, limbs: any, bb: THREE.Box3 | null }[] = [];
     gameState.current.enemies.forEach(enemyData => {
-        const enemyMesh = createCharacterModel(false);
-        enemyMesh.position.copy(enemyData.position);
-        scene.add(enemyMesh);
-        enemyMeshes.push(enemyMesh);
-        enemyBBs.push(new THREE.Box3());
+        const enemyModelData = createCharacterModel(false);
+        enemyModelData.model.position.copy(enemyData.position);
+        scene.add(enemyModelData.model);
+        enemyObjects.push({
+            mesh: enemyModelData.model,
+            limbs: enemyModelData.limbs,
+            bb: new THREE.Box3()
+        });
     });
     let playerDamageCooldown = 0;
     
@@ -235,10 +231,13 @@ export function GameCanvas({
     
     const clock = new THREE.Clock();
     let animationFrameId: number;
+    let attackAnimation = 0;
+    let enemyAttackAnimations = new Array(enemies.length).fill(0);
 
     const animate = () => {
         animationFrameId = requestAnimationFrame(animate);
         const delta = clock.getDelta();
+        const elapsedTime = clock.getElapsedTime();
         
         if (gameState.current.playerHealth <= 0) return;
 
@@ -247,18 +246,13 @@ export function GameCanvas({
         
         // --- Physics and Movement ---
         const onGround = player.position.y <= 0.8;
-
-        // Vertical movement (gravity)
         playerVelocity.y -= gravity * delta;
         player.position.y += playerVelocity.y * delta;
-        
-        // Ground collision
         if (player.position.y < 0.8) {
             player.position.y = 0.8;
             playerVelocity.y = 0;
         }
 
-        // Horizontal movement
         const moveDirection = new THREE.Vector3();
         const joystick = gameState.current.joystickDelta;
         if (joystick.x !== 0 || joystick.z !== 0) {
@@ -278,11 +272,41 @@ export function GameCanvas({
           if (!obstacleBBs.some(obsBB => playerNextBB.intersectsBox(obsBB))) {
               player.position.add(horizontalMove);
           }
+           player.rotation.y = Math.atan2(moveDirection.x, moveDirection.z);
         }
 
         player.position.x = THREE.MathUtils.clamp(player.position.x, -planeSize/2 + 0.5, planeSize/2 - 0.5);
         player.position.z = THREE.MathUtils.clamp(player.position.z, -planeSize/2 + 0.5, planeSize/2 - 0.5);
         
+        // --- Animations ---
+        const walkCycle = Math.sin(elapsedTime * 8) * 0.7;
+
+        if (attackAnimation > 0) {
+            attackAnimation -= delta;
+            const progress = Math.sin((1 - attackAnimation / 0.4) * Math.PI);
+            playerLimbs.rightArm.rotation.x = -progress * 2;
+        }
+
+        if (attackAnimation <= 0) {
+            if (isMovingHorizontally && onGround) {
+                playerLimbs.leftArm.rotation.x = walkCycle;
+                playerLimbs.rightArm.rotation.x = -walkCycle;
+                playerLimbs.leftLeg.rotation.x = -walkCycle;
+                playerLimbs.rightLeg.rotation.x = walkCycle;
+            } else {
+                playerLimbs.leftArm.rotation.x = THREE.MathUtils.lerp(playerLimbs.leftArm.rotation.x, 0, delta * 10);
+                playerLimbs.rightArm.rotation.x = THREE.MathUtils.lerp(playerLimbs.rightArm.rotation.x, 0, delta * 10);
+                playerLimbs.leftLeg.rotation.x = THREE.MathUtils.lerp(playerLimbs.leftLeg.rotation.x, 0, delta * 10);
+                playerLimbs.rightLeg.rotation.x = THREE.MathUtils.lerp(playerLimbs.rightLeg.rotation.x, 0, delta * 10);
+            }
+        } else {
+            if (isMovingHorizontally && onGround) {
+                playerLimbs.leftArm.rotation.x = walkCycle;
+                playerLimbs.leftLeg.rotation.x = -walkCycle;
+                playerLimbs.rightLeg.rotation.x = walkCycle;
+            }
+        }
+
         // --- Actions ---
         const isTryingToJump = gameState.current.isJumping || keys[' '];
         if (isTryingToJump && onGround) {
@@ -294,14 +318,15 @@ export function GameCanvas({
         const isTryingToAttack = gameState.current.isAttacking || keys['f'];
         if (isTryingToAttack && attackCooldown <= 0) {
             attackCooldown = 0.5;
+            attackAnimation = 0.4;
             onAttack();
             attackEffect.position.copy(player.position);
             attackEffect.material.opacity = 0.8;
             
             const damagedEnemies = new Set<string>();
-            enemyMeshes.forEach((enemyMesh, index) => {
+            enemyObjects.forEach((enemyObj, index) => {
                 const enemyData = gameState.current.enemies[index];
-                if (enemyMesh.visible && enemyData.health > 0 && player.position.distanceTo(enemyMesh.position) < attackRadius) {
+                if (enemyObj.mesh.visible && enemyData.health > 0 && player.position.distanceTo(enemyObj.mesh.position) < attackRadius) {
                     damagedEnemies.add(enemyData.id);
                 }
             });
@@ -323,7 +348,6 @@ export function GameCanvas({
             attackEffect.material.opacity -= delta * 4;
         }
 
-        // Lava Check
         playerBB.setFromObject(player);
         if (lavaBBs.some(lavaBB => playerBB.intersectsBox(lavaBB))) {
             setGameOver();
@@ -331,12 +355,15 @@ export function GameCanvas({
         }
 
         // --- AI ---
-        enemyMeshes.forEach((enemyMesh, index) => {
+        enemyObjects.forEach((enemyObj, index) => {
             const enemyData = gameState.current.enemies[index];
+            const enemyMesh = enemyObj.mesh;
+            const enemyLimbs = enemyObj.limbs;
+
             if (enemyData.health <= 0) {
                 if (enemyMesh.visible) {
                     enemyMesh.visible = false;
-                    enemyBBs[index] = null; // Invalidate bounding box
+                    enemyObj.bb = null;
                 }
                 return;
             };
@@ -391,13 +418,16 @@ export function GameCanvas({
             const enemySpeed = (newEnemyData.aiState === 'chasing' ? 2.8 : 2.0) * delta;
             const directionToTarget = new THREE.Vector3().subVectors(enemyData.targetPosition, enemyMesh.position).normalize();
             enemyMesh.position.add(directionToTarget.multiplyScalar(enemySpeed));
+            if(directionToTarget.lengthSq() > 0) {
+                 enemyMesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
+            }
             
-            playerBB.setFromObject(player);
-            if (enemyBBs[index]) {
-                enemyBBs[index]!.setFromObject(enemyMesh);
-                if (enemyBBs[index]!.intersectsBox(playerBB) && playerDamageCooldown <= 0) {
+            if (enemyObj.bb) {
+                enemyObj.bb.setFromObject(enemyMesh);
+                if (enemyObj.bb.intersectsBox(playerBB) && playerDamageCooldown <= 0) {
                     onAttack();
                     playerDamageCooldown = 1.0;
+                    enemyAttackAnimations[index] = 0.4;
                     const newHealth = Math.max(0, gameState.current.playerHealth - 15);
                     setPlayerHealth(h => newHealth);
                     if (newHealth <= 0) {
@@ -406,9 +436,29 @@ export function GameCanvas({
                     }
                 }
             }
+
+            const enemyIsMoving = directionToTarget.length() > 0.1;
+            if (enemyAttackAnimations[index] > 0) {
+                enemyAttackAnimations[index] -= delta;
+                const progress = Math.sin((1 - enemyAttackAnimations[index] / 0.4) * Math.PI);
+                enemyLimbs.rightArm.rotation.x = -progress * 2;
+            }
+             if (enemyAttackAnimations[index] <= 0) {
+                if(enemyIsMoving) {
+                    const enemyWalkCycle = Math.sin(elapsedTime * 6 + index) * 0.7;
+                    enemyLimbs.leftArm.rotation.x = enemyWalkCycle;
+                    enemyLimbs.rightArm.rotation.x = -enemyWalkCycle;
+                    enemyLimbs.leftLeg.rotation.x = -enemyWalkCycle;
+                    enemyLimbs.rightLeg.rotation.x = enemyWalkCycle;
+                } else {
+                    enemyLimbs.leftArm.rotation.x = THREE.MathUtils.lerp(enemyLimbs.leftArm.rotation.x, 0, delta * 10);
+                    enemyLimbs.rightArm.rotation.x = THREE.MathUtils.lerp(enemyLimbs.rightArm.rotation.x, 0, delta * 10);
+                    enemyLimbs.leftLeg.rotation.x = THREE.MathUtils.lerp(enemyLimbs.leftLeg.rotation.x, 0, delta * 10);
+                    enemyLimbs.rightLeg.rotation.x = THREE.MathUtils.lerp(enemyLimbs.rightLeg.rotation.x, 0, delta * 10);
+                }
+            }
         });
 
-        // --- Collectibles ---
         for (let i = collectibles.length - 1; i >= 0; i--) {
             const collectible = collectibles[i];
             collectible.rotation.z += 0.05;
@@ -419,11 +469,11 @@ export function GameCanvas({
                 collectibles.splice(i, 1);
                 collectibleBBs.splice(i, 1);
                 setScore(s => s + 1);
+                setPlayerHealth(h => Math.min(h + 5, gameState.current.maxPlayerHealth));
                 onCollect();
             }
         }
         
-        // --- Audio ---
         if (isMovingHorizontally && onGround) {
             if (walkAudioRef.current?.paused) {
                 walkAudioRef.current.play().catch(e => {});
@@ -447,12 +497,11 @@ export function GameCanvas({
             lavaAudioRef.current?.pause();
         }
 
-        // --- Camera and UI ---
         camera.position.lerp(player.position.clone().add(new THREE.Vector3(0, 5, 6)), 0.05);
         camera.lookAt(player.position);
         lavaTexture.offset.y += delta * 0.1;
 
-        const updateHealthBarPosition = (mesh: THREE.Object3D, ref: React.RefObject<HTMLDivElement>, yOffset = 1.2) => {
+        const updateHealthBarPosition = (mesh: THREE.Object3D, ref: React.RefObject<HTMLDivElement>, yOffset = 2.2) => {
             if (!ref.current || !mesh.visible) {
                 if(ref.current) ref.current.style.display = 'none';
                 return;
@@ -472,8 +521,8 @@ export function GameCanvas({
             }
         };
 
-        updateHealthBarPosition(player, playerHealthBarRef, 1.2);
-        enemyMeshes.forEach((em, i) => updateHealthBarPosition(em, { current: enemyHealthBarRefs.current[i] }, 1.5));
+        updateHealthBarPosition(player, playerHealthBarRef, 2.2);
+        enemyObjects.forEach((em, i) => em.mesh && updateHealthBarPosition(em.mesh, { current: enemyHealthBarRefs.current[i] }, 2.5));
         
         renderer.render(scene, camera);
     };
@@ -512,7 +561,7 @@ export function GameCanvas({
         groundTexture.dispose();
         lavaTexture.dispose();
     };
-  }, [collectibleCount, setGameOver, setScore, lavaAudioRef, walkAudioRef, onCollect, onAttack, onJump, onEnemyDefeated, setEnemies, setPlayerHealth, enemyHealthBarRefs, playerHealthBarRef, setIsAttacking, setIsJumping]);
+  }, [collectibleCount, setGameOver, setScore, lavaAudioRef, walkAudioRef, onCollect, onAttack, onJump, onEnemyDefeated, setEnemies, setPlayerHealth, enemyHealthBarRefs, playerHealthBarRef, setIsAttacking, setIsJumping, maxPlayerHealth]);
 
   return <div ref={mountRef} className="absolute top-0 left-0 w-full h-full" />;
 }
