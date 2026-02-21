@@ -34,6 +34,18 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'z-cdn-media.chatglm.cn',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.gunturturner.biz.id',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 };

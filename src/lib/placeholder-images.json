@@ -63,19 +63,19 @@
     {
       "id": "certificate-web-dev",
       "description": "Sertifikat Dasar Pemrograman Web Dicoding",
-      "imageUrl": "https://images.unsplash.com/photo-1715173679369-18006e84d6a8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y2VydGlmaWNhdGUlMjBkb2N1bWVudHxlbnwwfHx8fDE3NzA3OTQzMTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://z-cdn-media.chatglm.cn/files/14e8307a-4585-4591-938d-5c8caa4c40ae.png?auth_key=1868883457-26d6c3753827451ca3ee14c2d898f8e1-0-c964f018a39cd0a2b7a071c074ebe2d3",
       "imageHint": "certificate document"
     },
     {
       "id": "certificate-js-dev",
       "description": "Sertifikat Dasar Pemrograman JavaScript Dicoding",
-      "imageUrl": "https://images.unsplash.com/photo-1742415888265-d5044039d8e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxjZXJ0aWZpY2F0ZSUyMHBhcGVyfGVufDB8fHx8MTc3MDgyMjgxMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://z-cdn-media.chatglm.cn/files/15badf6d-fc30-4b08-a902-f1b1c25ef7b6.png?auth_key=1868883457-bda49126ff6e427fa3c09ffd7f24aade-0-33072aac3ca9a255b513cb2836246941",
       "imageHint": "certificate paper"
     },
     {
       "id": "certificate-landing-page",
       "description": "Sertifikat Pelatihan Landing Page Digitech University",
-      "imageUrl": "https://images.unsplash.com/photo-1759560270562-468e8ba866e3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxhd2FyZCUyMGNlcnRpZmljYXRlfGVufDB8fHx8MTc3MDgyMjgwOXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://www.gunturturner.biz.id/IMG_20250619_220843_1750345774887.jpg",
       "imageHint": "award certificate"
     }
   ]
