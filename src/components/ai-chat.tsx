@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Headset, Loader2, Send } from 'lucide-react';
+import { Bot, Headset, Loader2, Send, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { cn } from '@/lib/utils';
@@ -60,18 +60,25 @@ export function AiChat() {
 
   return (
     <>
-      <div className="fixed bottom-24 right-8 z-50">
-        <Button size="icon" className="h-14 w-14 rounded-full shadow-lg" onClick={() => setIsOpen(!isOpen)}>
+      <div className="fixed bottom-8 right-8 z-50">
+        <Button size="icon" className={cn("h-14 w-14 rounded-full shadow-lg transition-opacity", isOpen && "opacity-0 pointer-events-none")} onClick={() => setIsOpen(true)}>
           <Bot />
         </Button>
       </div>
       <div className={cn(
-        "fixed bottom-24 right-8 z-40 w-[350px] h-[450px] bg-card/80 backdrop-blur-lg border rounded-xl shadow-2xl flex flex-col transition-all duration-300 origin-bottom-right",
+        "fixed bottom-28 z-40 bg-card/80 backdrop-blur-lg border rounded-xl shadow-2xl flex flex-col transition-all duration-300 origin-bottom-right",
+        "w-[calc(100vw-2rem)] h-[60vh] right-4",
+        "sm:w-[350px] sm:h-[450px] sm:right-8",
         isOpen ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
       )}>
-        <div className="p-4 bg-primary/10 flex items-center gap-3">
-          <Headset className="text-primary"/>
-          <h3 className="font-semibold text-foreground">Litera AI</h3>
+        <div className="p-4 bg-primary/10 flex items-center justify-between gap-3">
+          <div className='flex items-center gap-3'>
+            <Headset className="text-primary"/>
+            <h3 className="font-semibold text-foreground">Litera AI</h3>
+          </div>
+           <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8 rounded-full">
+            <X size={20}/>
+          </Button>
         </div>
         <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
           <div className="space-y-4">

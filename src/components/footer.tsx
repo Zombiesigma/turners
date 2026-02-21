@@ -10,10 +10,10 @@ const breadcrumbs = [
 ];
 
 const socialLinks = [
-  { href: "https://www.instagram.com/guntur_padilah", icon: <Instagram size={20}/> },
-  { href: "https://github.com/Zombiesigma", icon: <Github size={20}/> },
-  { href: "mailto:gunturfadilah140@gmail.com", icon: <Mail size={20}/> },
-  { href: "https://api.whatsapp.com/send?phone=6285655548656&text=Halo%20Guntur,%20saya%20tertarik%20dengan%20karya%20Anda", icon: <MessageCircle size={20}/> },
+  { href: "https://www.instagram.com/guntur_padilah", icon: <Instagram size={22}/> },
+  { href: "https://github.com/Zombiesigma", icon: <Github size={22}/> },
+  { href: "mailto:gunturfadilah140@gmail.com", icon: <Mail size={22}/> },
+  { href: "https://api.whatsapp.com/send?phone=6285655548656&text=Halo%20Guntur,%20saya%20tertarik%20dengan%20karya%20Anda", icon: <MessageCircle size={22}/> },
 ];
 
 export function Footer() {
@@ -38,7 +38,7 @@ export function Footer() {
             <p className="text-muted-foreground">&copy; {currentYear} Guntur Padilah. All rights reserved.</p>
             <p className="text-sm text-muted-foreground/70">Penulis • Pelukis • Web Developer • Sukabumi, Indonesia</p>
           </div>
-          <div className="flex space-x-4">
+          <div className="flex space-x-6">
             {socialLinks.map(link => (
               <Link key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                 {link.icon}

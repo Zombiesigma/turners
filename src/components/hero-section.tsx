@@ -43,17 +43,17 @@ export function HeroSection() {
     <section id="home" className="relative flex min-h-screen items-center justify-center overflow-hidden py-24">
       <div className="container mx-auto px-4">
         <div className="grid items-center gap-12 md:grid-cols-2">
-          <div className="animate-in fade-in-up">
+          <div className="animate-in fade-in-up text-center md:text-left">
             <h1 className="mb-4 font-headline text-5xl font-bold leading-tight md:text-7xl lg:text-8xl">
               Guntur Padilah
             </h1>
             <p className="mb-6 font-headline text-3xl text-primary md:text-4xl">
               <span className="typewriter">{displayedRole}</span>
             </p>
-            <p className="mb-8 max-w-xl text-lg text-muted-foreground md:text-xl">
+            <p className="mb-8 max-w-xl mx-auto md:mx-0 text-lg text-muted-foreground md:text-xl">
               Menyatukan kata, warna, dan kode dalam harmoni kreatif. Menulis cerita yang menyentuh, melukis emosi pada kanvas, dan membangun dunia digital yang inspiratif.
             </p>
-            <div className="mb-8 flex flex-wrap gap-4">
+            <div className="mb-8 flex flex-wrap justify-center gap-4 md:justify-start">
               <Button asChild size="lg" className="rounded-full">
                 <Link href="#writing">
                   <Bookmark className="mr-2 h-5 w-5" /> Jelajahi Karya
@@ -65,10 +65,10 @@ export function HeroSection() {
                 </Link>
               </Button>
             </div>
-            <div className="flex space-x-4">
-              <Link href="https://www.instagram.com/guntur_padilah" target="_blank" rel="noopener noreferrer" className="text-muted-foreground transition-colors hover:text-primary hover:animate-pulse"><Instagram /></Link>
-              <Link href="https://www.github.com/Zombiesigma" target="_blank" rel="noopener noreferrer" className="text-muted-foreground transition-colors hover:text-primary hover:animate-pulse"><Github /></Link>
-              <Link href="#" className="text-muted-foreground transition-colors hover:text-primary hover:animate-pulse"><Twitter /></Link>
+            <div className="flex justify-center space-x-6 md:justify-start">
+              <Link href="https://www.instagram.com/guntur_padilah" target="_blank" rel="noopener noreferrer" className="text-muted-foreground transition-colors hover:text-primary hover:animate-pulse"><Instagram size={22} /></Link>
+              <Link href="https://www.github.com/Zombiesigma" target="_blank" rel="noopener noreferrer" className="text-muted-foreground transition-colors hover:text-primary hover:animate-pulse"><Github size={22} /></Link>
+              <Link href="#" className="text-muted-foreground transition-colors hover:text-primary hover:animate-pulse"><Twitter size={22} /></Link>
             </div>
           </div>
           <div className="relative mx-auto animate-in fade-in-up" style={{ animationDelay: '200ms' }}>

@@ -18,7 +18,11 @@ import {
   Search,
   Wrench,
   ChevronDown,
-  X
+  X,
+  Home,
+  Award,
+  Mail,
+  Contact
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -33,15 +37,6 @@ import { ThemeToggle } from "./theme-toggle";
 import { cn } from "@/lib/utils";
 import { SearchOverlay } from "./search-overlay";
 
-const menuItems = [
-  { href: "#home", label: "Beranda" },
-  { href: "#writing", label: "Tulisan" },
-  { href: "#paintings", label: "Lukisan" },
-  { href: "#certificates", label: "Sertifikat" },
-  { href: "#projects", label: "Proyek" },
-  { href: "#about", label: "Keahlian" },
-  { href: "#contact", label: "Kontak" },
-];
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -54,6 +49,16 @@ export function Header() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const menuItems = [
+    { href: "#home", label: "Beranda", icon: <Home size={20} /> },
+    { href: "#writing", label: "Tulisan", icon: <Feather size={20} /> },
+    { href: "#paintings", label: "Lukisan", icon: <Palette size={20} /> },
+    { href: "#certificates", label: "Sertifikat", icon: <Award size={20} /> },
+    { href: "#projects", label: "Proyek", icon: <Code size={20} /> },
+    { href: "#about", label: "Keahlian", icon: <Wrench size={20} /> },
+    { href: "#contact", label: "Kontak", icon: <Contact size={20} /> },
+  ];
 
   const MegaMenuItem = ({ href, icon, title, description }: { href: string; icon: React.ReactNode; title: string; description: string }) => (
     <Link href={href} passHref legacyBehavior>
@@ -155,10 +160,13 @@ export function Header() {
                         <Button variant="ghost" size="icon"><X /></Button>
                       </SheetClose>
                     </div>
-                    <nav className="flex flex-col gap-4">
+                    <nav className="flex flex-col gap-2">
                       {menuItems.map((item) => (
                          <SheetClose asChild key={item.href}>
-                            <Link href={item.href} className="text-lg hover:text-primary transition-colors py-2">{item.label}</Link>
+                            <Link href={item.href} className="flex items-center gap-4 rounded-lg p-3 text-base font-medium transition-colors hover:bg-accent">
+                              <span className="text-primary">{item.icon}</span>
+                              {item.label}
+                            </Link>
                          </SheetClose>
                       ))}
                     </nav>

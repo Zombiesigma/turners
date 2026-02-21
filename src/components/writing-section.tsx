@@ -22,14 +22,14 @@ export function WritingSection() {
         </div>
         
         {featuredBook && (
-          <div className="mb-24 grid items-center gap-12 md:grid-cols-2">
+          <div className="mb-16 grid items-center gap-12 md:grid-cols-2 lg:mb-24">
             <div className="animate-in fade-in-up">
               <Image
                 src={featuredBook.imageUrl}
                 alt={featuredBook.description}
                 width={600}
                 height={800}
-                className="mx-auto rounded-lg shadow-2xl"
+                className="mx-auto w-full max-w-[400px] rounded-lg shadow-2xl md:max-w-full"
                 data-ai-hint={featuredBook.imageHint}
               />
             </div>

@@ -61,7 +61,7 @@ export function DevelopmentSection() {
           <h2 className="mb-16 font-headline text-4xl font-bold md:text-5xl gradient-text">Proyek Development</h2>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-3">
+        <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3">
           {projects.map((project, index) => (
             <div key={project.title} className="animate-in fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
               <Card className="flex h-full flex-col glow-card transition-all duration-300 hover:-translate-y-2">
