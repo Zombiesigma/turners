@@ -159,3 +159,14 @@
     transform: translateX(50%);
   }
 }
+
+.floating-text {
+    position: absolute;
+    font-size: 1.25rem;
+    font-weight: bold;
+    font-family: monospace;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+    transition: opacity 1s ease-out, transform 1s ease-out;
+    pointer-events: none;
+    will-change: transform, opacity;
+}

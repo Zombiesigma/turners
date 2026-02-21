@@ -49,6 +49,7 @@ export default function GamePage() {
   const enemyDeathAudioRef = useRef<HTMLAudioElement>(null);
   const playerHealthBarRef = useRef<HTMLDivElement>(null);
   const enemyHealthBarRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const floatingTextContainerRef = useRef<HTMLDivElement>(null);
   
   const isMobile = useIsMobile();
 
@@ -194,6 +195,7 @@ export default function GamePage() {
         setEnemies={setEnemies}
         playerHealthBarRef={playerHealthBarRef}
         enemyHealthBarRefs={enemyHealthBarRefs}
+        floatingTextContainerRef={floatingTextContainerRef}
       />
 
       <div ref={playerHealthBarRef} className="fixed top-0 left-0 z-40" style={{ display: 'none' }}>
@@ -205,6 +207,8 @@ export default function GamePage() {
             <HealthBar health={enemy.health} maxHealth={enemy.maxHealth} />
          </div>
       ))}
+
+      <div ref={floatingTextContainerRef} className="fixed inset-0 z-40 pointer-events-none" />
 
       {isMobile && gameStatus === 'playing' && (
         <>
