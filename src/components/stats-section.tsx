@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, ReactNode } from "react";
+import { BookMarked, Palette, KanbanSquare, Award } from 'lucide-react';
+import { Card, CardContent } from "@/components/ui/card";
 
 function useOnScreen(ref: React.RefObject<HTMLElement>) {
   const [isIntersecting, setIntersecting] = useState(false);
@@ -10,12 +12,13 @@ function useOnScreen(ref: React.RefObject<HTMLElement>) {
       ([entry]) => setIntersecting(entry.isIntersecting),
       { threshold: 0.5 }
     );
-    if (ref.current) {
-      observer.observe(ref.current);
+    const currentRef = ref.current;
+    if (currentRef) {
+      observer.observe(currentRef);
     }
     return () => {
-      if (ref.current) {
-        observer.unobserve(ref.current);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
     };
   }, [ref]);
@@ -23,12 +26,13 @@ function useOnScreen(ref: React.RefObject<HTMLElement>) {
   return isIntersecting;
 }
 
-function Counter({ to, duration = 2000 }: { to: number; duration?: number }) {
+function Counter({ to, duration = 2000, suffix = '' }: { to: number; duration?: number, suffix?: string }) {
   const [count, setCount] = useState(0);
   const start = useRef(0);
   const animationFrame = useRef(0);
 
   useEffect(() => {
+    start.current = 0; // Reset animation on change
     const step = (timestamp: number) => {
       if (!start.current) {
         start.current = timestamp;
@@ -45,14 +49,14 @@ function Counter({ to, duration = 2000 }: { to: number; duration?: number }) {
     return () => cancelAnimationFrame(animationFrame.current);
   }, [to, duration]);
 
-  return <span>{count}</span>;
+  return <span>{count.toLocaleString()}{suffix}</span>;
 }
 
-const stats = [
-  { label: "Buku Terbit", value: 12 },
-  { label: "Lukisan", value: 150 },
-  { label: "Proyek Web", value: 50 },
-  { label: "Sertifikat Premium", value: 3 },
+const stats: { label: string; value: number; icon: ReactNode; suffix?: string }[] = [
+  { label: "Buku Terbit", value: 12, icon: <BookMarked className="h-8 w-8" />, suffix: '+' },
+  { label: "Lukisan Terjual", value: 150, icon: <Palette className="h-8 w-8" />, suffix: '+' },
+  { label: "Proyek Web", value: 50, icon: <KanbanSquare className="h-8 w-8" />, suffix: '+' },
+  { label: "Sertifikat Premium", value: 3, icon: <Award className="h-8 w-8" /> },
 ];
 
 export function StatsSection() {
@@ -60,15 +64,22 @@ export function StatsSection() {
   const isVisible = useOnScreen(ref);
 
   return (
-    <section ref={ref} className="py-20 bg-card/50">
+    <section ref={ref} className="py-24">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat, index) => (
-            <div key={index} className="text-center animate-in fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
-              <div className="mb-2 text-5xl font-bold gradient-text">
-                {isVisible && <Counter to={stat.value} />}
-              </div>
-              <p className="text-muted-foreground">{stat.label}</p>
+            <div key={index} className="animate-in fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
+              <Card className="glow-card text-center h-full hover:-translate-y-2 transition-transform duration-300">
+                <CardContent className="p-8 flex flex-col items-center justify-center gap-3">
+                    <div className="text-primary">
+                        {stat.icon}
+                    </div>
+                    <div className="text-5xl font-bold gradient-text">
+                        {isVisible ? <Counter to={stat.value} suffix={stat.suffix} /> : '0'}
+                    </div>
+                    <p className="text-muted-foreground font-medium text-lg">{stat.label}</p>
+                </CardContent>
+              </Card>
             </div>
           ))}
         </div>
