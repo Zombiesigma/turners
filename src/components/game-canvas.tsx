@@ -13,6 +13,14 @@ type Enemy = {
     aiTimer: number;
 };
 
+type FloatingText = {
+    id: number;
+    element: HTMLDivElement;
+    position: THREE.Vector3;
+    lifespan: number;
+    yVelocity: number;
+};
+
 type GameCanvasProps = {
     score: number;
     setScore: (fn: (s: number) => number) => void;
@@ -48,6 +56,10 @@ export function GameCanvas({
   const mountRef = useRef<HTMLDivElement>(null);
   
   const gameState = useRef({ score, playerHealth, enemies, isAttacking, isJumping, joystickDelta, maxPlayerHealth });
+
+  const floatingTexts = useRef<FloatingText[]>([]);
+  const playerLavaDamageCooldown = useRef(0);
+  const playerDamageCooldown = useRef(0);
 
   useEffect(() => {
     gameState.current = { score, playerHealth, enemies, isAttacking, isJumping, joystickDelta, maxPlayerHealth };
@@ -201,7 +213,6 @@ export function GameCanvas({
             bb: new THREE.Box3()
         });
     });
-    let playerDamageCooldown = 0;
     
     camera.position.set(0, 5, 6);
     camera.lookAt(player.position);
@@ -253,16 +264,7 @@ export function GameCanvas({
     scene.add(attackEffect);
     
     // --- Floating Text Logic ---
-    type FloatingText = {
-        id: number;
-        element: HTMLDivElement;
-        position: THREE.Vector3;
-        lifespan: number;
-        yVelocity: number;
-    };
-    const floatingTexts = useRef<FloatingText[]>([]).current;
     let nextTextId = 0;
-    const playerLavaDamageCooldown = useRef(0);
 
     const spawnFloatingText = (text: string, color: string, position: THREE.Vector3) => {
         const container = floatingTextContainerRef.current;
@@ -274,7 +276,7 @@ export function GameCanvas({
         element.className = 'floating-text';
         container.appendChild(element);
         
-        floatingTexts.push({
+        floatingTexts.current.push({
             id: nextTextId++,
             element,
             position: position.clone(),
@@ -296,7 +298,7 @@ export function GameCanvas({
         if (gameState.current.playerHealth <= 0) return;
 
         if (attackCooldown > 0) attackCooldown -= delta;
-        if (playerDamageCooldown > 0) playerDamageCooldown -= delta;
+        if (playerDamageCooldown.current > 0) playerDamageCooldown.current -= delta;
         if (playerLavaDamageCooldown.current > 0) playerLavaDamageCooldown.current -= delta;
         
         // --- Physics and Movement ---
@@ -533,9 +535,9 @@ export function GameCanvas({
             
             if (enemyObj.bb) {
                 enemyObj.bb.setFromObject(enemyMesh);
-                if (enemyObj.bb.intersectsBox(playerBB) && playerDamageCooldown <= 0) {
+                if (enemyObj.bb.intersectsBox(playerBB) && playerDamageCooldown.current <= 0) {
                     onAttack();
-                    playerDamageCooldown = 1.0;
+                    playerDamageCooldown.current = 1.0;
                     enemyAttackAnimations[index] = 0.4;
                     const damage = 15;
                     const newHealth = Math.max(0, gameState.current.playerHealth - damage);
@@ -624,14 +626,14 @@ export function GameCanvas({
         updateHealthBarPosition(player, playerHealthBarRef, 2.2);
         enemyObjects.forEach((em, i) => em.mesh && updateHealthBarPosition(em.mesh, { current: enemyHealthBarRefs.current[i] }, 2.5));
         
-        for (let i = floatingTexts.length - 1; i >= 0; i--) {
-            const text = floatingTexts[i];
+        for (let i = floatingTexts.current.length - 1; i >= 0; i--) {
+            const text = floatingTexts.current[i];
             text.lifespan -= delta;
             text.position.y += text.yVelocity * delta;
 
             if (text.lifespan <= 0) {
                 floatingTextContainerRef.current?.removeChild(text.element);
-                floatingTexts.splice(i, 1);
+                floatingTexts.current.splice(i, 1);
             } else {
                 const vector = text.position.clone().project(camera);
                 const onScreen = vector.z < 1 && vector.x > -1 && vector.x < 1 && vector.y > -1 && vector.y < 1;
