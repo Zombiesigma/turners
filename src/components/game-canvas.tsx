@@ -267,8 +267,6 @@ export function GameCanvas({
             if (enemyData.health <= 0) {
                 if (enemyMesh.visible) {
                     enemyMesh.visible = false;
-                    const indexToRemove = enemyBBs.indexOf(enemyBBs[index]);
-                    if (indexToRemove > -1) enemyBBs.splice(indexToRemove, 1);
                 }
                 return;
             };
