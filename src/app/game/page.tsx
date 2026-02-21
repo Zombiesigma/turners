@@ -45,6 +45,7 @@ export default function GamePage() {
   const collectAudioRef = useRef<HTMLAudioElement>(null);
   const walkAudioRef = useRef<HTMLAudioElement>(null);
   const jumpAudioRef = useRef<HTMLAudioElement>(null);
+  const gameOverAudioRef = useRef<HTMLAudioElement>(null);
   const playerHealthBarRef = useRef<HTMLDivElement>(null);
   const enemyHealthBarRefs = useRef<(HTMLDivElement | null)[]>([]);
   
@@ -70,6 +71,9 @@ export default function GamePage() {
 
   const handleGameOver = useCallback(() => {
     if (gameStatus === 'playing') {
+        if (gameOverAudioRef.current) {
+            gameOverAudioRef.current.play().catch(e => {});
+        }
         setGameStatus('lost');
         if (lavaAudioRef.current) lavaAudioRef.current.pause();
         if (walkAudioRef.current) walkAudioRef.current.pause();
@@ -131,6 +135,9 @@ export default function GamePage() {
       </audio>
       <audio ref={jumpAudioRef}>
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/freesound_community-jump-sound-14839.mp3" type="audio/mpeg" />
+      </audio>
+      <audio ref={gameOverAudioRef}>
+        <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/universfield-game-over-deep-male-voice-clip-352695.mp3" type="audio/mpeg" />
       </audio>
       
       <div className="absolute top-4 left-4 z-20">
