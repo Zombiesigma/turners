@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { GameCanvas } from '@/components/game-canvas';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RotateCw } from 'lucide-react';
@@ -17,6 +17,10 @@ export default function GamePage() {
     setGameStatus('playing');
     setGameKey(Date.now());
   };
+
+  const handleGameWon = useCallback(() => {
+    setGameStatus('won');
+  }, []);
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
@@ -42,7 +46,7 @@ export default function GamePage() {
       <GameCanvas
         key={gameKey}
         setScore={setScore}
-        setGameWon={() => setGameStatus('won')}
+        setGameWon={handleGameWon}
         collectibleCount={totalCollectibles}
       />
 
