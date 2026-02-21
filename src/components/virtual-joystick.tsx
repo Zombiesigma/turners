@@ -66,7 +66,7 @@ export function VirtualJoystick({ onMove }: VirtualJoystickProps) {
   return (
     <div
       ref={baseRef}
-      className="fixed bottom-16 left-1/2 -translate-x-1/2 sm:left-20 sm:translate-x-0 z-50 h-36 w-36 rounded-full bg-black/20 backdrop-blur-sm md:hidden"
+      className="fixed bottom-16 left-1/2 -translate-x-1/2 sm:left-20 sm:translate-x-0 z-50 h-36 w-36 rounded-full bg-black/20 backdrop-blur-sm md:hidden portrait:hidden"
       onTouchStart={(e) => handleInteractionStart(e.touches[0].clientX, e.touches[0].clientY)}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleInteractionEnd}

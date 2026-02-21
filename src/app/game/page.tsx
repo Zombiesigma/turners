@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { GameCanvas } from '@/components/game-canvas';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RotateCw } from 'lucide-react';
+import { ArrowLeft, RotateCw, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { VirtualJoystick } from '@/components/virtual-joystick';
@@ -47,6 +47,12 @@ export default function GamePage() {
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4 text-center backdrop-blur-sm landscape:hidden md:hidden">
+        <Smartphone className="h-24 w-24 animate-pulse text-white" />
+        <h2 className="mt-6 text-3xl font-bold text-white">Please Rotate Your Device</h2>
+        <p className="mt-2 text-lg text-white/80">This game is designed for a landscape experience.</p>
+      </div>
+
       <audio autoPlay loop>
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/freesound_community-horror01_loop-29220.mp3" type="audio/mpeg" />
       </audio>
