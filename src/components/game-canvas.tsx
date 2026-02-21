@@ -71,7 +71,7 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
     scene.add(player);
     const playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
 
-    camera.position.set(0, 15, 18);
+    camera.position.set(0, 8, 10);
     camera.lookAt(player.position);
 
     // Obstacles
@@ -168,7 +168,7 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
         }
 
         // Follow camera
-        const cameraOffset = new THREE.Vector3(0, 15, 18);
+        const cameraOffset = new THREE.Vector3(0, 8, 10);
         const targetCameraPosition = player.position.clone().add(cameraOffset);
         camera.position.lerp(targetCameraPosition, 0.05);
         camera.lookAt(player.position);
