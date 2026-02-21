@@ -22,7 +22,8 @@ import {
   Home,
   Award,
   Mail,
-  Contact
+  Contact,
+  Gamepad2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -51,13 +52,14 @@ export function Header() {
   }, []);
 
   const menuItems = [
-    { href: "#home", label: "Beranda", icon: <Home size={20} /> },
-    { href: "#writing", label: "Tulisan", icon: <Feather size={20} /> },
-    { href: "#paintings", label: "Lukisan", icon: <Palette size={20} /> },
-    { href: "#certificates", label: "Sertifikat", icon: <Award size={20} /> },
-    { href: "#projects", label: "Proyek", icon: <Code size={20} /> },
-    { href: "#about", label: "Keahlian", icon: <Wrench size={20} /> },
-    { href: "#contact", label: "Kontak", icon: <Contact size={20} /> },
+    { href: "/#home", label: "Beranda", icon: <Home size={20} /> },
+    { href: "/#writing", label: "Tulisan", icon: <Feather size={20} /> },
+    { href: "/#paintings", label: "Lukisan", icon: <Palette size={20} /> },
+    { href: "/#certificates", label: "Sertifikat", icon: <Award size={20} /> },
+    { href: "/#projects", label: "Proyek", icon: <Code size={20} /> },
+    { href: "/#about", label: "Keahlian", icon: <Wrench size={20} /> },
+    { href: "/game", label: "3D Game", icon: <Gamepad2 size={20} /> },
+    { href: "/#contact", label: "Kontak", icon: <Contact size={20} /> },
   ];
 
   const MegaMenuItem = ({ href, icon, title, description }: { href: string; icon: React.ReactNode; title: string; description: string }) => (
@@ -81,7 +83,7 @@ export function Header() {
         )}
       >
         <div className="container mx-auto flex h-20 items-center justify-between px-4">
-          <Link href="#home" className="text-3xl font-bold font-headline gradient-text">
+          <Link href="/#home" className="text-3xl font-bold font-headline gradient-text">
             GP.
           </Link>
 
@@ -89,7 +91,7 @@ export function Header() {
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <Link href="#home" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">Beranda</Link>
+                  <Link href="/#home" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">Beranda</Link>
                 </NavigationMenuItem>
                 
                 <NavigationMenuItem>
@@ -98,37 +100,42 @@ export function Header() {
                     <div className="grid w-[600px] grid-cols-3 gap-3 p-4">
                       <div className="flex flex-col gap-1">
                         <h3 className="font-bold font-headline text-primary px-3 py-2 flex items-center gap-2"><Feather size={16}/> Tulisan</h3>
-                        <MegaMenuItem href="#writing" icon={<BookOpen size={16}/>} title="Novel & Cerita" description="Karya fiksi terbaru"/>
-                        <MegaMenuItem href="#writing" icon={<Newspaper size={16}/>} title="Artikel & Esai" description="Tulisan non-fiksi"/>
-                        <MegaMenuItem href="#writing" icon={<ScrollText size={16}/>} title="Puisi" description="Kumpulan puisi"/>
+                        <MegaMenuItem href="/#writing" icon={<BookOpen size={16}/>} title="Novel & Cerita" description="Karya fiksi terbaru"/>
+                        <MegaMenuItem href="/#writing" icon={<Newspaper size={16}/>} title="Artikel & Esai" description="Tulisan non-fiksi"/>
+                        <MegaMenuItem href="/#writing" icon={<ScrollText size={16}/>} title="Puisi" description="Kumpulan puisi"/>
                       </div>
                       <div className="flex flex-col gap-1">
                         <h3 className="font-bold font-headline text-primary px-3 py-2 flex items-center gap-2"><Palette size={16}/> Lukisan</h3>
-                        <MegaMenuItem href="#paintings" icon={<Image size={16}/>} title="Galeri Lukisan" description="Karya seni visual"/>
-                        <MegaMenuItem href="#paintings" icon={<Landmark size={16}/>} title="Pameran" description="Eksibisi terkini"/>
-                        <MegaMenuItem href="#paintings" icon={<Paintbrush size={16}/>} title="Komisi" description="Layanan lukisan"/>
+                        <MegaMenuItem href="/#paintings" icon={<Image size={16}/>} title="Galeri Lukisan" description="Karya seni visual"/>
+                        <MegaMenuItem href="/#paintings" icon={<Landmark size={16}/>} title="Pameran" description="Eksibisi terkini"/>
+                        <MegaMenuItem href="/#paintings" icon={<Paintbrush size={16}/>} title="Komisi" description="Layanan lukisan"/>
                       </div>
                       <div className="flex flex-col gap-1">
                         <h3 className="font-bold font-headline text-primary px-3 py-2 flex items-center gap-2"><Code size={16}/> Development</h3>
-                        <MegaMenuItem href="#projects" icon={<Laptop size={16}/>} title="Proyek Web" description="Aplikasi & website"/>
-                        <MegaMenuItem href="#projects" icon={<Github size={16}/>} title="Open Source" description="Kontribusi komunitas"/>
-                        <MegaMenuItem href="#projects" icon={<Wrench size={16}/>} title="Tools & Scripts" description="Utilitas programming"/>
+                        <MegaMenuItem href="/#projects" icon={<Laptop size={16}/>} title="Proyek Web" description="Aplikasi & website"/>
+                        <MegaMenuItem href="/#projects" icon={<Github size={16}/>} title="Open Source" description="Kontribusi komunitas"/>
+                        <MegaMenuItem href="/#projects" icon={<Wrench size={16}/>} title="Tools & Scripts" description="Utilitas programming"/>
                       </div>
                     </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
                  <NavigationMenuItem>
-                    <Link href="#certificates" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
+                    <Link href="/#certificates" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
                       Sertifikat
                     </Link>
                   </NavigationMenuItem>
                  <NavigationMenuItem>
-                    <Link href="#about" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
+                    <Link href="/#about" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
                       Keahlian
                     </Link>
                   </NavigationMenuItem>
+                <NavigationMenuItem>
+                    <Link href="/game" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
+                      3D Game
+                    </Link>
+                </NavigationMenuItem>
                  <NavigationMenuItem>
-                    <Link href="#contact" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
+                    <Link href="/#contact" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
                       Kontak
                     </Link>
                   </NavigationMenuItem>
@@ -153,7 +160,7 @@ export function Header() {
                  <SheetDescription className="sr-only">Mobile navigation menu</SheetDescription>
                  <div className="flex flex-col h-full">
                     <div className="flex justify-between items-center mb-8">
-                       <Link href="#home" className="text-3xl font-bold font-headline gradient-text">
+                       <Link href="/#home" className="text-3xl font-bold font-headline gradient-text">
                         GP.
                       </Link>
                       <SheetClose asChild>

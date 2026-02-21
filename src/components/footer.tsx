@@ -2,11 +2,11 @@ import Link from 'next/link';
 import { Github, Instagram, Mail, MessageCircle } from 'lucide-react';
 
 const breadcrumbs = [
-  { href: "#home", label: "Beranda" },
-  { href: "#writing", label: "Tulisan" },
-  { href: "#paintings", label: "Lukisan" },
-  { href: "#certificates", label: "Sertifikat" },
-  { href: "#contact", label: "Kontak" },
+  { href: "/#home", label: "Beranda" },
+  { href: "/#writing", label: "Tulisan" },
+  { href: "/#paintings", label: "Lukisan" },
+  { href: "/#certificates", label: "Sertifikat" },
+  { href: "/#contact", label: "Kontak" },
 ];
 
 const socialLinks = [
