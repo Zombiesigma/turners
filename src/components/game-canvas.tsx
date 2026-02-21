@@ -110,8 +110,8 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount, lavaAudioRe
         lavaPools.push(lavaPool);
     });
 
-    // Player Cube
-    const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
+    // Player Capsule
+    const playerGeometry = new THREE.CapsuleGeometry(0.4, 0.8, 10, 20); // Total height 1.6
     const playerMaterial = new THREE.MeshStandardMaterial({ 
         color: 0xFFD700, 
         metalness: 0.6,
@@ -120,7 +120,7 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount, lavaAudioRe
         emissiveIntensity: 0.2
     });
     const player = new THREE.Mesh(playerGeometry, playerMaterial);
-    player.position.y = 0.5;
+    player.position.y = 0.8; // Half of total height
     player.castShadow = true;
     scene.add(player);
     const playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
@@ -284,7 +284,7 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount, lavaAudioRe
         playerBB.setFromObject(player);
         for (const lavaBB of lavaBBs) {
             if(playerBB.intersectsBox(lavaBB)) {
-                 player.position.set(0, 0.5, 0);
+                 player.position.set(0, 0.8, 0);
                  break;
             }
         }
