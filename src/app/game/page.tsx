@@ -38,11 +38,6 @@ export default function GamePage() {
           <span className="sr-only">Restart Game</span>
         </Button>
       </div>
-
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-10 pointer-events-none">
-        <h1 className="text-4xl font-bold font-headline gradient-text">3D Cube Runner</h1>
-        <p className="text-muted-foreground mt-2">Use arrow keys to move. Collect all the spinning rings.</p>
-      </div>
       
       <GameCanvas
         key={gameKey}
