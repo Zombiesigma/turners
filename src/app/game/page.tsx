@@ -46,6 +46,7 @@ export default function GamePage() {
   const walkAudioRef = useRef<HTMLAudioElement>(null);
   const jumpAudioRef = useRef<HTMLAudioElement>(null);
   const gameOverAudioRef = useRef<HTMLAudioElement>(null);
+  const enemyDeathAudioRef = useRef<HTMLAudioElement>(null);
   const playerHealthBarRef = useRef<HTMLDivElement>(null);
   const enemyHealthBarRefs = useRef<(HTMLDivElement | null)[]>([]);
   
@@ -101,6 +102,13 @@ export default function GamePage() {
     }
   }, []);
 
+  const handleEnemyDeathSound = useCallback(() => {
+    if (enemyDeathAudioRef.current) {
+      enemyDeathAudioRef.current.currentTime = 0;
+      enemyDeathAudioRef.current.play().catch(e => {});
+    }
+  }, []);
+
   const handleJoystickMove = useCallback((delta: { x: number; z: number }) => {
     setJoystickDelta(delta);
   }, []);
@@ -139,6 +147,9 @@ export default function GamePage() {
       <audio ref={gameOverAudioRef}>
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/universfield-game-over-deep-male-voice-clip-352695.mp3" type="audio/mpeg" />
       </audio>
+      <audio ref={enemyDeathAudioRef}>
+        <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/vinodadora-male-death-sound-128357%20(1).mp3" type="audio/mpeg" />
+      </audio>
       
       <div className="absolute top-4 left-4 z-20">
         <Button asChild variant="outline">
@@ -170,6 +181,7 @@ export default function GamePage() {
         onCollect={handleCollectSound}
         onAttack={handleAttackSound}
         onJump={handleJumpSound}
+        onEnemyDefeated={handleEnemyDeathSound}
         joystickDelta={joystickDelta}
         isAttacking={isAttacking}
         setIsAttacking={setIsAttacking}

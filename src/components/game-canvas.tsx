@@ -23,6 +23,7 @@ type GameCanvasProps = {
     onCollect: () => void;
     onAttack: () => void;
     onJump: () => void;
+    onEnemyDefeated: () => void;
     joystickDelta: { x: number; z: number };
     isAttacking: boolean;
     setIsAttacking: (v: boolean) => void;
@@ -38,7 +39,7 @@ type GameCanvasProps = {
 
 export function GameCanvas({ 
     score, setScore, setGameOver, collectibleCount, lavaAudioRef, walkAudioRef,
-    onCollect, onAttack, onJump, joystickDelta, isAttacking, setIsAttacking,
+    onCollect, onAttack, onJump, onEnemyDefeated, joystickDelta, isAttacking, setIsAttacking,
     isJumping, setIsJumping, playerHealth, setPlayerHealth, enemies, setEnemies,
     playerHealthBarRef, enemyHealthBarRefs
 }: GameCanvasProps) {
@@ -113,7 +114,7 @@ export function GameCanvas({
     const gravity = 30.0;
 
     const enemyMeshes: THREE.Mesh[] = [];
-    const enemyBBs: THREE.Box3[] = [];
+    const enemyBBs: (THREE.Box3 | null)[] = [];
     gameState.current.enemies.forEach(enemyData => {
         const enemyMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.6, 1.2, 10, 20), new THREE.MeshStandardMaterial({ color: 0xcc0000, metalness: 0.5, roughness: 0.3, emissive: 0x880000 }));
         enemyMesh.position.copy(enemyData.position);
@@ -241,12 +242,21 @@ export function GameCanvas({
             const damagedEnemies = new Set<string>();
             enemyMeshes.forEach((enemyMesh, index) => {
                 const enemyData = gameState.current.enemies[index];
-                if (enemyData.health > 0 && player.position.distanceTo(enemyMesh.position) < attackRadius) {
+                if (enemyMesh.visible && enemyData.health > 0 && player.position.distanceTo(enemyMesh.position) < attackRadius) {
                     damagedEnemies.add(enemyData.id);
                 }
             });
              if (damagedEnemies.size > 0) {
-                setEnemies(prev => prev.map(e => damagedEnemies.has(e.id) ? { ...e, health: Math.max(0, e.health - attackDamage) } : e));
+                setEnemies(prev => prev.map(e => {
+                    if (damagedEnemies.has(e.id)) {
+                        const newHealth = Math.max(0, e.health - attackDamage);
+                        if (e.health > 0 && newHealth <= 0) {
+                            onEnemyDefeated();
+                        }
+                        return { ...e, health: newHealth };
+                    }
+                    return e;
+                }));
             }
             if (gameState.current.isAttacking) setIsAttacking(false);
         }
@@ -267,6 +277,7 @@ export function GameCanvas({
             if (enemyData.health <= 0) {
                 if (enemyMesh.visible) {
                     enemyMesh.visible = false;
+                    enemyBBs[index] = null; // Invalidate bounding box
                 }
                 return;
             };
@@ -323,15 +334,17 @@ export function GameCanvas({
             enemyMesh.position.add(directionToTarget.multiplyScalar(enemySpeed));
             
             playerBB.setFromObject(player);
-            enemyBBs[index].setFromObject(enemyMesh);
-            if (enemyBBs[index].intersectsBox(playerBB) && playerDamageCooldown <= 0) {
-                onAttack();
-                playerDamageCooldown = 1.0;
-                const newHealth = Math.max(0, gameState.current.playerHealth - 15);
-                setPlayerHealth(h => newHealth);
-                if (newHealth <= 0) {
-                    setGameOver();
-                    return;
+            if (enemyBBs[index]) {
+                enemyBBs[index]!.setFromObject(enemyMesh);
+                if (enemyBBs[index]!.intersectsBox(playerBB) && playerDamageCooldown <= 0) {
+                    onAttack();
+                    playerDamageCooldown = 1.0;
+                    const newHealth = Math.max(0, gameState.current.playerHealth - 15);
+                    setPlayerHealth(h => newHealth);
+                    if (newHealth <= 0) {
+                        setGameOver();
+                        return;
+                    }
                 }
             }
         });
@@ -440,7 +453,7 @@ export function GameCanvas({
         groundTexture.dispose();
         lavaTexture.dispose();
     };
-  }, [collectibleCount, setGameOver, setScore, lavaAudioRef, walkAudioRef, onCollect, onAttack, onJump, setEnemies, setPlayerHealth, enemyHealthBarRefs, playerHealthBarRef, setIsAttacking, setIsJumping]);
+  }, [collectibleCount, setGameOver, setScore, lavaAudioRef, walkAudioRef, onCollect, onAttack, onJump, onEnemyDefeated, setEnemies, setPlayerHealth, enemyHealthBarRefs, playerHealthBarRef, setIsAttacking, setIsJumping]);
 
   return <div ref={mountRef} className="absolute top-0 left-0 w-full h-full" />;
 }
