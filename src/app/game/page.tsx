@@ -1,26 +1,55 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { GameCanvas } from '@/components/game-canvas';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RotateCw, Smartphone } from 'lucide-react';
+import { ArrowLeft, RotateCw, Smartphone, Sword } from 'lucide-react';
 import Link from 'next/link';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { VirtualJoystick } from '@/components/virtual-joystick';
+import { cn } from '@/lib/utils';
+
+const HealthBar = ({ health, maxHealth }: { health: number, maxHealth: number }) => {
+  const healthPercentage = Math.max(0, (health / maxHealth) * 100);
+  return (
+    <div className="h-2 w-16 rounded-full bg-red-800 border border-black/50">
+      <div
+        className="h-full rounded-full bg-green-500 transition-all duration-300"
+        style={{ width: `${healthPercentage}%` }}
+      />
+    </div>
+  );
+};
+
 
 export default function GamePage() {
+  const totalCollectibles = 40;
+  const initialPlayerHealth = 100;
+  const initialEnemies = useMemo(() => [
+    { id: 'enemy1', health: 100, maxHealth: 100, position: new THREE.Vector3(-20, 0.8, -20) },
+    { id: 'enemy2', health: 100, maxHealth: 100, position: new THREE.Vector3(20, 0.8, 20) },
+  ], []);
+
   const [score, setScore] = useState(0);
-  const [gameStatus, setGameStatus] = useState<'playing' | 'won'>('playing');
+  const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
   const [gameKey, setGameKey] = useState(Date.now());
   const [joystickDelta, setJoystickDelta] = useState({ x: 0, z: 0 });
-  const totalCollectibles = 40;
+  const [isAttacking, setIsAttacking] = useState(false);
+  const [playerHealth, setPlayerHealth] = useState(initialPlayerHealth);
+  const [enemies, setEnemies] = useState(initialEnemies);
+
   const lavaAudioRef = useRef<HTMLAudioElement>(null);
   const collectAudioRef = useRef<HTMLAudioElement>(null);
+  const playerHealthBarRef = useRef<HTMLDivElement>(null);
+  const enemyHealthBarRefs = useRef<(HTMLDivElement | null)[]>([]);
+  
   const isMobile = useIsMobile();
 
   const handleRestart = () => {
     setScore(0);
     setGameStatus('playing');
+    setPlayerHealth(initialPlayerHealth);
+    setEnemies(initialEnemies.map(e => ({ ...e, health: e.maxHealth })));
     setGameKey(Date.now());
     if (lavaAudioRef.current) {
       lavaAudioRef.current.pause();
@@ -28,11 +57,18 @@ export default function GamePage() {
   };
 
   const handleGameWon = useCallback(() => {
-    setGameStatus('won');
-    if (lavaAudioRef.current) {
-      lavaAudioRef.current.pause();
+    if (gameStatus === 'playing') {
+      setGameStatus('won');
+      if (lavaAudioRef.current) lavaAudioRef.current.pause();
     }
-  }, []);
+  }, [gameStatus]);
+
+  const handleGameOver = useCallback(() => {
+    if (gameStatus === 'playing') {
+        setGameStatus('lost');
+        if (lavaAudioRef.current) lavaAudioRef.current.pause();
+    }
+  }, [gameStatus]);
   
   const handleCollectSound = useCallback(() => {
     if (collectAudioRef.current) {
@@ -44,6 +80,11 @@ export default function GamePage() {
   const handleJoystickMove = useCallback((delta: { x: number; z: number }) => {
     setJoystickDelta(delta);
   }, []);
+  
+  const allEnemiesDefeated = useMemo(() => enemies.every(e => e.health <= 0), [enemies]);
+  if (score === totalCollectibles && allEnemiesDefeated && gameStatus === 'playing') {
+    handleGameWon();
+  }
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
@@ -62,6 +103,7 @@ export default function GamePage() {
       <audio ref={collectAudioRef}>
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/floraphonic-arcade-ui-6-229503.mp3" type="audio/mpeg" />
       </audio>
+      
       <div className="absolute top-4 left-4 z-20">
         <Button asChild variant="outline">
           <Link href="/">
@@ -83,23 +125,60 @@ export default function GamePage() {
       
       <GameCanvas
         key={gameKey}
+        score={score}
         setScore={setScore}
-        setGameWon={handleGameWon}
+        setGameOver={handleGameOver}
         collectibleCount={totalCollectibles}
         lavaAudioRef={lavaAudioRef}
         onCollect={handleCollectSound}
         joystickDelta={joystickDelta}
+        isAttacking={isAttacking}
+        playerHealth={playerHealth}
+        setPlayerHealth={setPlayerHealth}
+        enemies={enemies}
+        setEnemies={setEnemies}
+        playerHealthBarRef={playerHealthBarRef}
+        enemyHealthBarRefs={enemyHealthBarRefs}
       />
 
-      {isMobile && <VirtualJoystick onMove={handleJoystickMove} />}
+      <div ref={playerHealthBarRef} className="fixed top-0 left-0 z-40" style={{ display: 'none' }}>
+        <HealthBar health={playerHealth} maxHealth={initialPlayerHealth} />
+      </div>
 
-      {gameStatus === 'won' && (
+      {enemies.map((enemy, index) => (
+         <div key={enemy.id} ref={el => enemyHealthBarRefs.current[index] = el} className="fixed top-0 left-0 z-40" style={{ display: 'none' }}>
+            <HealthBar health={enemy.health} maxHealth={enemy.maxHealth} />
+         </div>
+      ))}
+
+      {isMobile && gameStatus === 'playing' && (
+        <>
+          <VirtualJoystick onMove={handleJoystickMove} />
+          <div className="fixed bottom-16 right-16 z-50 md:hidden portrait:hidden">
+              <Button 
+                size="icon" 
+                className="h-20 w-20 rounded-full"
+                onPointerDown={() => setIsAttacking(true)}
+                onPointerUp={() => setIsAttacking(false)}
+                onPointerLeave={() => setIsAttacking(false)}
+              >
+                <Sword size={32} />
+              </Button>
+          </div>
+        </>
+      )}
+
+      {(gameStatus === 'won' || gameStatus === 'lost') && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in">
-          <h2 className="text-6xl font-bold font-headline gradient-text">You Win!</h2>
-          <p className="text-xl text-white mt-2">Final Score: {score}</p>
+          <h2 className={cn("text-6xl font-bold font-headline", gameStatus === 'won' ? "gradient-text" : "text-red-500")}>
+            {gameStatus === 'won' ? 'You Win!' : 'Game Over'}
+          </h2>
+          <p className="text-xl text-white mt-2">
+            {gameStatus === 'won' ? `Final Score: ${score}` : 'The executioners got you.'}
+          </p>
           <Button onClick={handleRestart} className="mt-8" size="lg">
             <RotateCw className="mr-2 h-5 w-5" />
-            Play Again
+            {gameStatus === 'won' ? 'Play Again' : 'Try Again'}
           </Button>
         </div>
       )}
