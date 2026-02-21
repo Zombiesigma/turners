@@ -90,18 +90,42 @@ export function GameCanvas({
     const lavaTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/lava/lavatile.jpg');
     lavaTexture.wrapS = THREE.RepeatWrapping;
     lavaTexture.wrapT = THREE.RepeatWrapping;
-    lavaTexture.repeat.set(4, 4);
+    lavaTexture.repeat.set(16, 16); // Increase repetition for better flow on complex shapes
     const lavaMaterial = new THREE.MeshStandardMaterial({ map: lavaTexture, emissiveMap: lavaTexture, emissive: 0xff4400, emissiveIntensity: 1.8, metalness: 0.2, roughness: 0.7 });
+    
     const lavaPools: THREE.Mesh[] = [];
-    const lavaPoolGeometries = [ new THREE.PlaneGeometry(10, 30), new THREE.PlaneGeometry(20, 15), new THREE.CircleGeometry(12, 32), new THREE.PlaneGeometry(5, 50) ];
-    const lavaPositions = [ new THREE.Vector3(30, 0.01, -20), new THREE.Vector3(-40, 0.01, 10), new THREE.Vector3(15, 0.01, 45), new THREE.Vector3(-10, 0.01, -45) ];
-    lavaPoolGeometries.forEach((geom, i) => {
-        const lavaPool = new THREE.Mesh(geom, lavaMaterial);
-        lavaPool.position.copy(lavaPositions[i]);
-        lavaPool.rotation.x = -Math.PI / 2;
-        scene.add(lavaPool);
-        lavaPools.push(lavaPool);
-    });
+
+    // Main lava river
+    const riverShape1 = new THREE.Shape();
+    riverShape1.moveTo(-60, -10);
+    riverShape1.bezierCurveTo(-40, 5, -20, -15, 0, -20);
+    riverShape1.bezierCurveTo(20, -25, 40, -10, 60, -5);
+    riverShape1.lineTo(60, 8); // river width
+    riverShape1.bezierCurveTo(40, 2, 20, -13, 0, -8);
+    riverShape1.bezierCurveTo(-20, -3, -40, 15, -60, 2);
+    riverShape1.closePath();
+
+    const riverGeom1 = new THREE.ShapeGeometry(riverShape1);
+    const riverMesh1 = new THREE.Mesh(riverGeom1, lavaMaterial);
+    riverMesh1.rotation.x = -Math.PI / 2;
+    riverMesh1.position.y = 0.01;
+    scene.add(riverMesh1);
+    lavaPools.push(riverMesh1);
+
+    // Second lava river/pool
+    const riverShape2 = new THREE.Shape();
+    riverShape2.moveTo(10, 60);
+    riverShape2.bezierCurveTo(25, 40, 15, 20, 0, 15);
+    riverShape2.bezierCurveTo(-15, 10, -25, 30, -5, 60);
+    riverShape2.closePath();
+
+    const riverGeom2 = new THREE.ShapeGeometry(riverShape2);
+    const riverMesh2 = new THREE.Mesh(riverGeom2, lavaMaterial);
+    riverMesh2.rotation.x = -Math.PI / 2;
+    riverMesh2.position.y = 0.01;
+    scene.add(riverMesh2);
+    lavaPools.push(riverMesh2);
+
     const lavaBBs = lavaPools.map(lava => new THREE.Box3().setFromObject(lava).expandByScalar(0.5));
 
     const createCharacterModel = (isPlayer: boolean): { model: THREE.Group, limbs: any } => {
@@ -247,10 +271,28 @@ export function GameCanvas({
         // --- Physics and Movement ---
         const onGround = player.position.y <= 0.8;
         playerVelocity.y -= gravity * delta;
+        
+        const oldY = player.position.y;
         player.position.y += playerVelocity.y * delta;
+
+        // Collision detection for y-axis
+        const playerFeetBB = new THREE.Box3().setFromPoints([
+            new THREE.Vector3(player.position.x - 0.4, player.position.y - 1, player.position.z - 0.4),
+            new THREE.Vector3(player.position.x + 0.4, player.position.y, player.position.z + 0.4),
+        ]);
+        
+        let groundCollision = false;
         if (player.position.y < 0.8) {
             player.position.y = 0.8;
             playerVelocity.y = 0;
+            groundCollision = true;
+        }
+
+        const isTryingToJump = gameState.current.isJumping || keys[' '];
+        if (isTryingToJump && (onGround || groundCollision)) {
+            playerVelocity.y = 10;
+            onJump();
+            if (gameState.current.isJumping) setIsJumping(false);
         }
 
         const moveDirection = new THREE.Vector3();
@@ -268,12 +310,16 @@ export function GameCanvas({
         if (isMovingHorizontally) {
           moveDirection.normalize().multiplyScalar(5 * delta);
           const horizontalMove = new THREE.Vector3(moveDirection.x, 0, moveDirection.z);
-          const playerNextBB = new THREE.Box3().setFromObject(player).translate(horizontalMove);
-          if (!obstacleBBs.some(obsBB => playerNextBB.intersectsBox(obsBB))) {
+          
+          const tempPlayerBB = new THREE.Box3().copy(playerBB).translate(horizontalMove);
+
+          if (!obstacleBBs.some(obsBB => tempPlayerBB.intersectsBox(obsBB))) {
               player.position.add(horizontalMove);
           }
            player.rotation.y = Math.atan2(moveDirection.x, moveDirection.z);
         }
+        playerBB.setFromObject(player);
+
 
         player.position.x = THREE.MathUtils.clamp(player.position.x, -planeSize/2 + 0.5, planeSize/2 - 0.5);
         player.position.z = THREE.MathUtils.clamp(player.position.z, -planeSize/2 + 0.5, planeSize/2 - 0.5);
@@ -288,7 +334,7 @@ export function GameCanvas({
         }
 
         if (attackAnimation <= 0) {
-            if (isMovingHorizontally && onGround) {
+            if (isMovingHorizontally && (onGround || groundCollision)) {
                 playerLimbs.leftArm.rotation.x = walkCycle;
                 playerLimbs.rightArm.rotation.x = -walkCycle;
                 playerLimbs.leftLeg.rotation.x = -walkCycle;
@@ -300,7 +346,7 @@ export function GameCanvas({
                 playerLimbs.rightLeg.rotation.x = THREE.MathUtils.lerp(playerLimbs.rightLeg.rotation.x, 0, delta * 10);
             }
         } else {
-            if (isMovingHorizontally && onGround) {
+            if (isMovingHorizontally && (onGround || groundCollision)) {
                 playerLimbs.leftArm.rotation.x = walkCycle;
                 playerLimbs.leftLeg.rotation.x = -walkCycle;
                 playerLimbs.rightLeg.rotation.x = walkCycle;
@@ -308,13 +354,6 @@ export function GameCanvas({
         }
 
         // --- Actions ---
-        const isTryingToJump = gameState.current.isJumping || keys[' '];
-        if (isTryingToJump && onGround) {
-            playerVelocity.y = 10;
-            onJump();
-            if (gameState.current.isJumping) setIsJumping(false);
-        }
-        
         const isTryingToAttack = gameState.current.isAttacking || keys['f'];
         if (isTryingToAttack && attackCooldown <= 0) {
             attackCooldown = 0.5;
@@ -348,7 +387,6 @@ export function GameCanvas({
             attackEffect.material.opacity -= delta * 4;
         }
 
-        playerBB.setFromObject(player);
         if (lavaBBs.some(lavaBB => playerBB.intersectsBox(lavaBB))) {
             setGameOver();
             return;
@@ -474,7 +512,7 @@ export function GameCanvas({
             }
         }
         
-        if (isMovingHorizontally && onGround) {
+        if (isMovingHorizontally && (onGround || groundCollision)) {
             if (walkAudioRef.current?.paused) {
                 walkAudioRef.current.play().catch(e => {});
             }
