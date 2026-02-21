@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useMemo } from 'react';
 import * as THREE from 'three';
 import { GameCanvas } from '@/components/game-canvas';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RotateCw, Smartphone, Sword } from 'lucide-react';
+import { ArrowLeft, RotateCw, Smartphone, Sword, ArrowUpCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { VirtualJoystick } from '@/components/virtual-joystick';
@@ -36,12 +36,15 @@ export default function GamePage() {
   const [gameKey, setGameKey] = useState(Date.now());
   const [joystickDelta, setJoystickDelta] = useState({ x: 0, z: 0 });
   const [isAttacking, setIsAttacking] = useState(false);
+  const [isJumping, setIsJumping] = useState(false);
   const [playerHealth, setPlayerHealth] = useState(initialPlayerHealth);
   const [enemies, setEnemies] = useState(initialEnemies);
 
   const attackAudioRef = useRef<HTMLAudioElement>(null);
   const lavaAudioRef = useRef<HTMLAudioElement>(null);
   const collectAudioRef = useRef<HTMLAudioElement>(null);
+  const walkAudioRef = useRef<HTMLAudioElement>(null);
+  const jumpAudioRef = useRef<HTMLAudioElement>(null);
   const playerHealthBarRef = useRef<HTMLDivElement>(null);
   const enemyHealthBarRefs = useRef<(HTMLDivElement | null)[]>([]);
   
@@ -53,15 +56,15 @@ export default function GamePage() {
     setPlayerHealth(initialPlayerHealth);
     setEnemies(initialEnemies.map(e => ({ ...e, health: e.maxHealth, position: e.position.clone(), targetPosition: e.targetPosition.clone() })));
     setGameKey(Date.now());
-    if (lavaAudioRef.current) {
-      lavaAudioRef.current.pause();
-    }
+    if (lavaAudioRef.current) lavaAudioRef.current.pause();
+    if (walkAudioRef.current) walkAudioRef.current.pause();
   };
 
   const handleGameWon = useCallback(() => {
     if (gameStatus === 'playing') {
       setGameStatus('won');
       if (lavaAudioRef.current) lavaAudioRef.current.pause();
+      if (walkAudioRef.current) walkAudioRef.current.pause();
     }
   }, [gameStatus]);
 
@@ -69,6 +72,7 @@ export default function GamePage() {
     if (gameStatus === 'playing') {
         setGameStatus('lost');
         if (lavaAudioRef.current) lavaAudioRef.current.pause();
+        if (walkAudioRef.current) walkAudioRef.current.pause();
     }
   }, [gameStatus]);
   
@@ -83,6 +87,13 @@ export default function GamePage() {
     if (attackAudioRef.current) {
       attackAudioRef.current.currentTime = 0;
       attackAudioRef.current.play().catch(e => {});
+    }
+  }, []);
+
+  const handleJumpSound = useCallback(() => {
+    if (jumpAudioRef.current) {
+      jumpAudioRef.current.currentTime = 0;
+      jumpAudioRef.current.play().catch(e => {});
     }
   }, []);
 
@@ -115,6 +126,12 @@ export default function GamePage() {
       <audio ref={attackAudioRef}>
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/universfield-punch-03-352040.mp3" type="audio/mpeg" />
       </audio>
+      <audio ref={walkAudioRef} loop>
+        <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/freesound_community-180904-woodland04-run-steps-skip-jump-clip-47486.mp3" type="audio/mpeg" />
+      </audio>
+      <audio ref={jumpAudioRef}>
+        <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/freesound_community-jump-sound-14839.mp3" type="audio/mpeg" />
+      </audio>
       
       <div className="absolute top-4 left-4 z-20">
         <Button asChild variant="outline">
@@ -142,10 +159,15 @@ export default function GamePage() {
         setGameOver={handleGameOver}
         collectibleCount={totalCollectibles}
         lavaAudioRef={lavaAudioRef}
+        walkAudioRef={walkAudioRef}
         onCollect={handleCollectSound}
         onAttack={handleAttackSound}
+        onJump={handleJumpSound}
         joystickDelta={joystickDelta}
         isAttacking={isAttacking}
+        setIsAttacking={setIsAttacking}
+        isJumping={isJumping}
+        setIsJumping={setIsJumping}
         playerHealth={playerHealth}
         setPlayerHealth={setPlayerHealth}
         enemies={enemies}
@@ -167,13 +189,20 @@ export default function GamePage() {
       {isMobile && gameStatus === 'playing' && (
         <>
           <VirtualJoystick onMove={handleJoystickMove} />
-          <div className="fixed bottom-16 right-16 z-50 md:hidden portrait:hidden">
+          <div className="fixed bottom-16 right-8 z-50 flex flex-col items-center gap-4 md:hidden portrait:hidden">
               <Button 
                 size="icon" 
                 className="h-20 w-20 rounded-full"
-                onPointerDown={() => setIsAttacking(true)}
-                onPointerUp={() => setIsAttacking(false)}
-                onPointerLeave={() => setIsAttacking(false)}
+                onClick={() => setIsJumping(true)}
+                aria-label="Jump"
+              >
+                <ArrowUpCircle size={32} />
+              </Button>
+              <Button 
+                size="icon" 
+                className="h-20 w-20 rounded-full"
+                onClick={() => setIsAttacking(true)}
+                aria-label="Attack"
               >
                 <Sword size={32} />
               </Button>

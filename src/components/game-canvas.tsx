@@ -19,10 +19,15 @@ type GameCanvasProps = {
     setGameOver: () => void;
     collectibleCount: number;
     lavaAudioRef: React.RefObject<HTMLAudioElement>;
+    walkAudioRef: React.RefObject<HTMLAudioElement>;
     onCollect: () => void;
     onAttack: () => void;
+    onJump: () => void;
     joystickDelta: { x: number; z: number };
     isAttacking: boolean;
+    setIsAttacking: (v: boolean) => void;
+    isJumping: boolean;
+    setIsJumping: (v: boolean) => void;
     playerHealth: number;
     setPlayerHealth: (fn: (h: number) => number) => void;
     enemies: Enemy[];
@@ -32,18 +37,18 @@ type GameCanvasProps = {
 };
 
 export function GameCanvas({ 
-    score,
-    setScore, setGameOver, collectibleCount, lavaAudioRef, onCollect, onAttack, joystickDelta,
-    isAttacking, playerHealth, setPlayerHealth, enemies, setEnemies,
+    score, setScore, setGameOver, collectibleCount, lavaAudioRef, walkAudioRef,
+    onCollect, onAttack, onJump, joystickDelta, isAttacking, setIsAttacking,
+    isJumping, setIsJumping, playerHealth, setPlayerHealth, enemies, setEnemies,
     playerHealthBarRef, enemyHealthBarRefs
 }: GameCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   
-  const gameState = useRef({ score, playerHealth, enemies, isAttacking, joystickDelta });
+  const gameState = useRef({ score, playerHealth, enemies, isAttacking, isJumping, joystickDelta });
 
   useEffect(() => {
-    gameState.current = { score, playerHealth, enemies, isAttacking, joystickDelta };
-  }, [score, playerHealth, enemies, isAttacking, joystickDelta]);
+    gameState.current = { score, playerHealth, enemies, isAttacking, isJumping, joystickDelta };
+  }, [score, playerHealth, enemies, isAttacking, isJumping, joystickDelta]);
   
   useEffect(() => {
     const mountNode = mountRef.current;
@@ -104,6 +109,8 @@ export function GameCanvas({
     const playerBB = new THREE.Box3();
     const playerLight = new THREE.PointLight(0xFFD700, 0.8, 15);
     player.add(playerLight);
+    const playerVelocity = new THREE.Vector3();
+    const gravity = 30.0;
 
     const enemyMeshes: THREE.Mesh[] = [];
     const enemyBBs: THREE.Box3[] = [];
@@ -178,6 +185,20 @@ export function GameCanvas({
         if (attackCooldown > 0) attackCooldown -= delta;
         if (playerDamageCooldown > 0) playerDamageCooldown -= delta;
         
+        // --- Physics and Movement ---
+        const onGround = player.position.y <= 0.8;
+
+        // Vertical movement (gravity)
+        playerVelocity.y -= gravity * delta;
+        player.position.y += playerVelocity.y * delta;
+        
+        // Ground collision
+        if (player.position.y < 0.8) {
+            player.position.y = 0.8;
+            playerVelocity.y = 0;
+        }
+
+        // Horizontal movement
         const moveDirection = new THREE.Vector3();
         const joystick = gameState.current.joystickDelta;
         if (joystick.x !== 0 || joystick.z !== 0) {
@@ -188,23 +209,30 @@ export function GameCanvas({
             if (keys['a'] || keys['arrowleft']) moveDirection.x -= 1;
             if (keys['d'] || keys['arrowright']) moveDirection.x += 1;
         }
-        moveDirection.normalize().multiplyScalar(5 * delta);
-        const newPosition = player.position.clone().add(moveDirection);
-        newPosition.x = THREE.MathUtils.clamp(newPosition.x, -planeSize/2 + 0.5, planeSize/2 - 0.5);
-        newPosition.z = THREE.MathUtils.clamp(newPosition.z, -planeSize/2 + 0.5, planeSize/2 - 0.5);
         
-        const playerNextBB = new THREE.Box3().setFromObject(player).translate(moveDirection);
-        if (!obstacleBBs.some(obsBB => playerNextBB.intersectsBox(obsBB))) {
-            player.position.copy(newPosition);
-        }
-        
-        playerBB.setFromObject(player);
-        if (lavaBBs.some(lavaBB => playerBB.intersectsBox(lavaBB))) {
-            setGameOver();
-            return;
+        const isMovingHorizontally = moveDirection.length() > 0;
+        if (isMovingHorizontally) {
+          moveDirection.normalize().multiplyScalar(5 * delta);
+          const horizontalMove = new THREE.Vector3(moveDirection.x, 0, moveDirection.z);
+          const playerNextBB = new THREE.Box3().setFromObject(player).translate(horizontalMove);
+          if (!obstacleBBs.some(obsBB => playerNextBB.intersectsBox(obsBB))) {
+              player.position.add(horizontalMove);
+          }
         }
 
-        if ((gameState.current.isAttacking || keys['f']) && attackCooldown <= 0) {
+        player.position.x = THREE.MathUtils.clamp(player.position.x, -planeSize/2 + 0.5, planeSize/2 - 0.5);
+        player.position.z = THREE.MathUtils.clamp(player.position.z, -planeSize/2 + 0.5, planeSize/2 - 0.5);
+        
+        // --- Actions ---
+        const isTryingToJump = gameState.current.isJumping || keys[' '];
+        if (isTryingToJump && onGround) {
+            playerVelocity.y = 10;
+            onJump();
+            if (gameState.current.isJumping) setIsJumping(false);
+        }
+        
+        const isTryingToAttack = gameState.current.isAttacking || keys['f'];
+        if (isTryingToAttack && attackCooldown <= 0) {
             attackCooldown = 0.5;
             onAttack();
             attackEffect.position.copy(player.position);
@@ -220,15 +248,28 @@ export function GameCanvas({
              if (damagedEnemies.size > 0) {
                 setEnemies(prev => prev.map(e => damagedEnemies.has(e.id) ? { ...e, health: Math.max(0, e.health - attackDamage) } : e));
             }
+            if (gameState.current.isAttacking) setIsAttacking(false);
         }
         if (attackEffect.material.opacity > 0) {
             attackEffect.material.opacity -= delta * 4;
         }
 
+        // Lava Check
+        playerBB.setFromObject(player);
+        if (lavaBBs.some(lavaBB => playerBB.intersectsBox(lavaBB))) {
+            setGameOver();
+            return;
+        }
+
+        // --- AI ---
         enemyMeshes.forEach((enemyMesh, index) => {
             const enemyData = gameState.current.enemies[index];
             if (enemyData.health <= 0) {
-                if (enemyMesh.visible) enemyMesh.visible = false;
+                if (enemyMesh.visible) {
+                    enemyMesh.visible = false;
+                    const indexToRemove = enemyBBs.indexOf(enemyBBs[index]);
+                    if (indexToRemove > -1) enemyBBs.splice(indexToRemove, 1);
+                }
                 return;
             };
 
@@ -262,6 +303,7 @@ export function GameCanvas({
                     let closestCollectible: THREE.Mesh | null = null;
                     let minDistance = Infinity;
                     collectibles.forEach(c => {
+                        if (!c.visible) return;
                         const dist = enemyMesh.position.distanceTo(c.position);
                         if (dist < minDistance) { minDistance = dist; closestCollectible = c; }
                     });
@@ -296,6 +338,7 @@ export function GameCanvas({
             }
         });
 
+        // --- Collectibles ---
         for (let i = collectibles.length - 1; i >= 0; i--) {
             const collectible = collectibles[i];
             collectible.rotation.z += 0.05;
@@ -309,11 +352,18 @@ export function GameCanvas({
                 onCollect();
             }
         }
-
-        camera.position.lerp(player.position.clone().add(new THREE.Vector3(0, 5, 6)), 0.05);
-        camera.lookAt(player.position);
-        lavaTexture.offset.y += delta * 0.1;
         
+        // --- Audio ---
+        if (isMovingHorizontally && onGround) {
+            if (walkAudioRef.current?.paused) {
+                walkAudioRef.current.play().catch(e => {});
+            }
+        } else {
+             if (!walkAudioRef.current?.paused) {
+                walkAudioRef.current?.pause();
+            }
+        }
+
         let isNearLava = false;
         for (const lavaBB of lavaBBs) {
           if (player.position.distanceTo(lavaBB.getCenter(new THREE.Vector3())) < 15) {
@@ -326,6 +376,11 @@ export function GameCanvas({
         } else if (!isNearLava && !lavaAudioRef.current?.paused) {
             lavaAudioRef.current?.pause();
         }
+
+        // --- Camera and UI ---
+        camera.position.lerp(player.position.clone().add(new THREE.Vector3(0, 5, 6)), 0.05);
+        camera.lookAt(player.position);
+        lavaTexture.offset.y += delta * 0.1;
 
         const updateHealthBarPosition = (mesh: THREE.Mesh, ref: React.RefObject<HTMLDivElement>, yOffset = 1.2) => {
             if (!ref.current || !mesh.visible) {
@@ -371,6 +426,7 @@ export function GameCanvas({
         cancelAnimationFrame(animationFrameId);
         
         if (lavaAudioRef.current) lavaAudioRef.current.pause();
+        if (walkAudioRef.current) walkAudioRef.current.pause();
 
         scene.traverse(object => {
              if (object instanceof THREE.Mesh) {
@@ -386,7 +442,7 @@ export function GameCanvas({
         groundTexture.dispose();
         lavaTexture.dispose();
     };
-  }, [collectibleCount, setGameOver, setScore, lavaAudioRef, onCollect, onAttack, setEnemies, setPlayerHealth, enemyHealthBarRefs, playerHealthBarRef]);
+  }, [collectibleCount, setGameOver, setScore, lavaAudioRef, walkAudioRef, onCollect, onAttack, onJump, setEnemies, setPlayerHealth, enemyHealthBarRefs, playerHealthBarRef, setIsAttacking, setIsJumping]);
 
   return <div ref={mountRef} className="absolute top-0 left-0 w-full h-full" />;
 }
