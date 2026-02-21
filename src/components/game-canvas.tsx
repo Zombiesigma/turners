@@ -7,9 +7,10 @@ type GameCanvasProps = {
     setScore: (fn: (s: number) => number) => void;
     setGameWon: () => void;
     collectibleCount: number;
+    lavaAudioRef: React.RefObject<HTMLAudioElement>;
 };
 
-export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanvasProps) {
+export function GameCanvas({ setScore, setGameWon, collectibleCount, lavaAudioRef }: GameCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -249,7 +250,7 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
         newPosition.x = THREE.MathUtils.clamp(newPosition.x, -halfPlane + 0.5, halfPlane - 0.5);
         newPosition.z = THREE.MathUtils.clamp(newPosition.z, -halfPlane + 0.5, halfPlane - 0.5);
 
-        // Collision check
+        // Obstacle collision check
         playerBB.setFromObject(player);
         const playerNextBB = playerBB.clone().translate(newPosition.clone().sub(player.position));
         let collision = false;
@@ -299,6 +300,31 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
             }
         }
 
+        // Lava audio proximity logic
+        let minDistanceToLava = Infinity;
+        for (const lava of lavaPools) {
+            const distance = player.position.distanceTo(lava.position);
+            if (distance < minDistanceToLava) {
+                minDistanceToLava = distance;
+            }
+        }
+
+        const audioEl = lavaAudioRef.current;
+        if (audioEl) {
+            const maxAudioDistance = 25;
+            if (minDistanceToLava < maxAudioDistance) {
+                const volume = Math.max(0, 1 - (minDistanceToLava / maxAudioDistance));
+                audioEl.volume = Math.pow(volume, 2); // Use pow for a more noticeable falloff
+                if (audioEl.paused) {
+                    audioEl.play().catch(e => {});
+                }
+            } else {
+                if (!audioEl.paused) {
+                    audioEl.pause();
+                }
+            }
+        }
+
         renderer.render(scene, camera);
     };
     animate();
@@ -319,6 +345,10 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
         }
         cancelAnimationFrame(animationFrameId);
         
+        if (lavaAudioRef.current) {
+            lavaAudioRef.current.pause();
+        }
+
         // Dispose of Three.js objects
         scene.traverse(object => {
              if (object instanceof THREE.Mesh) {
@@ -341,7 +371,7 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
         groundTexture.dispose();
         lavaTexture.dispose();
     };
-  }, [collectibleCount, setGameWon, setScore]);
+  }, [collectibleCount, setGameWon, setScore, lavaAudioRef]);
 
   return <div ref={mountRef} className="absolute top-0 left-0 w-full h-full" />;
 }

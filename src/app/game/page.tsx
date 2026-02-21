@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { GameCanvas } from '@/components/game-canvas';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RotateCw } from 'lucide-react';
@@ -11,21 +11,31 @@ export default function GamePage() {
   const [gameStatus, setGameStatus] = useState<'playing' | 'won'>('playing');
   const [gameKey, setGameKey] = useState(Date.now());
   const totalCollectibles = 40;
+  const lavaAudioRef = useRef<HTMLAudioElement>(null);
 
   const handleRestart = () => {
     setScore(0);
     setGameStatus('playing');
     setGameKey(Date.now());
+    if (lavaAudioRef.current) {
+      lavaAudioRef.current.pause();
+    }
   };
 
   const handleGameWon = useCallback(() => {
     setGameStatus('won');
+    if (lavaAudioRef.current) {
+      lavaAudioRef.current.pause();
+    }
   }, []);
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
       <audio autoPlay loop>
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/freesound_community-horror01_loop-29220.mp3" type="audio/mpeg" />
+      </audio>
+      <audio ref={lavaAudioRef} loop>
+        <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/u_5iteaickfa-lava-steam-with-bubbles-312339.mp3" type="audio/mpeg" />
       </audio>
       <div className="absolute top-4 left-4 z-20">
         <Button asChild variant="outline">
@@ -51,6 +61,7 @@ export default function GamePage() {
         setScore={setScore}
         setGameWon={handleGameWon}
         collectibleCount={totalCollectibles}
+        lavaAudioRef={lavaAudioRef}
       />
 
       {gameStatus === 'won' && (
