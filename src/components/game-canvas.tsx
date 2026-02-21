@@ -9,10 +9,16 @@ type GameCanvasProps = {
     collectibleCount: number;
     lavaAudioRef: React.RefObject<HTMLAudioElement>;
     onCollect: () => void;
+    joystickDelta: { x: number; z: number };
 };
 
-export function GameCanvas({ setScore, setGameWon, collectibleCount, lavaAudioRef, onCollect }: GameCanvasProps) {
+export function GameCanvas({ setScore, setGameWon, collectibleCount, lavaAudioRef, onCollect, joystickDelta }: GameCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const joystickDeltaRef = useRef(joystickDelta);
+
+  useEffect(() => {
+    joystickDeltaRef.current = joystickDelta;
+  }, [joystickDelta]);
   
   useEffect(() => {
     const mountNode = mountRef.current;
@@ -222,8 +228,8 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount, lavaAudioRe
 
     // Movement
     const keys: Record<string, boolean> = {};
-    const handleKeyDown = (event: KeyboardEvent) => { keys[event.key] = true; };
-    const handleKeyUp = (event: KeyboardEvent) => { keys[event.key] = false; };
+    const handleKeyDown = (event: KeyboardEvent) => { keys[event.key.toLowerCase()] = true; };
+    const handleKeyUp = (event: KeyboardEvent) => { keys[event.key.toLowerCase()] = false; };
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
     
@@ -238,10 +244,18 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount, lavaAudioRe
         lavaTexture.offset.y += delta * 0.1;
 
         const moveDirection = new THREE.Vector3();
-        if (keys['ArrowUp']) moveDirection.z -= 1;
-        if (keys['ArrowDown']) moveDirection.z += 1;
-        if (keys['ArrowLeft']) moveDirection.x -= 1;
-        if (keys['ArrowRight']) moveDirection.x += 1;
+        
+        const currentJoystick = joystickDeltaRef.current;
+        if (currentJoystick.x !== 0 || currentJoystick.z !== 0) {
+            moveDirection.x = currentJoystick.x;
+            moveDirection.z = currentJoystick.z;
+        } else {
+            if (keys['arrowup'] || keys['w']) moveDirection.z -= 1;
+            if (keys['arrowdown'] || keys['s']) moveDirection.z += 1;
+            if (keys['arrowleft'] || keys['a']) moveDirection.x -= 1;
+            if (keys['arrowright'] || keys['d']) moveDirection.x += 1;
+        }
+        
         moveDirection.normalize();
 
         const newPosition = player.position.clone().add(moveDirection.clone().multiplyScalar(moveSpeed));

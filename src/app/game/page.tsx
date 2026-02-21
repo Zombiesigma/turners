@@ -5,14 +5,18 @@ import { GameCanvas } from '@/components/game-canvas';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RotateCw } from 'lucide-react';
 import Link from 'next/link';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { VirtualJoystick } from '@/components/virtual-joystick';
 
 export default function GamePage() {
   const [score, setScore] = useState(0);
   const [gameStatus, setGameStatus] = useState<'playing' | 'won'>('playing');
   const [gameKey, setGameKey] = useState(Date.now());
+  const [joystickDelta, setJoystickDelta] = useState({ x: 0, z: 0 });
   const totalCollectibles = 40;
   const lavaAudioRef = useRef<HTMLAudioElement>(null);
   const collectAudioRef = useRef<HTMLAudioElement>(null);
+  const isMobile = useIsMobile();
 
   const handleRestart = () => {
     setScore(0);
@@ -35,6 +39,10 @@ export default function GamePage() {
       collectAudioRef.current.currentTime = 0;
       collectAudioRef.current.play().catch(e => {});
     }
+  }, []);
+
+  const handleJoystickMove = useCallback((delta: { x: number; z: number }) => {
+    setJoystickDelta(delta);
   }, []);
 
   return (
@@ -74,7 +82,10 @@ export default function GamePage() {
         collectibleCount={totalCollectibles}
         lavaAudioRef={lavaAudioRef}
         onCollect={handleCollectSound}
+        joystickDelta={joystickDelta}
       />
+
+      {isMobile && <VirtualJoystick onMove={handleJoystickMove} />}
 
       {gameStatus === 'won' && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in">
