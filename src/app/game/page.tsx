@@ -27,8 +27,8 @@ export default function GamePage() {
   const totalCollectibles = 40;
   const initialPlayerHealth = 100;
   const initialEnemies = useMemo(() => [
-    { id: 'enemy1', health: 100, maxHealth: 100, position: new THREE.Vector3(-20, 0.8, -20) },
-    { id: 'enemy2', health: 100, maxHealth: 100, position: new THREE.Vector3(20, 0.8, 20) },
+    { id: 'enemy1', health: 100, maxHealth: 100, position: new THREE.Vector3(-20, 0.8, -20), aiState: 'wandering' as const, targetPosition: new THREE.Vector3(-20, 0.8, -20), aiTimer: Math.random() * 5 },
+    { id: 'enemy2', health: 100, maxHealth: 100, position: new THREE.Vector3(20, 0.8, 20), aiState: 'wandering' as const, targetPosition: new THREE.Vector3(20, 0.8, 20), aiTimer: Math.random() * 5 },
   ], []);
 
   const [score, setScore] = useState(0);
@@ -39,6 +39,7 @@ export default function GamePage() {
   const [playerHealth, setPlayerHealth] = useState(initialPlayerHealth);
   const [enemies, setEnemies] = useState(initialEnemies);
 
+  const attackAudioRef = useRef<HTMLAudioElement>(null);
   const lavaAudioRef = useRef<HTMLAudioElement>(null);
   const collectAudioRef = useRef<HTMLAudioElement>(null);
   const playerHealthBarRef = useRef<HTMLDivElement>(null);
@@ -50,7 +51,7 @@ export default function GamePage() {
     setScore(0);
     setGameStatus('playing');
     setPlayerHealth(initialPlayerHealth);
-    setEnemies(initialEnemies.map(e => ({ ...e, health: e.maxHealth })));
+    setEnemies(initialEnemies.map(e => ({ ...e, health: e.maxHealth, position: e.position.clone(), targetPosition: e.targetPosition.clone() })));
     setGameKey(Date.now());
     if (lavaAudioRef.current) {
       lavaAudioRef.current.pause();
@@ -75,6 +76,13 @@ export default function GamePage() {
     if (collectAudioRef.current) {
       collectAudioRef.current.currentTime = 0;
       collectAudioRef.current.play().catch(e => {});
+    }
+  }, []);
+
+  const handleAttackSound = useCallback(() => {
+    if (attackAudioRef.current) {
+      attackAudioRef.current.currentTime = 0;
+      attackAudioRef.current.play().catch(e => {});
     }
   }, []);
 
@@ -104,6 +112,9 @@ export default function GamePage() {
       <audio ref={collectAudioRef}>
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/floraphonic-arcade-ui-6-229503.mp3" type="audio/mpeg" />
       </audio>
+      <audio ref={attackAudioRef}>
+        <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/universfield-punch-03-352040.mp3" type="audio/mpeg" />
+      </audio>
       
       <div className="absolute top-4 left-4 z-20">
         <Button asChild variant="outline">
@@ -132,6 +143,7 @@ export default function GamePage() {
         collectibleCount={totalCollectibles}
         lavaAudioRef={lavaAudioRef}
         onCollect={handleCollectSound}
+        onAttack={handleAttackSound}
         joystickDelta={joystickDelta}
         isAttacking={isAttacking}
         playerHealth={playerHealth}

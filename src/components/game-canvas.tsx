@@ -8,6 +8,9 @@ type Enemy = {
     health: number;
     maxHealth: number;
     position: THREE.Vector3;
+    aiState: 'chasing' | 'wandering' | 'collecting';
+    targetPosition: THREE.Vector3;
+    aiTimer: number;
 };
 
 type GameCanvasProps = {
@@ -17,6 +20,7 @@ type GameCanvasProps = {
     collectibleCount: number;
     lavaAudioRef: React.RefObject<HTMLAudioElement>;
     onCollect: () => void;
+    onAttack: () => void;
     joystickDelta: { x: number; z: number };
     isAttacking: boolean;
     playerHealth: number;
@@ -29,14 +33,12 @@ type GameCanvasProps = {
 
 export function GameCanvas({ 
     score,
-    setScore, setGameOver, collectibleCount, lavaAudioRef, onCollect, joystickDelta,
+    setScore, setGameOver, collectibleCount, lavaAudioRef, onCollect, onAttack, joystickDelta,
     isAttacking, playerHealth, setPlayerHealth, enemies, setEnemies,
     playerHealthBarRef, enemyHealthBarRefs
 }: GameCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   
-  // Use a single ref to hold all frequently changing state.
-  // This prevents the main useEffect from re-running and resetting the scene.
   const gameState = useRef({ score, playerHealth, enemies, isAttacking, joystickDelta });
 
   useEffect(() => {
@@ -47,7 +49,6 @@ export function GameCanvas({
     const mountNode = mountRef.current;
     if (!mountNode) return;
 
-    // Scene setup
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0a0a);
     scene.fog = new THREE.Fog(0x0a0a0a, 50, 100);
@@ -58,7 +59,6 @@ export function GameCanvas({
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     mountNode.appendChild(renderer.domElement);
 
-    // Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -70,7 +70,6 @@ export function GameCanvas({
 
     const textureLoader = new THREE.TextureLoader();
     
-    // Ground
     const groundTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/terrain/rock_b.jpg');
     groundTexture.wrapS = THREE.RepeatWrapping;
     groundTexture.wrapT = THREE.RepeatWrapping;
@@ -81,7 +80,6 @@ export function GameCanvas({
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // Lava
     const lavaTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/lava/lavatile.jpg');
     lavaTexture.wrapS = THREE.RepeatWrapping;
     lavaTexture.wrapT = THREE.RepeatWrapping;
@@ -99,7 +97,6 @@ export function GameCanvas({
     });
     const lavaBBs = lavaPools.map(lava => new THREE.Box3().setFromObject(lava).expandByScalar(0.5));
 
-    // Player Capsule
     const player = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.8, 10, 20), new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.6, roughness: 0.2, emissive: 0xaa8800, emissiveIntensity: 0.2 }));
     player.position.y = 0.8;
     player.castShadow = true;
@@ -108,7 +105,6 @@ export function GameCanvas({
     const playerLight = new THREE.PointLight(0xFFD700, 0.8, 15);
     player.add(playerLight);
 
-    // Enemies ("Algojos")
     const enemyMeshes: THREE.Mesh[] = [];
     const enemyBBs: THREE.Box3[] = [];
     gameState.current.enemies.forEach(enemyData => {
@@ -124,7 +120,6 @@ export function GameCanvas({
     camera.position.set(0, 5, 6);
     camera.lookAt(player.position);
 
-    // Obstacles
     const obstacles: THREE.Mesh[] = [];
     for (let i = 0; i < 80; i++) {
         const obstacle = new THREE.Mesh(new THREE.BoxGeometry(2, 4, 2), new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.6 }));
@@ -139,10 +134,9 @@ export function GameCanvas({
     }
     const obstacleBBs = obstacles.map(obs => new THREE.Box3().setFromObject(obs));
 
-    // Collectibles
     const collectibles: THREE.Mesh[] = [];
     const lightningShape = new THREE.Shape();
-    lightningShape.moveTo(0, 0.6); lightningShape.lineTo(-0.2, 0.2); lightningShape.lineTo(-0.2, -0.2); lightningShape.lineTo(0, -0.6); lightningShape.lineTo(0.2, -0.2); lightningShape.lineTo(0.2, 0.2); lightningShape.lineTo(0, 0.6);
+    lightningShape.moveTo(0, 0.6); lightningShape.lineTo(-0.2, 0.2); lightningShape.lineTo(0.2, 0.2); lightningShape.lineTo(0, -0.6); lightningShape.lineTo(-0.2, -0.2); lightningShape.lineTo(0.2, -0.2); lightningShape.lineTo(0, 0.6);
     const collectibleGeometry = new THREE.ExtrudeGeometry(lightningShape, { depth: 0.1, bevelEnabled: false });
     collectibleGeometry.center();
     const collectibleMaterial = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 1 });
@@ -160,7 +154,6 @@ export function GameCanvas({
     }
     const collectibleBBs = collectibles.map(c => new THREE.Box3().setFromObject(c));
 
-    // Movement and Attack
     const keys: Record<string, boolean> = {};
     const handleKeyDown = (e: KeyboardEvent) => keys[e.key.toLowerCase()] = true;
     const handleKeyUp = (e: KeyboardEvent) => keys[e.key.toLowerCase()] = false;
@@ -182,11 +175,9 @@ export function GameCanvas({
         
         if (gameState.current.playerHealth <= 0) return;
 
-        // Cooldowns
         if (attackCooldown > 0) attackCooldown -= delta;
         if (playerDamageCooldown > 0) playerDamageCooldown -= delta;
         
-        // Player Movement
         const moveDirection = new THREE.Vector3();
         const joystick = gameState.current.joystickDelta;
         if (joystick.x !== 0 || joystick.z !== 0) {
@@ -207,44 +198,94 @@ export function GameCanvas({
             player.position.copy(newPosition);
         }
         
-        // Lava Collision
         playerBB.setFromObject(player);
         if (lavaBBs.some(lavaBB => playerBB.intersectsBox(lavaBB))) {
             setGameOver();
             return;
         }
 
-        // Player Attack
         if ((gameState.current.isAttacking || keys['f']) && attackCooldown <= 0) {
             attackCooldown = 0.5;
+            onAttack();
             attackEffect.position.copy(player.position);
             attackEffect.material.opacity = 0.8;
+            
+            const damagedEnemies = new Set<string>();
             enemyMeshes.forEach((enemyMesh, index) => {
-                if (gameState.current.enemies[index].health > 0 && player.position.distanceTo(enemyMesh.position) < attackRadius) {
-                    setEnemies(prev => prev.map(e => e.id === gameState.current.enemies[index].id ? { ...e, health: Math.max(0, e.health - attackDamage) } : e));
+                const enemyData = gameState.current.enemies[index];
+                if (enemyData.health > 0 && player.position.distanceTo(enemyMesh.position) < attackRadius) {
+                    damagedEnemies.add(enemyData.id);
                 }
             });
+             if (damagedEnemies.size > 0) {
+                setEnemies(prev => prev.map(e => damagedEnemies.has(e.id) ? { ...e, health: Math.max(0, e.health - attackDamage) } : e));
+            }
         }
         if (attackEffect.material.opacity > 0) {
             attackEffect.material.opacity -= delta * 4;
         }
 
-        // Enemy AI and Collision
         enemyMeshes.forEach((enemyMesh, index) => {
-            if (gameState.current.enemies[index].health <= 0) {
-                if (enemyMesh.visible) {
-                    enemyMesh.visible = false;
-                }
+            const enemyData = gameState.current.enemies[index];
+            if (enemyData.health <= 0) {
+                if (enemyMesh.visible) enemyMesh.visible = false;
                 return;
             };
 
-            const enemySpeed = 2.5 * delta;
-            const directionToPlayer = new THREE.Vector3().subVectors(player.position, enemyMesh.position).normalize();
-            enemyMesh.position.add(directionToPlayer.multiplyScalar(enemySpeed));
+            const newEnemyData = { ...enemyData, aiTimer: enemyData.aiTimer - delta };
+            let needsStateUpdate = false;
+
+            if (newEnemyData.aiTimer <= 0) {
+                needsStateUpdate = true;
+                newEnemyData.aiTimer = Math.random() * 4 + 3;
+                const distanceToPlayer = enemyMesh.position.distanceTo(player.position);
+                const decision = Math.random();
+
+                if (distanceToPlayer < 20 && decision < 0.6) {
+                    newEnemyData.aiState = 'chasing';
+                } else if (collectibles.length > 0 && decision < 0.85) {
+                    newEnemyData.aiState = 'collecting';
+                } else {
+                    newEnemyData.aiState = 'wandering';
+                }
+            }
+
+            if (newEnemyData.aiState === 'chasing') {
+                 if (!newEnemyData.targetPosition.equals(player.position)) {
+                    newEnemyData.targetPosition = player.position.clone();
+                    needsStateUpdate = true;
+                 }
+            } else if (needsStateUpdate) {
+                 if (newEnemyData.aiState === 'wandering') {
+                    newEnemyData.targetPosition = new THREE.Vector3((Math.random() - 0.5) * (planeSize - 10), 0.8, (Math.random() - 0.5) * (planeSize - 10));
+                } else if (newEnemyData.aiState === 'collecting') {
+                    let closestCollectible: THREE.Mesh | null = null;
+                    let minDistance = Infinity;
+                    collectibles.forEach(c => {
+                        const dist = enemyMesh.position.distanceTo(c.position);
+                        if (dist < minDistance) { minDistance = dist; closestCollectible = c; }
+                    });
+                    if (closestCollectible) {
+                        newEnemyData.targetPosition = closestCollectible.position.clone();
+                    } else {
+                        newEnemyData.aiState = 'wandering';
+                        newEnemyData.targetPosition = new THREE.Vector3((Math.random() - 0.5) * (planeSize - 10), 0.8, (Math.random() - 0.5) * (planeSize - 10));
+                    }
+                }
+            }
+
+            if (needsStateUpdate) {
+                setEnemies(prev => prev.map(e => e.id === newEnemyData.id ? newEnemyData : e));
+            }
             
-            enemyBBs[index].setFromObject(enemyMesh);
+            const enemySpeed = (newEnemyData.aiState === 'chasing' ? 2.8 : 2.0) * delta;
+            const directionToTarget = new THREE.Vector3().subVectors(enemyData.targetPosition, enemyMesh.position).normalize();
+            enemyMesh.position.add(directionToTarget.multiplyScalar(enemySpeed));
+            
             playerBB.setFromObject(player);
+            enemyBBs[index].setFromObject(enemyMesh);
             if (enemyBBs[index].intersectsBox(playerBB) && playerDamageCooldown <= 0) {
+                onAttack();
                 playerDamageCooldown = 1.0;
                 const newHealth = Math.max(0, gameState.current.playerHealth - 15);
                 setPlayerHealth(h => newHealth);
@@ -255,7 +296,6 @@ export function GameCanvas({
             }
         });
 
-        // Collectibles
         for (let i = collectibles.length - 1; i >= 0; i--) {
             const collectible = collectibles[i];
             collectible.rotation.z += 0.05;
@@ -270,7 +310,6 @@ export function GameCanvas({
             }
         }
 
-        // Update camera and audio
         camera.position.lerp(player.position.clone().add(new THREE.Vector3(0, 5, 6)), 0.05);
         camera.lookAt(player.position);
         lavaTexture.offset.y += delta * 0.1;
@@ -288,8 +327,6 @@ export function GameCanvas({
             lavaAudioRef.current?.pause();
         }
 
-
-        // Update health bar positions
         const updateHealthBarPosition = (mesh: THREE.Mesh, ref: React.RefObject<HTMLDivElement>, yOffset = 1.2) => {
             if (!ref.current || !mesh.visible) {
                 if(ref.current) ref.current.style.display = 'none';
@@ -349,9 +386,7 @@ export function GameCanvas({
         groundTexture.dispose();
         lavaTexture.dispose();
     };
-  // This useEffect now only depends on stable functions and props that don't change,
-  // preventing the scene from being rebuilt unnecessarily.
-  }, [collectibleCount, setGameOver, setScore, lavaAudioRef, onCollect, setEnemies, setPlayerHealth, enemyHealthBarRefs, playerHealthBarRef]);
+  }, [collectibleCount, setGameOver, setScore, lavaAudioRef, onCollect, onAttack, setEnemies, setPlayerHealth, enemyHealthBarRefs, playerHealthBarRef]);
 
   return <div ref={mountRef} className="absolute top-0 left-0 w-full h-full" />;
 }
