@@ -35,8 +35,11 @@ import { SearchOverlay } from "./search-overlay";
 
 const menuItems = [
   { href: "#home", label: "Beranda" },
+  { href: "#writing", label: "Tulisan" },
+  { href: "#paintings", label: "Lukisan" },
   { href: "#certificates", label: "Sertifikat" },
-  { href: "#about", label: "Tentang" },
+  { href: "#projects", label: "Proyek" },
+  { href: "#about", label: "Keahlian" },
   { href: "#contact", label: "Kontak" },
 ];
 
@@ -109,13 +112,21 @@ export function Header() {
                     </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
-                 {menuItems.slice(1).map((item) => (
-                  <NavigationMenuItem key={item.href}>
-                    <Link href={item.href} className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
-                      {item.label}
+                 <NavigationMenuItem>
+                    <Link href="#certificates" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
+                      Sertifikat
                     </Link>
                   </NavigationMenuItem>
-                ))}
+                 <NavigationMenuItem>
+                    <Link href="#about" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
+                      Keahlian
+                    </Link>
+                  </NavigationMenuItem>
+                 <NavigationMenuItem>
+                    <Link href="#contact" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
+                      Kontak
+                    </Link>
+                  </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
 
@@ -150,12 +161,6 @@ export function Header() {
                             <Link href={item.href} className="text-lg hover:text-primary transition-colors py-2">{item.label}</Link>
                          </SheetClose>
                       ))}
-                       <SheetClose asChild>
-                          <Link href="#paintings" className="text-lg hover:text-primary transition-colors py-2">Lukisan</Link>
-                       </SheetClose>
-                       <SheetClose asChild>
-                          <Link href="#projects" className="text-lg hover:text-primary transition-colors py-2">Development</Link>
-                       </SheetClose>
                     </nav>
                     <div className="mt-auto flex justify-center">
                         <ThemeToggle />
