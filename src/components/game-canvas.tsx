@@ -8,9 +8,10 @@ type GameCanvasProps = {
     setGameWon: () => void;
     collectibleCount: number;
     lavaAudioRef: React.RefObject<HTMLAudioElement>;
+    onCollect: () => void;
 };
 
-export function GameCanvas({ setScore, setGameWon, collectibleCount, lavaAudioRef }: GameCanvasProps) {
+export function GameCanvas({ setScore, setGameWon, collectibleCount, lavaAudioRef, onCollect }: GameCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -293,6 +294,7 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount, lavaAudioRe
                 collectibles.splice(i, 1);
                 collectibleBBs.splice(i, 1);
                 setScore(s => s + 1);
+                onCollect();
                 collectedCount++;
                 if (collectedCount === collectibleCount) {
                     setGameWon();
@@ -371,7 +373,7 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount, lavaAudioRe
         groundTexture.dispose();
         lavaTexture.dispose();
     };
-  }, [collectibleCount, setGameWon, setScore, lavaAudioRef]);
+  }, [collectibleCount, setGameWon, setScore, lavaAudioRef, onCollect]);
 
   return <div ref={mountRef} className="absolute top-0 left-0 w-full h-full" />;
 }

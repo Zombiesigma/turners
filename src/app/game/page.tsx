@@ -12,6 +12,7 @@ export default function GamePage() {
   const [gameKey, setGameKey] = useState(Date.now());
   const totalCollectibles = 40;
   const lavaAudioRef = useRef<HTMLAudioElement>(null);
+  const collectAudioRef = useRef<HTMLAudioElement>(null);
 
   const handleRestart = () => {
     setScore(0);
@@ -28,6 +29,13 @@ export default function GamePage() {
       lavaAudioRef.current.pause();
     }
   }, []);
+  
+  const handleCollectSound = useCallback(() => {
+    if (collectAudioRef.current) {
+      collectAudioRef.current.currentTime = 0;
+      collectAudioRef.current.play().catch(e => {});
+    }
+  }, []);
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
@@ -36,6 +44,9 @@ export default function GamePage() {
       </audio>
       <audio ref={lavaAudioRef} loop>
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/u_5iteaickfa-lava-steam-with-bubbles-312339.mp3" type="audio/mpeg" />
+      </audio>
+      <audio ref={collectAudioRef}>
+        <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/floraphonic-arcade-ui-6-229503.mp3" type="audio/mpeg" />
       </audio>
       <div className="absolute top-4 left-4 z-20">
         <Button asChild variant="outline">
@@ -62,6 +73,7 @@ export default function GamePage() {
         setGameWon={handleGameWon}
         collectibleCount={totalCollectibles}
         lavaAudioRef={lavaAudioRef}
+        onCollect={handleCollectSound}
       />
 
       {gameStatus === 'won' && (
