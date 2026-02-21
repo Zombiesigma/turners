@@ -71,7 +71,7 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
     scene.add(player);
     const playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
 
-    camera.position.set(0, 8, 10);
+    camera.position.set(0, 5, 6);
     camera.lookAt(player.position);
 
     // Obstacles
@@ -96,7 +96,29 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
     // Collectibles
     let collectedCount = 0;
     const collectibles: THREE.Mesh[] = [];
-    const collectibleGeometry = new THREE.TorusGeometry(0.5, 0.15, 16, 100);
+    
+    const lightningShape = new THREE.Shape();
+    lightningShape.moveTo(0, 0.6);      // Top point
+    lightningShape.lineTo(-0.2, 0.2);   // Upper-left point
+    lightningShape.lineTo(-0.2, -0.2);  // Lower-left inner point
+    lightningShape.lineTo(0, -0.6);     // Bottom point
+    lightningShape.lineTo(0.2, -0.2);   // Lower-right point
+    lightningShape.lineTo(0.2, 0.2);    // Upper-right inner point
+    lightningShape.lineTo(0, 0.6);      // Back to Top point
+
+    const extrudeSettings = {
+        steps: 1,
+        depth: 0.1,
+        bevelEnabled: true,
+        bevelThickness: 0.05,
+        bevelSize: 0.05,
+        bevelOffset: 0,
+        bevelSegments: 1
+    };
+
+    const collectibleGeometry = new THREE.ExtrudeGeometry(lightningShape, extrudeSettings);
+    collectibleGeometry.center();
+
     const collectibleMaterial = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 1, roughness: 0.1, metalness: 0.8 });
     
     for (let i = 0; i < collectibleCount; i++) {
@@ -168,7 +190,7 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
         }
 
         // Follow camera
-        const cameraOffset = new THREE.Vector3(0, 8, 10);
+        const cameraOffset = new THREE.Vector3(0, 5, 6);
         const targetCameraPosition = player.position.clone().add(cameraOffset);
         camera.position.lerp(targetCameraPosition, 0.05);
         camera.lookAt(player.position);
