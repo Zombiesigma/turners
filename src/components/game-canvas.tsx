@@ -90,17 +90,16 @@ export function GameCanvas({
     const lavaTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/lava/lavatile.jpg');
     lavaTexture.wrapS = THREE.RepeatWrapping;
     lavaTexture.wrapT = THREE.RepeatWrapping;
-    lavaTexture.repeat.set(16, 16); // Increase repetition for better flow on complex shapes
+    lavaTexture.repeat.set(32, 32);
     const lavaMaterial = new THREE.MeshStandardMaterial({ map: lavaTexture, emissiveMap: lavaTexture, emissive: 0xff4400, emissiveIntensity: 1.8, metalness: 0.2, roughness: 0.7 });
     
     const lavaPools: THREE.Mesh[] = [];
 
-    // Main lava river
     const riverShape1 = new THREE.Shape();
     riverShape1.moveTo(-60, -10);
     riverShape1.bezierCurveTo(-40, 5, -20, -15, 0, -20);
     riverShape1.bezierCurveTo(20, -25, 40, -10, 60, -5);
-    riverShape1.lineTo(60, 8); // river width
+    riverShape1.lineTo(60, 8);
     riverShape1.bezierCurveTo(40, 2, 20, -13, 0, -8);
     riverShape1.bezierCurveTo(-20, -3, -40, 15, -60, 2);
     riverShape1.closePath();
@@ -112,7 +111,6 @@ export function GameCanvas({
     scene.add(riverMesh1);
     lavaPools.push(riverMesh1);
 
-    // Second lava river/pool
     const riverShape2 = new THREE.Shape();
     riverShape2.moveTo(10, 60);
     riverShape2.bezierCurveTo(25, 40, 15, 20, 0, 15);
@@ -168,7 +166,7 @@ export function GameCanvas({
         rightLeg.position.set(bodyRadius * 0.5, legLength/2, 0);
         group.add(leftLeg, rightLeg);
         
-        group.position.y = -legLength; // Adjust to stand on the ground
+        group.position.y = -legLength;
 
         group.traverse(child => {
             if (child instanceof THREE.Mesh) {
@@ -272,24 +270,15 @@ export function GameCanvas({
         const onGround = player.position.y <= 0.8;
         playerVelocity.y -= gravity * delta;
         
-        const oldY = player.position.y;
         player.position.y += playerVelocity.y * delta;
 
-        // Collision detection for y-axis
-        const playerFeetBB = new THREE.Box3().setFromPoints([
-            new THREE.Vector3(player.position.x - 0.4, player.position.y - 1, player.position.z - 0.4),
-            new THREE.Vector3(player.position.x + 0.4, player.position.y, player.position.z + 0.4),
-        ]);
-        
-        let groundCollision = false;
         if (player.position.y < 0.8) {
             player.position.y = 0.8;
             playerVelocity.y = 0;
-            groundCollision = true;
         }
 
         const isTryingToJump = gameState.current.isJumping || keys[' '];
-        if (isTryingToJump && (onGround || groundCollision)) {
+        if (isTryingToJump && onGround) {
             playerVelocity.y = 10;
             onJump();
             if (gameState.current.isJumping) setIsJumping(false);
@@ -324,7 +313,55 @@ export function GameCanvas({
         player.position.x = THREE.MathUtils.clamp(player.position.x, -planeSize/2 + 0.5, planeSize/2 - 0.5);
         player.position.z = THREE.MathUtils.clamp(player.position.z, -planeSize/2 + 0.5, planeSize/2 - 0.5);
         
-        // --- Animations ---
+        // --- Lava Damage ---
+        const playerFeetBB = new THREE.Box3().setFromCenterAndSize(
+            player.position.clone().setY(player.position.y - 0.9),
+            new THREE.Vector3(0.6, 0.2, 0.6)
+        );
+        const inLava = lavaBBs.some(lavaBB => lavaBB.intersectsBox(playerFeetBB));
+        
+        let isBurning = false;
+        if (inLava && gameState.current.playerHealth > 0) {
+            isBurning = true;
+            const damagePerSecond = 50;
+            const newHealth = Math.max(0, gameState.current.playerHealth - damagePerSecond * delta);
+            setPlayerHealth(h => newHealth);
+            
+            if (newHealth <= 0) {
+                setGameOver();
+                return;
+            }
+
+            if (lavaAudioRef.current?.paused) {
+                lavaAudioRef.current.play().catch(e => {});
+            }
+        } else {
+             if (!lavaAudioRef.current?.paused) {
+                lavaAudioRef.current.pause();
+            }
+        }
+
+        // --- Animations & Visual Effects ---
+        if (isBurning) {
+            player.traverse(child => {
+                if (child instanceof THREE.Mesh) {
+                    const material = child.material as THREE.MeshStandardMaterial;
+                    material.emissiveIntensity = 2.0;
+                    material.emissive.setHex(Math.sin(elapsedTime * 30) > 0 ? 0xff4400 : 0xaa8800);
+                }
+            });
+        } else {
+             player.traverse(child => {
+                if (child instanceof THREE.Mesh) {
+                    const material = child.material as THREE.MeshStandardMaterial;
+                    if (material.emissiveIntensity !== 0.3) {
+                         material.emissiveIntensity = 0.3;
+                         material.emissive.setHex(0xaa8800);
+                    }
+                }
+            });
+        }
+
         const walkCycle = Math.sin(elapsedTime * 8) * 0.7;
 
         if (attackAnimation > 0) {
@@ -334,7 +371,7 @@ export function GameCanvas({
         }
 
         if (attackAnimation <= 0) {
-            if (isMovingHorizontally && (onGround || groundCollision)) {
+            if (isMovingHorizontally && onGround) {
                 playerLimbs.leftArm.rotation.x = walkCycle;
                 playerLimbs.rightArm.rotation.x = -walkCycle;
                 playerLimbs.leftLeg.rotation.x = -walkCycle;
@@ -346,7 +383,7 @@ export function GameCanvas({
                 playerLimbs.rightLeg.rotation.x = THREE.MathUtils.lerp(playerLimbs.rightLeg.rotation.x, 0, delta * 10);
             }
         } else {
-            if (isMovingHorizontally && (onGround || groundCollision)) {
+            if (isMovingHorizontally && onGround) {
                 playerLimbs.leftArm.rotation.x = walkCycle;
                 playerLimbs.leftLeg.rotation.x = -walkCycle;
                 playerLimbs.rightLeg.rotation.x = walkCycle;
@@ -385,11 +422,6 @@ export function GameCanvas({
         }
         if (attackEffect.material.opacity > 0) {
             attackEffect.material.opacity -= delta * 4;
-        }
-
-        if (lavaBBs.some(lavaBB => playerBB.intersectsBox(lavaBB))) {
-            setGameOver();
-            return;
         }
 
         // --- AI ---
@@ -512,7 +544,7 @@ export function GameCanvas({
             }
         }
         
-        if (isMovingHorizontally && (onGround || groundCollision)) {
+        if (isMovingHorizontally && onGround) {
             if (walkAudioRef.current?.paused) {
                 walkAudioRef.current.play().catch(e => {});
             }
@@ -520,19 +552,6 @@ export function GameCanvas({
              if (!walkAudioRef.current?.paused) {
                 walkAudioRef.current?.pause();
             }
-        }
-
-        let isNearLava = false;
-        for (const lavaBB of lavaBBs) {
-          if (player.position.distanceTo(lavaBB.getCenter(new THREE.Vector3())) < 15) {
-            isNearLava = true;
-            break;
-          }
-        }
-        if (isNearLava && lavaAudioRef.current?.paused) {
-            lavaAudioRef.current.play().catch(e => {});
-        } else if (!isNearLava && !lavaAudioRef.current?.paused) {
-            lavaAudioRef.current?.pause();
         }
 
         camera.position.lerp(player.position.clone().add(new THREE.Vector3(0, 5, 6)), 0.05);
