@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useMemo } from 'react';
+import * as THREE from 'three';
 import { GameCanvas } from '@/components/game-canvas';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RotateCw, Smartphone, Sword } from 'lucide-react';
