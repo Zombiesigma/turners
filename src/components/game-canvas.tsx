@@ -28,16 +28,20 @@ type GameCanvasProps = {
 };
 
 export function GameCanvas({ 
+    score,
     setScore, setGameOver, collectibleCount, lavaAudioRef, onCollect, joystickDelta,
     isAttacking, playerHealth, setPlayerHealth, enemies, setEnemies,
     playerHealthBarRef, enemyHealthBarRefs
 }: GameCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
-  const joystickDeltaRef = useRef(joystickDelta);
+  
+  // Use a single ref to hold all frequently changing state.
+  // This prevents the main useEffect from re-running and resetting the scene.
+  const gameState = useRef({ score, playerHealth, enemies, isAttacking, joystickDelta });
 
   useEffect(() => {
-    joystickDeltaRef.current = joystickDelta;
-  }, [joystickDelta]);
+    gameState.current = { score, playerHealth, enemies, isAttacking, joystickDelta };
+  }, [score, playerHealth, enemies, isAttacking, joystickDelta]);
   
   useEffect(() => {
     const mountNode = mountRef.current;
@@ -62,7 +66,6 @@ export function GameCanvas({
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 2048;
     directionalLight.shadow.mapSize.height = 2048;
-    // ... shadow camera setup
     scene.add(directionalLight);
 
     const textureLoader = new THREE.TextureLoader();
@@ -108,7 +111,7 @@ export function GameCanvas({
     // Enemies ("Algojos")
     const enemyMeshes: THREE.Mesh[] = [];
     const enemyBBs: THREE.Box3[] = [];
-    enemies.forEach(enemyData => {
+    gameState.current.enemies.forEach(enemyData => {
         const enemyMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.6, 1.2, 10, 20), new THREE.MeshStandardMaterial({ color: 0xcc0000, metalness: 0.5, roughness: 0.3, emissive: 0x880000 }));
         enemyMesh.position.copy(enemyData.position);
         enemyMesh.castShadow = true;
@@ -137,7 +140,6 @@ export function GameCanvas({
     const obstacleBBs = obstacles.map(obs => new THREE.Box3().setFromObject(obs));
 
     // Collectibles
-    let collectedCount = 0;
     const collectibles: THREE.Mesh[] = [];
     const lightningShape = new THREE.Shape();
     lightningShape.moveTo(0, 0.6); lightningShape.lineTo(-0.2, 0.2); lightningShape.lineTo(-0.2, -0.2); lightningShape.lineTo(0, -0.6); lightningShape.lineTo(0.2, -0.2); lightningShape.lineTo(0.2, 0.2); lightningShape.lineTo(0, 0.6);
@@ -160,8 +162,10 @@ export function GameCanvas({
 
     // Movement and Attack
     const keys: Record<string, boolean> = {};
-    document.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
-    document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+    const handleKeyDown = (e: KeyboardEvent) => keys[e.key.toLowerCase()] = true;
+    const handleKeyUp = (e: KeyboardEvent) => keys[e.key.toLowerCase()] = false;
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
     let attackCooldown = 0;
     const attackRadius = 3;
     const attackDamage = 10;
@@ -176,13 +180,15 @@ export function GameCanvas({
         animationFrameId = requestAnimationFrame(animate);
         const delta = clock.getDelta();
         
+        if (gameState.current.playerHealth <= 0) return;
+
         // Cooldowns
         if (attackCooldown > 0) attackCooldown -= delta;
         if (playerDamageCooldown > 0) playerDamageCooldown -= delta;
         
         // Player Movement
         const moveDirection = new THREE.Vector3();
-        const joystick = joystickDeltaRef.current;
+        const joystick = gameState.current.joystickDelta;
         if (joystick.x !== 0 || joystick.z !== 0) {
             moveDirection.set(joystick.x, 0, joystick.z);
         } else {
@@ -203,16 +209,19 @@ export function GameCanvas({
         
         // Lava Collision
         playerBB.setFromObject(player);
-        if (lavaBBs.some(lavaBB => playerBB.intersectsBox(lavaBB))) player.position.set(0, 0.8, 0);
+        if (lavaBBs.some(lavaBB => playerBB.intersectsBox(lavaBB))) {
+            setGameOver();
+            return;
+        }
 
         // Player Attack
-        if ((isAttacking || keys['f']) && attackCooldown <= 0) {
-            attackCooldown = 0.5; // 0.5 second cooldown
+        if ((gameState.current.isAttacking || keys['f']) && attackCooldown <= 0) {
+            attackCooldown = 0.5;
             attackEffect.position.copy(player.position);
             attackEffect.material.opacity = 0.8;
             enemyMeshes.forEach((enemyMesh, index) => {
-                if (enemies[index].health > 0 && player.position.distanceTo(enemyMesh.position) < attackRadius) {
-                    setEnemies(prev => prev.map(e => e.id === enemies[index].id ? { ...e, health: e.health - attackDamage } : e));
+                if (gameState.current.enemies[index].health > 0 && player.position.distanceTo(enemyMesh.position) < attackRadius) {
+                    setEnemies(prev => prev.map(e => e.id === gameState.current.enemies[index].id ? { ...e, health: Math.max(0, e.health - attackDamage) } : e));
                 }
             });
         }
@@ -222,10 +231,9 @@ export function GameCanvas({
 
         // Enemy AI and Collision
         enemyMeshes.forEach((enemyMesh, index) => {
-            if (enemies[index].health <= 0) {
+            if (gameState.current.enemies[index].health <= 0) {
                 if (enemyMesh.visible) {
                     enemyMesh.visible = false;
-                    // Optional: add a dying animation/effect here
                 }
                 return;
             };
@@ -237,9 +245,13 @@ export function GameCanvas({
             enemyBBs[index].setFromObject(enemyMesh);
             playerBB.setFromObject(player);
             if (enemyBBs[index].intersectsBox(playerBB) && playerDamageCooldown <= 0) {
-                playerDamageCooldown = 1.0; // 1 second immunity
-                setPlayerHealth(h => h - 15);
-                if (playerHealth - 15 <= 0) setGameOver();
+                playerDamageCooldown = 1.0;
+                const newHealth = Math.max(0, gameState.current.playerHealth - 15);
+                setPlayerHealth(h => newHealth);
+                if (newHealth <= 0) {
+                    setGameOver();
+                    return;
+                }
             }
         });
 
@@ -262,7 +274,20 @@ export function GameCanvas({
         camera.position.lerp(player.position.clone().add(new THREE.Vector3(0, 5, 6)), 0.05);
         camera.lookAt(player.position);
         lavaTexture.offset.y += delta * 0.1;
-        // ... lava audio logic as before
+        
+        let isNearLava = false;
+        for (const lavaBB of lavaBBs) {
+          if (player.position.distanceTo(lavaBB.getCenter(new THREE.Vector3())) < 15) {
+            isNearLava = true;
+            break;
+          }
+        }
+        if (isNearLava && lavaAudioRef.current?.paused) {
+            lavaAudioRef.current.play().catch(e => {});
+        } else if (!isNearLava && !lavaAudioRef.current?.paused) {
+            lavaAudioRef.current?.pause();
+        }
+
 
         // Update health bar positions
         const updateHealthBarPosition = (mesh: THREE.Mesh, ref: React.RefObject<HTMLDivElement>, yOffset = 1.2) => {
@@ -301,8 +326,8 @@ export function GameCanvas({
 
     return () => {
         window.removeEventListener('resize', handleResize);
-        document.removeEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
-        document.removeEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+        document.removeEventListener('keydown', handleKeyDown);
+        document.removeEventListener('keyup', handleKeyUp);
         if (mountNode && renderer.domElement) {
             mountNode.removeChild(renderer.domElement);
         }
@@ -324,7 +349,9 @@ export function GameCanvas({
         groundTexture.dispose();
         lavaTexture.dispose();
     };
-  }, [collectibleCount, setGameOver, setScore, lavaAudioRef, onCollect, isAttacking, enemies, setEnemies, playerHealth, setPlayerHealth, enemyHealthBarRefs, playerHealthBarRef]);
+  // This useEffect now only depends on stable functions and props that don't change,
+  // preventing the scene from being rebuilt unnecessarily.
+  }, [collectibleCount, setGameOver, setScore, lavaAudioRef, onCollect, setEnemies, setPlayerHealth, enemyHealthBarRefs, playerHealthBarRef]);
 
   return <div ref={mountRef} className="absolute top-0 left-0 w-full h-full" />;
 }
