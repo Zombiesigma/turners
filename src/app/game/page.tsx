@@ -24,6 +24,9 @@ export default function GamePage() {
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
+      <audio autoPlay loop>
+        <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/freesound_community-horror01_loop-29220.mp3" type="audio/mpeg" />
+      </audio>
       <div className="absolute top-4 left-4 z-20">
         <Button asChild variant="outline">
           <Link href="/">
