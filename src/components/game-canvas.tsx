@@ -103,9 +103,69 @@ export function GameCanvas({
     });
     const lavaBBs = lavaPools.map(lava => new THREE.Box3().setFromObject(lava).expandByScalar(0.5));
 
-    const player = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.8, 10, 20), new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.6, roughness: 0.2, emissive: 0xaa8800, emissiveIntensity: 0.2 }));
+    const createCharacterModel = (isPlayer: boolean): THREE.Group => {
+        const group = new THREE.Group();
+
+        const material = new THREE.MeshStandardMaterial({
+            color: isPlayer ? 0xFFD700 : 0xcc0000,
+            metalness: 0.5,
+            roughness: 0.3,
+            emissive: isPlayer ? 0xaa8800 : 0x880000,
+            emissiveIntensity: 0.3
+        });
+
+        // Dimensions based on original capsules
+        const capsuleHeight = isPlayer ? 0.8 : 1.2;
+        const capsuleRadius = isPlayer ? 0.4 : 0.6;
+
+        // Body (main cylinder shape)
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(capsuleRadius * 0.8, capsuleRadius * 0.8, capsuleHeight * 1.1, 16), material);
+        group.add(body);
+
+        // Head
+        const headRadius = capsuleRadius * 0.9;
+        const head = new THREE.Mesh(new THREE.SphereGeometry(headRadius, 16, 16), material);
+        head.position.y = capsuleHeight / 2 + headRadius * 0.6;
+        group.add(head);
+
+        // Limbs
+        const limbRadius = capsuleRadius * 0.25;
+        const armLength = capsuleHeight * 0.9;
+        const legLength = capsuleHeight;
+
+        // Arms
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(limbRadius, limbRadius, armLength, 6), material);
+        const leftArm = arm.clone();
+        leftArm.position.set(-(capsuleRadius), capsuleHeight * 0.15, 0);
+        leftArm.rotation.z = Math.PI / 3;
+        group.add(leftArm);
+        
+        const rightArm = arm.clone();
+        rightArm.position.x = -leftArm.position.x;
+        rightArm.rotation.z = -leftArm.rotation.z;
+        group.add(rightArm);
+        
+        // Legs
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(limbRadius * 1.2, limbRadius, legLength, 6), material);
+        const leftLeg = leg.clone();
+        leftLeg.position.set(-(capsuleRadius * 0.45), -capsuleHeight / 1.5, 0);
+        group.add(leftLeg);
+        
+        const rightLeg = leg.clone();
+        rightLeg.position.x = -leftLeg.position.x;
+        group.add(rightLeg);
+
+        group.traverse(child => {
+            if (child instanceof THREE.Mesh) {
+                child.castShadow = true;
+            }
+        });
+
+        return group;
+    };
+    
+    const player = createCharacterModel(true);
     player.position.y = 0.8;
-    player.castShadow = true;
     scene.add(player);
     const playerBB = new THREE.Box3();
     const playerLight = new THREE.PointLight(0xFFD700, 0.8, 15);
@@ -113,12 +173,11 @@ export function GameCanvas({
     const playerVelocity = new THREE.Vector3();
     const gravity = 30.0;
 
-    const enemyMeshes: THREE.Mesh[] = [];
+    const enemyMeshes: THREE.Group[] = [];
     const enemyBBs: (THREE.Box3 | null)[] = [];
     gameState.current.enemies.forEach(enemyData => {
-        const enemyMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.6, 1.2, 10, 20), new THREE.MeshStandardMaterial({ color: 0xcc0000, metalness: 0.5, roughness: 0.3, emissive: 0x880000 }));
+        const enemyMesh = createCharacterModel(false);
         enemyMesh.position.copy(enemyData.position);
-        enemyMesh.castShadow = true;
         scene.add(enemyMesh);
         enemyMeshes.push(enemyMesh);
         enemyBBs.push(new THREE.Box3());
@@ -393,7 +452,7 @@ export function GameCanvas({
         camera.lookAt(player.position);
         lavaTexture.offset.y += delta * 0.1;
 
-        const updateHealthBarPosition = (mesh: THREE.Mesh, ref: React.RefObject<HTMLDivElement>, yOffset = 1.2) => {
+        const updateHealthBarPosition = (mesh: THREE.Object3D, ref: React.RefObject<HTMLDivElement>, yOffset = 1.2) => {
             if (!ref.current || !mesh.visible) {
                 if(ref.current) ref.current.style.display = 'none';
                 return;
@@ -413,8 +472,8 @@ export function GameCanvas({
             }
         };
 
-        updateHealthBarPosition(player, playerHealthBarRef, 0.8);
-        enemyMeshes.forEach((em, i) => updateHealthBarPosition(em, { current: enemyHealthBarRefs.current[i] }));
+        updateHealthBarPosition(player, playerHealthBarRef, 1.2);
+        enemyMeshes.forEach((em, i) => updateHealthBarPosition(em, { current: enemyHealthBarRefs.current[i] }, 1.5));
         
         renderer.render(scene, camera);
     };
