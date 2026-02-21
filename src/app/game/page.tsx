@@ -10,7 +10,7 @@ export default function GamePage() {
   const [score, setScore] = useState(0);
   const [gameStatus, setGameStatus] = useState<'playing' | 'won'>('playing');
   const [gameKey, setGameKey] = useState(Date.now());
-  const totalCollectibles = 10;
+  const totalCollectibles = 40;
 
   const handleRestart = () => {
     setScore(0);

@@ -35,15 +35,15 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
     directionalLight.shadow.mapSize.width = 2048;
     directionalLight.shadow.mapSize.height = 2048;
     directionalLight.shadow.camera.near = 0.5;
-    directionalLight.shadow.camera.far = 50;
-    directionalLight.shadow.camera.left = -16;
-    directionalLight.shadow.camera.right = 16;
-    directionalLight.shadow.camera.top = 16;
-    directionalLight.shadow.camera.bottom = -16;
+    directionalLight.shadow.camera.far = 150;
+    directionalLight.shadow.camera.left = -60;
+    directionalLight.shadow.camera.right = 60;
+    directionalLight.shadow.camera.top = 60;
+    directionalLight.shadow.camera.bottom = -60;
     scene.add(directionalLight);
     
     // Ground
-    const planeSize = 30;
+    const planeSize = 120;
     const groundGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
     const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.1, roughness: 0.8 });
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
@@ -71,27 +71,26 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
     scene.add(player);
     const playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
 
-    camera.position.set(0, 8, 10);
+    camera.position.set(0, 20, 25);
     camera.lookAt(player.position);
 
     // Obstacles
     const obstacles: THREE.Mesh[] = [];
-    const obstacleGeometry = new THREE.BoxGeometry(1, 2, 1);
+    const obstacleGeometry = new THREE.BoxGeometry(2, 4, 2);
     const obstacleMaterial = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.6 });
-    const obstaclePositions = [
-        new THREE.Vector3(5, 1, 5), new THREE.Vector3(-5, 1, -5),
-        new THREE.Vector3(8, 1, -2), new THREE.Vector3(-8, 1, 2),
-        new THREE.Vector3(0, 1, 10), new THREE.Vector3(0, 1, -10),
-        new THREE.Vector3(10, 1, 0), new THREE.Vector3(-10, 1, 0),
-    ];
-    obstaclePositions.forEach(pos => {
+    const obstacleCount = 80;
+    for (let i = 0; i < obstacleCount; i++) {
         const obstacle = new THREE.Mesh(obstacleGeometry, obstacleMaterial);
-        obstacle.position.copy(pos);
+        obstacle.position.set(
+            (Math.random() - 0.5) * (planeSize - 4),
+            2,
+            (Math.random() - 0.5) * (planeSize - 4)
+        );
         obstacle.castShadow = true;
         obstacle.receiveShadow = true;
         scene.add(obstacle);
         obstacles.push(obstacle);
-    });
+    }
     const obstacleBBs = obstacles.map(obs => new THREE.Box3().setFromObject(obs));
 
     // Collectibles
@@ -169,7 +168,7 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
         }
 
         // Follow camera
-        const cameraOffset = new THREE.Vector3(0, 8, 10);
+        const cameraOffset = new THREE.Vector3(0, 20, 25);
         const targetCameraPosition = player.position.clone().add(cameraOffset);
         camera.position.lerp(targetCameraPosition, 0.05);
         camera.lookAt(player.position);
