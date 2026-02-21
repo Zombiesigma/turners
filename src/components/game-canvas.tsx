@@ -18,7 +18,8 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
 
     // Scene setup
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0a0a); // Darker background
+    scene.background = new THREE.Color(0x0a0a0a);
+    scene.fog = new THREE.Fog(0x0a0a0a, 50, 100);
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -27,9 +28,9 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
     mountNode.appendChild(renderer.domElement);
 
     // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
     directionalLight.position.set(10, 20, 15);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 2048;
@@ -41,20 +42,65 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
     directionalLight.shadow.camera.top = 60;
     directionalLight.shadow.camera.bottom = -60;
     scene.add(directionalLight);
+
+    const textureLoader = new THREE.TextureLoader();
     
     // Ground
+    const groundTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/terrain/rock_b.jpg');
+    groundTexture.wrapS = THREE.RepeatWrapping;
+    groundTexture.wrapT = THREE.RepeatWrapping;
+    groundTexture.repeat.set(64, 64);
+
     const planeSize = 120;
     const groundGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
-    const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.1, roughness: 0.8 });
+    const groundMaterial = new THREE.MeshStandardMaterial({ 
+        map: groundTexture,
+        metalness: 0.1, 
+        roughness: 0.8 
+    });
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
+
+    // Lava
+    const lavaTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/lava/lavatile.jpg');
+    lavaTexture.wrapS = THREE.RepeatWrapping;
+    lavaTexture.wrapT = THREE.RepeatWrapping;
+    lavaTexture.repeat.set(4, 4);
+
+    const lavaMaterial = new THREE.MeshStandardMaterial({
+        map: lavaTexture,
+        emissiveMap: lavaTexture,
+        emissive: 0xff4400,
+        emissiveIntensity: 1.8,
+        metalness: 0.2,
+        roughness: 0.7,
+    });
     
-    const grid = new THREE.GridHelper(planeSize, planeSize, 0x888888, 0x444444);
-    (grid.material as THREE.Material).transparent = true;
-    (grid.material as THREE.Material).opacity = 0.5;
-    scene.add(grid);
+    const lavaPools: THREE.Mesh[] = [];
+    const lavaPoolGeometries = [
+        new THREE.PlaneGeometry(10, 30),
+        new THREE.PlaneGeometry(20, 15),
+        new THREE.CircleGeometry(12, 32),
+        new THREE.PlaneGeometry(5, 50),
+    ];
+    const lavaPositions = [
+        new THREE.Vector3(30, 0.01, -20),
+        new THREE.Vector3(-40, 0.01, 10),
+        new THREE.Vector3(15, 0.01, 45),
+        new THREE.Vector3(-10, 0.01, -45),
+    ];
+    const lavaRotations = [ 0.2, 0, 0, 1.57 ];
+
+    lavaPoolGeometries.forEach((geom, i) => {
+        const lavaPool = new THREE.Mesh(geom, lavaMaterial);
+        lavaPool.position.copy(lavaPositions[i]);
+        lavaPool.rotation.x = -Math.PI / 2;
+        lavaPool.rotation.z = lavaRotations[i];
+        scene.add(lavaPool);
+        lavaPools.push(lavaPool);
+    });
 
     // Player Cube
     const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
@@ -71,6 +117,11 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
     scene.add(player);
     const playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
 
+    // Add a point light to the player
+    const playerLight = new THREE.PointLight(0xFFD700, 0.8, 15);
+    playerLight.castShadow = false;
+    player.add(playerLight);
+
     camera.position.set(0, 5, 6);
     camera.lookAt(player.position);
 
@@ -79,13 +130,26 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
     const obstacleGeometry = new THREE.BoxGeometry(2, 4, 2);
     const obstacleMaterial = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.6 });
     const obstacleCount = 80;
+    const lavaBBs = lavaPools.map(lava => new THREE.Box3().setFromObject(lava).expandByScalar(0.5));
+    
     for (let i = 0; i < obstacleCount; i++) {
         const obstacle = new THREE.Mesh(obstacleGeometry, obstacleMaterial);
-        obstacle.position.set(
-            (Math.random() - 0.5) * (planeSize - 4),
-            2,
-            (Math.random() - 0.5) * (planeSize - 4)
-        );
+        let validPosition = false;
+        while (!validPosition) {
+            obstacle.position.set(
+                (Math.random() - 0.5) * (planeSize - 4),
+                2,
+                (Math.random() - 0.5) * (planeSize - 4)
+            );
+            validPosition = true;
+            const obsBB = new THREE.Box3().setFromObject(obstacle);
+             for (const lavaBB of lavaBBs) {
+                if (lavaBB.intersectsBox(obsBB)) {
+                    validPosition = false;
+                    break;
+                }
+            }
+        }
         obstacle.castShadow = true;
         obstacle.receiveShadow = true;
         scene.add(obstacle);
@@ -98,13 +162,13 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
     const collectibles: THREE.Mesh[] = [];
     
     const lightningShape = new THREE.Shape();
-    lightningShape.moveTo(0, 0.6);      // Top point
-    lightningShape.lineTo(-0.2, 0.2);   // Upper-left point
-    lightningShape.lineTo(-0.2, -0.2);  // Lower-left inner point
-    lightningShape.lineTo(0, -0.6);     // Bottom point
-    lightningShape.lineTo(0.2, -0.2);   // Lower-right point
-    lightningShape.lineTo(0.2, 0.2);    // Upper-right inner point
-    lightningShape.lineTo(0, 0.6);      // Back to Top point
+    lightningShape.moveTo(0, 0.6);
+    lightningShape.lineTo(-0.2, 0.2);
+    lightningShape.lineTo(-0.2, -0.2);
+    lightningShape.lineTo(0, -0.6);
+    lightningShape.lineTo(0.2, -0.2);
+    lightningShape.lineTo(0.2, 0.2);
+    lightningShape.lineTo(0, 0.6);
 
     const extrudeSettings = {
         steps: 1,
@@ -131,11 +195,20 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
                 (Math.random() - 0.5) * (planeSize - 2)
             );
             validPosition = true;
+            const collectibleBB = new THREE.Box3().setFromObject(collectible);
             for (const obsBB of obstacleBBs) {
-                if (obsBB.containsPoint(collectible.position)) {
+                if (obsBB.intersectsBox(collectibleBB)) {
                     validPosition = false;
                     break;
                 }
+            }
+            if (validPosition) {
+              for (const lavaBB of lavaBBs) {
+                  if (lavaBB.intersectsBox(collectibleBB)) {
+                      validPosition = false;
+                      break;
+                  }
+              }
             }
         }
         collectible.rotation.x = Math.PI / 2;
@@ -160,6 +233,8 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
         const delta = clock.getDelta();
         const moveSpeed = 5 * delta;
 
+        lavaTexture.offset.y += delta * 0.1;
+
         const moveDirection = new THREE.Vector3();
         if (keys['ArrowUp']) moveDirection.z -= 1;
         if (keys['ArrowDown']) moveDirection.z += 1;
@@ -174,7 +249,7 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
         newPosition.x = THREE.MathUtils.clamp(newPosition.x, -halfPlane + 0.5, halfPlane - 0.5);
         newPosition.z = THREE.MathUtils.clamp(newPosition.z, -halfPlane + 0.5, halfPlane - 0.5);
 
-        // Obstacle collision check
+        // Collision check
         playerBB.setFromObject(player);
         const playerNextBB = playerBB.clone().translate(newPosition.clone().sub(player.position));
         let collision = false;
@@ -187,6 +262,15 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
         
         if (!collision) {
             player.position.copy(newPosition);
+        }
+
+        // Lava collision (restart)
+        playerBB.setFromObject(player);
+        for (const lavaBB of lavaBBs) {
+            if(playerBB.intersectsBox(lavaBB)) {
+                 player.position.set(0, 0.5, 0);
+                 break;
+            }
         }
 
         // Follow camera
@@ -234,19 +318,28 @@ export function GameCanvas({ setScore, setGameWon, collectibleCount }: GameCanva
             mountNode.removeChild(renderer.domElement);
         }
         cancelAnimationFrame(animationFrameId);
+        
         // Dispose of Three.js objects
         scene.traverse(object => {
-            if (object instanceof THREE.Mesh) {
+             if (object instanceof THREE.Mesh) {
                 if (object.geometry) object.geometry.dispose();
                 if (object.material) {
                     if (Array.isArray(object.material)) {
-                        object.material.forEach(material => material.dispose());
+                        object.material.forEach(material => {
+                            if (material.map) material.map.dispose();
+                            if (material.emissiveMap) material.emissiveMap.dispose();
+                            material.dispose();
+                        });
                     } else {
+                        if (object.material.map) object.material.map.dispose();
+                        if (object.material.emissiveMap) object.material.emissiveMap.dispose();
                         (object.material as THREE.Material).dispose();
                     }
                 }
             }
         });
+        groundTexture.dispose();
+        lavaTexture.dispose();
     };
   }, [collectibleCount, setGameWon, setScore]);
 
