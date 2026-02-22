@@ -399,28 +399,34 @@ export function GameCanvas({
     const cameraLookat = new THREE.Vector3(0, 1.5, 0);
     scene.add(cameraPivot);
 
-    const handleMouseMove = (event: MouseEvent) => {
-        if (document.pointerLockElement === renderer.domElement) {
-            cameraPivot.rotation.y -= event.movementX * 0.002;
-            const camX = cameraPivot.rotation.x - event.movementY * 0.002;
-            cameraPivot.rotation.x = THREE.MathUtils.clamp(camX, -0.5, 1.2);
-        }
+    let isMouseDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+
+    const onMouseDown = (e: MouseEvent) => {
+        isMouseDragging = true;
+        previousMousePosition = { x: e.clientX, y: e.clientY };
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+        if (!isMouseDragging) return;
+
+        const deltaX = e.clientX - previousMousePosition.x;
+        const deltaY = e.clientY - previousMousePosition.y;
+
+        cameraPivot.rotation.y -= deltaX * 0.002;
+        const camX = cameraPivot.rotation.x - deltaY * 0.002;
+        cameraPivot.rotation.x = THREE.MathUtils.clamp(camX, -0.5, 1.2);
+
+        previousMousePosition = { x: e.clientX, y: e.clientY };
+    };
+
+    const onMouseUp = () => {
+        isMouseDragging = false;
     };
     
-    const handlePointerLockChange = () => {
-        if (document.pointerLockElement !== renderer.domElement) {
-             // Show cursor or other UI
-        }
-    };
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('pointerlockchange', handlePointerLockChange);
-    renderer.domElement.addEventListener('click', () => {
-        try {
-            renderer.domElement.requestPointerLock();
-        } catch (e) {
-            console.warn("Could not request pointer lock:", e);
-        }
-    });
+    renderer.domElement.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
 
     const attackEffect = new THREE.Mesh(new THREE.RingGeometry(2.8, 3, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0 }));
     attackEffect.rotation.x = -Math.PI/2;
@@ -940,11 +946,10 @@ export function GameCanvas({
         window.removeEventListener('resize', handleResize);
         document.removeEventListener('keydown', handleKeyDown);
         document.removeEventListener('keyup', handleKeyUp);
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('pointerlockchange', handlePointerLockChange);
-        if (document.pointerLockElement === renderer.domElement) {
-            document.exitPointerLock();
-        }
+        
+        renderer.domElement.removeEventListener('mousedown', onMouseDown);
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
 
         if (mountNode && renderer.domElement) {
             mountNode.removeChild(renderer.domElement);
