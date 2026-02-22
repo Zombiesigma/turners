@@ -452,9 +452,13 @@ export function GameCanvas({
                     playerLavaDamageCooldown.current = 0.5;
                     if (gameState.current.playerHealth - damageAmount <= 0) setGameOver();
                 }
-                if (lavaAudioRef.current?.paused) lavaAudioRef.current.play().catch(e => {});
+                if (lavaAudioRef.current && lavaAudioRef.current.paused) {
+                    lavaAudioRef.current.play().catch(e => {});
+                }
             } else {
-                if (!lavaAudioRef.current?.paused) lavaAudioRef.current.pause();
+                if (lavaAudioRef.current && !lavaAudioRef.current.paused) {
+                    lavaAudioRef.current.pause();
+                }
             }
 
             enemyObjects.forEach((enemyObj) => {
@@ -516,9 +520,13 @@ export function GameCanvas({
             }
             
             if (isMovingHorizontally && onGround) {
-                if (walkAudioRef.current?.paused) walkAudioRef.current.play().catch(e => {});
+                if (walkAudioRef.current && walkAudioRef.current.paused) {
+                    walkAudioRef.current.play().catch(e => {});
+                }
             } else {
-                if (!walkAudioRef.current?.paused) walkAudioRef.current?.pause();
+                if (walkAudioRef.current && !walkAudioRef.current.paused) {
+                    walkAudioRef.current.pause();
+                }
             }
 
             camera.position.lerp(player.position.clone().add(new THREE.Vector3(0, 5, 6)), 0.05);
