@@ -158,14 +158,33 @@ export function GameCanvas({
 
     const lavaBBs = lavaPools.map(lava => new THREE.Box3().setFromObject(lava));
 
-    const obstacles: THREE.Mesh[] = [];
+    const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9, metalness: 0.2 });
+    const roadWidth = 8;
+    const roadSegments = [
+        { x: 0, z: 0, length: planeSize, horizontal: true },
+        { x: 0, z: 45, length: planeSize, horizontal: true },
+        { x: 0, z: -45, length: planeSize, horizontal: true },
+        { x: 0, z: 0, length: planeSize, horizontal: false },
+        { x: 45, z: 0, length: planeSize, horizontal: false },
+        { x: -45, z: 0, length: planeSize, horizontal: false },
+    ];
+    const roadBBs = roadSegments.map(seg => {
+        const roadGeom = new THREE.BoxGeometry(seg.horizontal ? seg.length : roadWidth, 0.05, seg.horizontal ? roadWidth : seg.length);
+        const road = new THREE.Mesh(roadGeom, roadMaterial);
+        road.position.set(seg.x, 0.02, seg.z);
+        road.receiveShadow = true;
+        scene.add(road);
+        return new THREE.Box3().setFromObject(road);
+    });
+
+    const obstacles: THREE.Object3D[] = [];
     const buildingMaterials = [
         new THREE.MeshStandardMaterial({ color: 0x454545, metalness: 0.2, roughness: 0.7 }),
         new THREE.MeshStandardMaterial({ color: 0x505050, metalness: 0.2, roughness: 0.7 }),
         new THREE.MeshStandardMaterial({ color: 0x3a3a3a, metalness: 0.2, roughness: 0.7 }),
     ];
 
-    for (let i = 0; i < 70; i++) { // Slightly fewer buildings as they are larger
+    for (let i = 0; i < 70; i++) {
         const width = Math.random() * 7 + 6;
         const height = Math.random() * 30 + 20;
         const depth = Math.random() * 7 + 6;
@@ -184,7 +203,7 @@ export function GameCanvas({
             );
             const buildingBB = new THREE.Box3().setFromObject(building);
 
-            let collision = lavaBBs.some(lavaBB => lavaBB.intersectsBox(buildingBB));
+            let collision = lavaBBs.some(lavaBB => lavaBB.intersectsBox(buildingBB)) || roadBBs.some(rBB => rBB.intersectsBox(buildingBB));
             
             if (!collision) {
                  for (const obs of obstacles) {
@@ -207,6 +226,56 @@ export function GameCanvas({
             obstacles.push(building);
         }
     }
+
+    const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x4d2e0f });
+    const leavesMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
+
+    for (let i = 0; i < 150; i++) {
+        const tree = new THREE.Group();
+        const trunkHeight = Math.random() * 3 + 3;
+        const trunk = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.2, 0.4, trunkHeight, 8),
+            trunkMaterial
+        );
+        trunk.position.y = trunkHeight / 2;
+        trunk.castShadow = true;
+        tree.add(trunk);
+
+        const leavesHeight = Math.random() * 4 + 3;
+        const leaves = new THREE.Mesh(
+            new THREE.ConeGeometry(2, leavesHeight, 8),
+            leavesMaterial
+        );
+        leaves.position.y = trunkHeight + leavesHeight * 0.4;
+        leaves.castShadow = true;
+        tree.add(leaves);
+
+        let validPosition = false;
+        let attempts = 0;
+        while (!validPosition && attempts < 50) {
+            tree.position.set(
+                (Math.random() - 0.5) * planeSize,
+                0,
+                (Math.random() - 0.5) * planeSize
+            );
+            const treeBB = new THREE.Box3().setFromObject(tree);
+            const onRoad = roadBBs.some(roadBB => roadBB.intersectsBox(treeBB));
+            const inLava = lavaBBs.some(lavaBB => lavaBB.intersectsBox(treeBB));
+            const inBuilding = obstacles.some(obs => new THREE.Box3().setFromObject(obs).intersectsBox(treeBB));
+            
+            if (!onRoad && !inLava && !inBuilding) {
+                validPosition = true;
+            }
+            attempts++;
+        }
+        
+        if (validPosition) {
+            scene.add(tree);
+            obstacles.push(tree);
+        }
+    }
+
+
     const obstacleBBs = obstacles.map(obs => new THREE.Box3().setFromObject(obs));
 
 
@@ -340,6 +409,7 @@ export function GameCanvas({
         });
 
         gameState.current.enemies.forEach(enemyData => {
+            if (!enemyData) return;
             const enemyMesh = model.clone();
             enemyMesh.userData.id = enemyData.id;
             enemyMesh.position.copy(enemyData.position);
@@ -380,7 +450,7 @@ export function GameCanvas({
     const clock = new THREE.Clock();
     
     function switchAction(from: THREE.AnimationAction | null, to: THREE.AnimationAction | null, duration = 0.2): THREE.AnimationAction | null {
-        if (!to || from === to) return to;
+        if (!to || from === to) return from;
         if (from) {
             from.fadeOut(duration);
         }
@@ -542,53 +612,48 @@ export function GameCanvas({
             
             let targetState = 'idle';
 
-            if (distanceToPlayer < 20) {
+            if (distanceToPlayer < 20 && distanceToPlayer > 1.5) {
                 targetState = 'chasing';
             }
             
-            if (distanceToPlayer < 1.5) {
+            if (distanceToPlayer <= 1.5) {
                 targetState = 'attacking';
             }
 
             if (enemyObj.anims.attack?.isRunning()) {
                 // let attack animation finish
-                targetState = 'attacking';
-            }
-
-            switch(targetState) {
-                case 'chasing': {
-                    const directionToTarget = new THREE.Vector3().subVectors(player.position, enemyObj.mesh.position).normalize();
-                    const enemySpeed = 2.8 * delta;
-                    enemyObj.mesh.position.add(directionToTarget.clone().multiplyScalar(enemySpeed));
-                    enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
-                    enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.walk);
-                    break;
-                }
-                case 'attacking': {
-                    const directionToTarget = new THREE.Vector3().subVectors(player.position, enemyObj.mesh.position).normalize();
-                    enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
-                    if (enemyObj.bb?.intersectsBox(playerBB)) {
-                         if (playerDamageCooldown.current <= 0) {
-                            if(!enemyObj.anims.attack?.isRunning()){
-                                enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.attack);
-                                playerDamageCooldown.current = 1.0;
-                                const damage = 15;
-                                setPlayerHealth(h => {
-                                    const newHealth = Math.max(0, h - damage);
-                                    if (newHealth <= 0) setGameOver();
-                                    return newHealth;
-                                });
-                                spawnFloatingText(`-${damage}`, '#ff4400', player.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.5, Math.random()-0.5)));
-                            }
-                        }
-                    } else {
-                        enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle);
+            } else {
+                 switch(targetState) {
+                    case 'chasing': {
+                        const directionToTarget = new THREE.Vector3().subVectors(player.position, enemyObj.mesh.position).normalize();
+                        const enemySpeed = 2.8 * delta;
+                        enemyObj.mesh.position.add(directionToTarget.clone().multiplyScalar(enemySpeed));
+                        enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
+                        enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.walk, 0.1);
+                        break;
                     }
-                    break;
-                }
-                default: { // idle
-                     enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle);
-                     break;
+                    case 'attacking': {
+                        const directionToTarget = new THREE.Vector3().subVectors(player.position, enemyObj.mesh.position).normalize();
+                        enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
+                        if (playerDamageCooldown.current <= 0) {
+                            enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.attack, 0.1);
+                            playerDamageCooldown.current = 1.0;
+                            const damage = 15;
+                            setPlayerHealth(h => {
+                                const newHealth = Math.max(0, h - damage);
+                                if (h > 0 && newHealth <= 0) setGameOver();
+                                return newHealth;
+                            });
+                            spawnFloatingText(`-${damage}`, '#ff4400', player.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.5, Math.random()-0.5)));
+                        } else {
+                            enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle, 0.1);
+                        }
+                        break;
+                    }
+                    default: { // idle
+                         enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle, 0.3);
+                         break;
+                    }
                 }
             }
 
@@ -622,19 +687,18 @@ export function GameCanvas({
             }
         }
 
-        const cameraOffset = new THREE.Vector3(0, 2, 0); // (right, up, behind)
+        const cameraOffset = new THREE.Vector3(0, 2, 0); 
         const cameraLookAtOffset = new THREE.Vector3(0, 1.5, 0);
 
-        const idealCameraPosition = player.position.clone().add(cameraOffset);
         const idealLookAtPosition = player.position.clone().add(cameraLookAtOffset);
         
         const worldDirection = new THREE.Vector3();
         player.getWorldDirection(worldDirection);
         
         const cameraBehindVector = worldDirection.clone().multiplyScalar(-3.2).add(new THREE.Vector3(0, 2.2, 0));
-        idealCameraPosition.add(cameraBehindVector);
+        const idealCameraPosition = player.position.clone().add(cameraBehindVector);
 
-        camera.position.lerp(idealCameraPosition, 0.2);
+        camera.position.lerp(idealCameraPosition, 0.1);
         camera.lookAt(idealLookAtPosition);
         
         const updateHealthBarPosition = (mesh: THREE.Object3D, ref: React.RefObject<HTMLDivElement>, yOffset = 2.2) => {
