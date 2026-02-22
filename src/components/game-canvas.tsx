@@ -415,7 +415,11 @@ export function GameCanvas({
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('pointerlockchange', handlePointerLockChange);
     renderer.domElement.addEventListener('click', () => {
-        renderer.domElement.requestPointerLock();
+        try {
+            renderer.domElement.requestPointerLock();
+        } catch (e) {
+            console.warn("Could not request pointer lock:", e);
+        }
     });
 
     const attackEffect = new THREE.Mesh(new THREE.RingGeometry(2.8, 3, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0 }));
