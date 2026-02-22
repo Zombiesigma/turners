@@ -89,9 +89,6 @@ export function GameCanvas({
 
     const hemiLight = new THREE.HemisphereLight( 0xffffbb, 0x080820, 2.5 );
     scene.add( hemiLight );
-
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
-    scene.add(ambientLight);
     
     const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
     directionalLight.position.set(20, 30, 20);
@@ -278,6 +275,81 @@ export function GameCanvas({
 
     const obstacleBBs = obstacles.map(obs => new THREE.Box3().setFromObject(obs));
 
+    // Grass
+    const grassTexture = textureLoader.load('https://raw.githubusercontent.com/al-ro/dat-ecosystem-archive/master/spike.city/src/assets/images/grass.png');
+    grassTexture.colorSpace = THREE.SRGBColorSpace;
+
+    const grassBladeGeometry = new THREE.PlaneGeometry(0.7, 0.7);
+    grassBladeGeometry.translate(0, 0.7 / 2, 0);
+
+    const grassMaterial = new THREE.MeshStandardMaterial({
+        map: grassTexture,
+        alphaTest: 0.5,
+        side: THREE.DoubleSide,
+        metalness: 0.1,
+        roughness: 0.8,
+    });
+    
+    const uniforms = {
+        time: { value: 0 },
+    };
+
+    grassMaterial.onBeforeCompile = shader => {
+        shader.uniforms.time = uniforms.time;
+        shader.vertexShader = `
+            uniform float time;
+            varying vec2 vUv;
+            ${shader.vertexShader}
+        `;
+        shader.vertexShader = shader.vertexShader.replace(
+            '#include <begin_vertex>',
+            `
+            #include <begin_vertex>
+            
+            float windStrength = 0.2;
+            float windSpeed = 2.0;
+            
+            float wind = sin(transformed.x * 0.5 + time * windSpeed) * windStrength * uv.y;
+            transformed.x += wind;
+            `
+        );
+    };
+
+    const grassInstanceCount = 75000;
+    const grassInstancedMesh = new THREE.InstancedMesh(grassBladeGeometry, grassMaterial, grassInstanceCount);
+    grassInstancedMesh.receiveShadow = true;
+    grassInstancedMesh.castShadow = true;
+    scene.add(grassInstancedMesh);
+
+    const dummy = new THREE.Object3D();
+    let instances = 0;
+
+    for (let i = 0; i < grassInstanceCount; i++) {
+        dummy.position.set(
+            (Math.random() - 0.5) * planeSize,
+            0,
+            (Math.random() - 0.5) * planeSize
+        );
+        
+        dummy.scale.setScalar(0.5 + Math.random() * 0.7);
+        dummy.rotation.y = Math.random() * Math.PI;
+
+        dummy.updateMatrix();
+
+        const checkPoint = dummy.position;
+        
+        let onRoad = roadBBs.some(roadBB => roadBB.containsPoint(checkPoint));
+        let inLava = lavaBBs.some(lavaBB => lavaBB.containsPoint(checkPoint));
+        let inBuilding = obstacleBBs.some(obsBB => obsBB.containsPoint(checkPoint));
+
+        if (!onRoad && !inLava && !inBuilding) {
+            grassInstancedMesh.setMatrixAt(instances++, dummy.matrix);
+        }
+        if (instances >= grassInstanceCount) break;
+    }
+    grassInstancedMesh.instanceMatrix.needsUpdate = true;
+    grassInstancedMesh.count = instances;
+
 
     const collectibles: THREE.Mesh[] = [];
     const lightningShape = new THREE.Shape();
@@ -463,6 +535,8 @@ export function GameCanvas({
     const animate = () => {
         animationFrameId = requestAnimationFrame(animate);
         const delta = clock.getDelta();
+        const elapsedTime = clock.getElapsedTime();
+        uniforms.time.value = elapsedTime;
         
         // Update textures and non-player objects
         lavaTexture.offset.y += delta * 0.1;
@@ -516,9 +590,19 @@ export function GameCanvas({
         }
         
         const isMovingHorizontally = moveDirection.length() > 0.1;
-        if (isMovingHorizontally) {
-            moveDirection.normalize().multiplyScalar(5 * delta);
-            const horizontalMove = new THREE.Vector3(moveDirection.x, 0, moveDirection.z);
+        
+        const worldDirection = new THREE.Vector3();
+        camera.getWorldDirection(worldDirection);
+        worldDirection.y = 0;
+        worldDirection.normalize();
+
+        const rightDirection = new THREE.Vector3().crossVectors(camera.up, worldDirection).normalize();
+        
+        const finalMoveDirection = worldDirection.multiplyScalar(-moveDirection.z).add(rightDirection.multiplyScalar(moveDirection.x));
+
+        if (finalMoveDirection.length() > 0.1) {
+            finalMoveDirection.normalize().multiplyScalar(5 * delta);
+            const horizontalMove = new THREE.Vector3(finalMoveDirection.x, 0, finalMoveDirection.z);
             const tempPlayerBB = playerBB.clone().translate(horizontalMove);
 
             let collision = false;
@@ -529,7 +613,10 @@ export function GameCanvas({
                 }
             }
             if (!collision) player.position.add(horizontalMove);
-            player.rotation.y = Math.atan2(moveDirection.x, moveDirection.z);
+
+            const targetRotation = Math.atan2(finalMoveDirection.x, finalMoveDirection.z);
+            player.rotation.y += (targetRotation - player.rotation.y) * 0.2;
+
         }
         playerBB.setFromObject(player);
         
@@ -687,19 +774,19 @@ export function GameCanvas({
             }
         }
 
-        const cameraOffset = new THREE.Vector3(0, 2, 0); 
+        const cameraOffset = new THREE.Vector3(0, 2, 3.5); 
         const cameraLookAtOffset = new THREE.Vector3(0, 1.5, 0);
 
         const idealLookAtPosition = player.position.clone().add(cameraLookAtOffset);
         
-        const worldDirection = new THREE.Vector3();
-        player.getWorldDirection(worldDirection);
+        const playerWorldDirection = new THREE.Vector3();
+        player.getWorldDirection(playerWorldDirection);
         
-        const cameraBehindVector = worldDirection.clone().multiplyScalar(-3.2).add(new THREE.Vector3(0, 2.2, 0));
-        const idealCameraPosition = player.position.clone().add(cameraBehindVector);
-
+        const idealCameraPosition = player.position.clone().add(cameraOffset);
         camera.position.lerp(idealCameraPosition, 0.1);
-        camera.lookAt(idealLookAtPosition);
+
+        const targetLookAt = player.position.clone().add(new THREE.Vector3(0, 1.5, 0));
+        camera.lookAt(targetLookAt);
         
         const updateHealthBarPosition = (mesh: THREE.Object3D, ref: React.RefObject<HTMLDivElement>, yOffset = 2.2) => {
             if (!ref.current || !mesh.visible) {
@@ -786,6 +873,7 @@ export function GameCanvas({
         });
         groundTexture.dispose();
         lavaTexture.dispose();
+        grassTexture.dispose();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
