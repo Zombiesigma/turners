@@ -563,9 +563,13 @@ export function GameCanvas({
             }
         }
 
-        const cameraOffset = new THREE.Vector3(0, 2.5, 3.5);
-        camera.position.lerp(player.position.clone().add(cameraOffset), 0.1);
-        camera.lookAt(player.position.clone().add(new THREE.Vector3(0, 1.2, 0)));
+        const cameraOffset = new THREE.Vector3(1, 2.2, 3.2); // (right, up, behind)
+        cameraOffset.applyQuaternion(player.quaternion);
+        const idealCameraPosition = player.position.clone().add(cameraOffset);
+        const lookAtPosition = player.position.clone().add(new THREE.Vector3(0, 1.5, 0));
+
+        camera.position.lerp(idealCameraPosition, 0.1);
+        camera.lookAt(lookAtPosition);
         
         const updateHealthBarPosition = (mesh: THREE.Object3D, ref: React.RefObject<HTMLDivElement>, yOffset = 2.2) => {
             if (!ref.current || !mesh.visible) {
