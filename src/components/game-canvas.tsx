@@ -75,7 +75,7 @@ export function GameCanvas({
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x101025);
-    scene.fog = new THREE.Fog(0x101025, 60, 120);
+    scene.fog = new THREE.Fog(0x101025, 50, 100);
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -85,10 +85,10 @@ export function GameCanvas({
     renderer.toneMappingExposure = 1.0;
     mountNode.appendChild(renderer.domElement);
 
-    const hemiLight = new THREE.HemisphereLight( 0x4040ff, 0x808080, 0.8 );
+    const hemiLight = new THREE.HemisphereLight( 0x4040ff, 0x808080, 0.6 );
     scene.add( hemiLight );
     
-    const directionalLight = new THREE.DirectionalLight(0xffd5a1, 2.5);
+    const directionalLight = new THREE.DirectionalLight(0xffd5a1, 2.0);
     directionalLight.position.set(30, 50, 40);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 4096;
@@ -269,9 +269,70 @@ export function GameCanvas({
             obstacles.push(tree);
         }
     }
+    
+    const streetlightMaterial = new THREE.MeshStandardMaterial({ color: 0x181818, metalness: 0.9, roughness: 0.5 });
+    const lightMaterial = new THREE.MeshStandardMaterial({ color: 0xffd580, emissive: 0xffd580, emissiveIntensity: 2 });
+    const streetlightPoleGeom = new THREE.CylinderGeometry(0.15, 0.15, 7, 8);
+    const streetlightArmGeom = new THREE.BoxGeometry(1.5, 0.2, 0.2);
+    const streetlightLampGeom = new THREE.SphereGeometry(0.4, 8, 8);
 
+    const createStreetlight = () => {
+        const streetlight = new THREE.Group();
+        const pole = new THREE.Mesh(streetlightPoleGeom, streetlightMaterial);
+        pole.position.y = 3.5;
+        streetlight.add(pole);
+        
+        const arm = new THREE.Mesh(streetlightArmGeom, streetlightMaterial);
+        arm.position.set(0.75, 6.8, 0);
+        streetlight.add(arm);
+        
+        const lamp = new THREE.Mesh(streetlightLampGeom, lightMaterial);
+        lamp.position.set(1.5, 6.5, 0);
+        streetlight.add(lamp);
 
-    const obstacleBBs = obstacles.map(obs => new THREE.Box3().setFromObject(obs));
+        const pointLight = new THREE.PointLight(0xffd580, 25, 20, 1.5);
+        pointLight.position.set(1.5, 6.2, 0);
+        pointLight.castShadow = false; // Performance
+        streetlight.add(pointLight);
+
+        return streetlight;
+    }
+
+    const streetlightSpacing = 25;
+    roadSegments.forEach(seg => {
+        const roadLength = seg.length;
+        const numLights = Math.floor(roadLength / streetlightSpacing);
+        
+        for (let i = 0; i < numLights; i++) {
+            const progress = (i / (numLights > 1 ? numLights -1 : 1)) - 0.5;
+            
+            for(let side = -1; side <= 1; side += 2) {
+                if (numLights === 1 && progress !== 0 && i > 0) continue;
+                
+                const light = createStreetlight();
+                const offset = (roadWidth / 2) + 1.5;
+
+                if (seg.horizontal) {
+                    light.position.set(seg.x + progress * roadLength, 0, seg.z + offset * side);
+                    light.rotation.y = side > 0 ? Math.PI : 0;
+                } else { // vertical
+                    light.position.set(seg.x + offset * side, 0, seg.z + progress * roadLength);
+                    light.rotation.y = Math.PI / 2 * -side;
+                }
+                
+                let tooClose = obstacles.some(obs => light.position.distanceTo(obs.position) < 8 && obs.position.y > 1);
+                if (!tooClose) {
+                     scene.add(light);
+                     const poleForCollision = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 7, 8));
+                     poleForCollision.position.copy(light.position);
+                     poleForCollision.position.y = 3.5;
+                     obstacles.push(poleForCollision);
+                }
+            }
+        }
+    });
+
+    let obstacleBBs = obstacles.map(obs => new THREE.Box3().setFromObject(obs));
 
     const grassTexture = textureLoader.load('https://raw.githubusercontent.com/al-ro/dat-ecosystem-archive/master/spike.city/src/assets/images/grass.png');
     grassTexture.colorSpace = THREE.SRGBColorSpace;
@@ -302,10 +363,8 @@ export function GameCanvas({
             '#include <begin_vertex>',
             `
             #include <begin_vertex>
-            
             float windStrength = 0.2;
             float windSpeed = 2.0;
-            
             float wind = sin(transformed.x * 0.5 + time * windSpeed) * windStrength * uv.y;
             transformed.x += wind;
             `
@@ -346,7 +405,6 @@ export function GameCanvas({
     }
     grassInstancedMesh.instanceMatrix.needsUpdate = true;
     grassInstancedMesh.count = instances;
-
 
     const collectibles: THREE.Mesh[] = [];
     const lightningShape = new THREE.Shape();
@@ -395,7 +453,7 @@ export function GameCanvas({
     
     const cameraPivot = new THREE.Group();
     const cameraTarget = new THREE.Vector3();
-    const cameraIdealOffset = new THREE.Vector3(0, 2.0, 3.5);
+    const cameraIdealOffset = new THREE.Vector3(0, 2.5, 4.5);
     const cameraLookat = new THREE.Vector3(0, 1.5, 0);
     scene.add(cameraPivot);
 
@@ -403,8 +461,10 @@ export function GameCanvas({
     let previousMousePosition = { x: 0, y: 0 };
 
     const onMouseDown = (e: MouseEvent) => {
-        isMouseDragging = true;
-        previousMousePosition = { x: e.clientX, y: e.clientY };
+        if(e.button === 0) {
+            isMouseDragging = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        }
     };
 
     const onMouseMove = (e: MouseEvent) => {
@@ -420,8 +480,10 @@ export function GameCanvas({
         previousMousePosition = { x: e.clientX, y: e.clientY };
     };
 
-    const onMouseUp = () => {
-        isMouseDragging = false;
+    const onMouseUp = (e: MouseEvent) => {
+        if(e.button === 0) {
+            isMouseDragging = false;
+        }
     };
     
     renderer.domElement.addEventListener('mousedown', onMouseDown);
@@ -450,7 +512,6 @@ export function GameCanvas({
     };
     const enemyObjects: EnemyObject[] = [];
     let modelsLoaded = false;
-
 
     const switchAction = (mixer: THREE.AnimationMixer, anims: Record<string, THREE.AnimationAction | null>, fromName: string, toName: string) => {
         if (fromName === toName || !anims[toName]) return fromName;
@@ -503,7 +564,8 @@ export function GameCanvas({
 
         Object.values(playerAnims).forEach(action => {
             if (action) {
-                if (action.getClip().name === playerAnims.attack?.getClip().name || action.getClip().name === playerAnims.jump?.getClip().name) {
+                const clipName = action.getClip().name;
+                if (playerAnims.attack?.getClip().name === clipName || playerAnims.jump?.getClip().name === clipName) {
                     action.setLoop(THREE.LoopOnce, 1);
                     action.clampWhenFinished = true;
                 }
@@ -513,7 +575,9 @@ export function GameCanvas({
         currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'idle');
         
         playerMixer.addEventListener('finished', (e) => {
-            currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'idle');
+            if (e.action === playerAnims.attack || e.action === playerAnims.jump) {
+                currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'idle');
+            }
         });
 
         const enemyMaterial = new THREE.MeshStandardMaterial({
@@ -550,7 +614,9 @@ export function GameCanvas({
             enemyActionName = switchAction(mixer, anims, enemyActionName, 'idle');
 
             mixer.addEventListener('finished', (e) => {
-                enemyActionName = switchAction(mixer, anims, enemyActionName, 'idle');
+                 if (e.action === anims.attack) {
+                    enemyActionName = switchAction(mixer, anims, enemyActionName, 'idle');
+                }
             });
 
             enemyObjects.push({
@@ -626,13 +692,14 @@ export function GameCanvas({
         
         const cameraForward = new THREE.Vector3();
         cameraPivot.getWorldDirection(cameraForward);
-        
+        cameraForward.y = 0;
+        cameraForward.normalize();
+
         const playerTargetQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), cameraPivot.rotation.y);
-        player.quaternion.slerp(playerTargetQuaternion, 0.2);
-        
+
         if (isMoving) {
             const moveVector = new THREE.Vector3(inputDirection.x, 0, inputDirection.z);
-            moveVector.applyQuaternion(player.quaternion).normalize().multiplyScalar(5 * delta);
+            moveVector.applyQuaternion(playerTargetQuaternion).normalize().multiplyScalar(5 * delta);
             
             const tempPlayerPos = player.position.clone().add(moveVector);
             const playerBodyBB = new THREE.Box3().setFromCenterAndSize(tempPlayerPos.clone().setY(tempPlayerPos.y + 1), new THREE.Vector3(0.8, 2, 0.8));
@@ -641,6 +708,7 @@ export function GameCanvas({
             if (!collision) {
                 player.position.add(moveVector);
             }
+             player.quaternion.slerp(playerTargetQuaternion, 0.2);
         }
         playerBB.setFromObject(player);
         
@@ -745,38 +813,35 @@ export function GameCanvas({
             
             const isEnemyAttacking = enemyObj.currentActionName === 'attack';
 
-            if (distanceToPlayer <= 2.5 && !isEnemyAttacking) {
+            if (distanceToPlayer <= 2.5 && !isEnemyAttacking && playerDamageCooldown.current <= 0) {
                 const directionToTarget = new THREE.Vector3().subVectors(player.position, enemyObj.mesh.position).normalize();
                 enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
-                if (playerDamageCooldown.current <= 0) {
-                    enemyObj.currentActionName = switchAction(enemyObj.mixer, enemyObj.anims, enemyObj.currentActionName, 'attack');
-                    playerDamageCooldown.current = 1.2;
-                    setTimeout(() => {
-                        if (gameState.current.playerHealth > 0 && player.position.distanceTo(enemyObj.mesh.position) < 2.8) {
-                            const damage = 15;
-                            setPlayerHealth(h => {
-                                const newHealth = Math.max(0, h - damage);
-                                if (h > 0 && newHealth <= 0) {
-                                    if(gameOverAudioRef.current) gameOverAudioRef.current.play().catch(e => {});
-                                    setGameOver();
-                                }
-                                return newHealth;
-                            });
-                            spawnFloatingText(`-${damage}`, '#ff4400', player.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.5, Math.random()-0.5)));
-                        }
-                    }, 250);
-                }
-            } 
-            else if (!isEnemyAttacking) {
+                enemyObj.currentActionName = switchAction(enemyObj.mixer, enemyObj.anims, enemyObj.currentActionName, 'attack');
+                playerDamageCooldown.current = 1.2; // Cooldown for player taking damage
+                
+                setTimeout(() => { // Damage dealt mid-animation
+                    if (gameState.current.playerHealth > 0 && player.position.distanceTo(enemyObj.mesh.position) < 2.8) {
+                        const damage = 15;
+                        setPlayerHealth(h => {
+                            const newHealth = Math.max(0, h - damage);
+                            if (h > 0 && newHealth <= 0) {
+                                if(gameOverAudioRef.current) gameOverAudioRef.current.play().catch(e => {});
+                                setGameOver();
+                            }
+                            return newHealth;
+                        });
+                        spawnFloatingText(`-${damage}`, '#ff4400', player.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.5, Math.random()-0.5)));
+                    }
+                }, 300);
+
+            } else if (!isEnemyAttacking) {
                 let currentTarget = new THREE.Vector3();
                 if (enemyData.aiState === 'chasing') {
                     currentTarget.copy(player.position);
                 } else { 
                     if (enemyData.aiTimer <= 0 || enemyObj.mesh.position.distanceTo(enemyData.targetPosition) < 2) {
                         const newTarget = new THREE.Vector3(
-                            (Math.random() - 0.5) * (planeSize - 20),
-                            0.8,
-                            (Math.random() - 0.5) * (planeSize - 20)
+                            (Math.random() - 0.5) * (planeSize - 20), 0.8, (Math.random() - 0.5) * (planeSize - 20)
                         );
                         enemyData.targetPosition.copy(newTarget);
                         enemyData.aiTimer = 5 + Math.random() * 5;
@@ -790,48 +855,36 @@ export function GameCanvas({
                     directionToTarget.normalize();
                     
                     const enemySpeed = (enemyData.aiState === 'chasing' ? 3.2 : 1.8) * delta;
-                    
                     const nextPos = enemyObj.mesh.position.clone().add(directionToTarget.clone().multiplyScalar(enemySpeed));
                     const enemyBodyBB = new THREE.Box3().setFromCenterAndSize(nextPos.clone().setY(nextPos.y + 1), new THREE.Vector3(1, 2, 1));
-
-                    let collision = obstacleBBs.some(obsBB => obsBB.intersectsBox(enemyBodyBB));
                     
-                    if (!collision) {
+                    if (!obstacleBBs.some(obsBB => obsBB.intersectsBox(enemyBodyBB))) {
                         enemyObj.mesh.position.add(directionToTarget.clone().multiplyScalar(enemySpeed));
                         moving = true;
-                    } else {
-                        if (enemyData.aiState === 'chasing') {
-                           enemyData.aiState = 'wandering';
-                           enemyData.aiTimer = 0; 
-                        }
+                    } else if (enemyData.aiState === 'chasing') {
+                       enemyData.aiState = 'wandering';
+                       enemyData.aiTimer = 0; 
                     }
                     enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
                 }
 
-                if (enemyData.aiState === 'chasing') {
-                    if (enemyObj.mesh.position.distanceTo(enemyObj.lastPosition) < 0.01 * delta * 60) {
-                        enemyObj.stuckTimer += delta;
-                    } else {
-                        enemyObj.stuckTimer = 0;
-                        enemyObj.lastPosition.copy(enemyObj.mesh.position);
-                    }
-                    if (enemyObj.stuckTimer > 1.0) { 
-                        enemyData.aiState = 'wandering';
-                        enemyData.aiTimer = 0;
-                        enemyObj.stuckTimer = 0;
-                    }
+                if (enemyObj.mesh.position.distanceTo(enemyObj.lastPosition) < 0.01 * delta * 60) {
+                    enemyObj.stuckTimer += delta;
+                } else {
+                    enemyObj.stuckTimer = 0;
+                    enemyObj.lastPosition.copy(enemyObj.mesh.position);
+                }
+                if (enemyObj.stuckTimer > 0.5) { 
+                    enemyData.aiState = 'wandering';
+                    enemyData.aiTimer = 0;
+                    enemyObj.stuckTimer = 0;
                 }
             }
 
             if (!isEnemyAttacking) {
-                if (moving) {
-                    enemyObj.currentActionName = switchAction(enemyObj.mixer, enemyObj.anims, enemyObj.currentActionName, 'walk');
-                } else {
-                    enemyObj.currentActionName = switchAction(enemyObj.mixer, enemyObj.anims, enemyObj.currentActionName, 'idle');
-                }
+                enemyObj.currentActionName = moving ? switchAction(enemyObj.mixer, enemyObj.anims, enemyObj.currentActionName, 'walk') : switchAction(enemyObj.mixer, enemyObj.anims, enemyObj.currentActionName, 'idle');
             }
         });
-
 
         for (let i = collectibles.length - 1; i >= 0; i--) {
             const collectible = collectibles[i];
@@ -857,7 +910,6 @@ export function GameCanvas({
             }
         }
         
-        // --- CAMERA LOGIC ---
         cameraPivot.position.copy(player.position);
         
         const idealCameraOffsetRotated = cameraIdealOffset.clone().applyQuaternion(cameraPivot.quaternion);
@@ -874,13 +926,12 @@ export function GameCanvas({
              finalCameraPosition = lookAtPoint.clone().add(rayDirection.multiplyScalar(intersections[0].distance - 0.2));
         }
         
-        const dampFactor = 10.0;
+        const dampFactor = 8.0;
         camera.position.lerp(finalCameraPosition, dampFactor * delta);
 
         const targetLookat = lookAtPoint;
         cameraTarget.lerp(targetLookat, dampFactor * delta);
         camera.lookAt(cameraTarget);
-
 
         const updateHealthBarPosition = (mesh: THREE.Object3D, ref: React.RefObject<HTMLDivElement>, yOffset = 2.2) => {
             if (!ref.current || !mesh.visible) {
@@ -965,22 +1016,19 @@ export function GameCanvas({
         floatingTexts.current = [];
 
         scene.traverse(object => {
-             if (object instanceof THREE.Mesh) {
+             if (object instanceof THREE.Mesh || object instanceof THREE.InstancedMesh || object instanceof THREE.LineSegments) {
                 object.geometry?.dispose();
                 const materials = Array.isArray(object.material) ? object.material : [object.material];
                 materials.forEach(material => {
                     if (material.map) material.map.dispose();
                     if (material.emissiveMap) material.emissiveMap.dispose();
-                    if (material.normalMap) material.normalMap.dispose();
-                    if (material.roughnessMap) material.roughnessMap.dispose();
-                    if (material.metalnessMap) material.metalnessMap.dispose();
                     material.dispose();
                 });
             }
         });
         
-        [groundTexture, lavaTexture, grassTexture, trunkMaterial, leavesMaterial, roadMaterial, collectibleMaterial, ...buildingMaterials].forEach(t => t?.dispose?.());
-        [grassBladeGeometry, collectibleGeometry, riverGeom1, riverGeom2].forEach(g => g?.dispose?.());
+        [groundTexture, lavaTexture, grassTexture, trunkMaterial, leavesMaterial, roadMaterial, collectibleMaterial, streetlightMaterial, lightMaterial, ...buildingMaterials].forEach(t => t?.dispose?.());
+        [grassBladeGeometry, collectibleGeometry, riverGeom1, riverGeom2, streetlightPoleGeom, streetlightArmGeom, streetlightLampGeom].forEach(g => g?.dispose?.());
         
         renderer.dispose();
     };
