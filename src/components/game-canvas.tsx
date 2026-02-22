@@ -74,33 +74,35 @@ export function GameCanvas({
     let animationFrameId: number;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0a0a);
-    scene.fog = new THREE.Fog(0x0a0a0a, 50, 100);
+    scene.background = new THREE.Color(0x101025);
+    scene.fog = new THREE.Fog(0x101025, 60, 120);
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
     mountNode.appendChild(renderer.domElement);
 
     camera.position.set(0, 15, 25);
     camera.lookAt(0, 0, 0);
 
-    const hemiLight = new THREE.HemisphereLight( 0xffffbb, 0x080820, 2.5 );
+    const hemiLight = new THREE.HemisphereLight( 0x4040ff, 0x808080, 0.8 );
     scene.add( hemiLight );
     
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
-    directionalLight.position.set(20, 30, 20);
+    const directionalLight = new THREE.DirectionalLight(0xffd5a1, 2.5);
+    directionalLight.position.set(30, 50, 40);
     directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
-    const d = 50;
+    directionalLight.shadow.mapSize.width = 4096;
+    directionalLight.shadow.mapSize.height = 4096;
+    const d = 65;
     directionalLight.shadow.camera.left = -d;
     directionalLight.shadow.camera.right = d;
     directionalLight.shadow.camera.top = d;
     directionalLight.shadow.camera.bottom = -d;
-    directionalLight.shadow.camera.far = 3500;
-    directionalLight.shadow.bias = -0.0001;
+    directionalLight.shadow.camera.far = 200;
+    directionalLight.shadow.bias = -0.0002;
     scene.add(directionalLight);
 
     const textureLoader = new THREE.TextureLoader();
@@ -108,9 +110,9 @@ export function GameCanvas({
     const groundTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/terrain/grasslight-big.jpg');
     groundTexture.wrapS = THREE.RepeatWrapping;
     groundTexture.wrapT = THREE.RepeatWrapping;
-    groundTexture.repeat.set(64, 64);
+    groundTexture.repeat.set(128, 128);
     const planeSize = 120;
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(planeSize, planeSize), new THREE.MeshStandardMaterial({ map: groundTexture, metalness: 0.1, roughness: 0.8 }));
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(planeSize, planeSize), new THREE.MeshStandardMaterial({ map: groundTexture, metalness: 0.0, roughness: 0.9 }));
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
@@ -119,7 +121,7 @@ export function GameCanvas({
     lavaTexture.wrapS = THREE.RepeatWrapping;
     lavaTexture.wrapT = THREE.RepeatWrapping;
     lavaTexture.repeat.set(32, 32);
-    const lavaMaterial = new THREE.MeshStandardMaterial({ map: lavaTexture, emissiveMap: lavaTexture, emissive: 0xff4400, emissiveIntensity: 2.2, metalness: 0.4, roughness: 0.6 });
+    const lavaMaterial = new THREE.MeshStandardMaterial({ map: lavaTexture, emissiveMap: lavaTexture, emissive: 0xff4400, emissiveIntensity: 2.5, metalness: 0.2, roughness: 0.8 });
     
     const lavaPools: THREE.Mesh[] = [];
 
@@ -154,7 +156,7 @@ export function GameCanvas({
 
     const lavaBBs = lavaPools.map(lava => new THREE.Box3().setFromObject(lava));
 
-    const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9, metalness: 0.2 });
+    const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8, metalness: 0.1 });
     const roadWidth = 8;
     const roadSegments = [
         { x: 0, z: 0, length: planeSize, horizontal: true },
@@ -175,9 +177,9 @@ export function GameCanvas({
 
     const obstacles: THREE.Object3D[] = [];
     const buildingMaterials = [
-        new THREE.MeshStandardMaterial({ color: 0x454545, metalness: 0.2, roughness: 0.7 }),
-        new THREE.MeshStandardMaterial({ color: 0x505050, metalness: 0.2, roughness: 0.7 }),
-        new THREE.MeshStandardMaterial({ color: 0x3a3a3a, metalness: 0.2, roughness: 0.7 }),
+        new THREE.MeshStandardMaterial({ color: 0x222228, metalness: 0.8, roughness: 0.3 }),
+        new THREE.MeshStandardMaterial({ color: 0x303035, metalness: 0.7, roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a20, metalness: 0.9, roughness: 0.2 }),
     ];
 
     for (let i = 0; i < 70; i++) {
@@ -354,7 +356,7 @@ export function GameCanvas({
     lightningShape.moveTo(0, 0.6); lightningShape.lineTo(-0.2, 0.2); lightningShape.lineTo(0.2, 0.2); lightningShape.lineTo(0, -0.6); lightningShape.lineTo(-0.2, -0.2); lightningShape.lineTo(0.2, -0.2); lightningShape.lineTo(0, 0.6);
     const collectibleGeometry = new THREE.ExtrudeGeometry(lightningShape, { depth: 0.1, bevelEnabled: false });
     collectibleGeometry.center();
-    const collectibleMaterial = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 1 });
+    const collectibleMaterial = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 2.0, toneMapped: false });
     for (let i = 0; i < collectibleCount; i++) {
         const collectible = new THREE.Mesh(collectibleGeometry, collectibleMaterial);
         let validPosition = false;
@@ -428,7 +430,11 @@ export function GameCanvas({
         player = model.clone();
         player.position.y = 0.8;
         scene.add(player);
-        const playerLight = new THREE.PointLight(0xFFD700, 0.8, 15);
+        const playerLight = new THREE.PointLight(0xffaa33, 1.2, 18, 1.8);
+        playerLight.castShadow = true;
+        playerLight.shadow.mapSize.width = 256;
+        playerLight.shadow.mapSize.height = 256;
+        playerLight.shadow.bias = -0.01;
         player.add(playerLight);
         
         playerMixer = new THREE.AnimationMixer(player);
@@ -456,11 +462,11 @@ export function GameCanvas({
         if (currentAction) currentAction.play();
 
         const enemyMaterial = new THREE.MeshStandardMaterial({
-            color: 0xcc0000,
-            metalness: 0.8,
-            roughness: 0.2,
-            emissive: 0x660000,
-            emissiveIntensity: 0.5
+            color: 0xbb0000,
+            metalness: 0.9,
+            roughness: 0.4,
+            emissive: 0x880000,
+            emissiveIntensity: 0.8
         });
 
         gameState.current.enemies.forEach(enemyData => {
@@ -675,27 +681,19 @@ export function GameCanvas({
             const distanceToPlayer = enemyObj.mesh.position.distanceTo(player.position);
             let moving = false;
 
-            // --- State Transitions ---
-            if (enemyData.aiState === 'wandering') {
-                if (distanceToPlayer < 25) { // Detection range
-                    enemyData.aiState = 'chasing';
-                }
-            } else if (enemyData.aiState === 'chasing') {
-                if (distanceToPlayer > 35) { // Lose range
-                    enemyData.aiState = 'wandering';
-                    enemyData.aiTimer = 0; // Find new wander point immediately
-                }
+            if (enemyData.aiState === 'wandering' && distanceToPlayer < 25) {
+                enemyData.aiState = 'chasing';
+            } else if (enemyData.aiState === 'chasing' && distanceToPlayer > 35) {
+                enemyData.aiState = 'wandering';
+                enemyData.aiTimer = 0;
             }
 
-            // --- Action Logic ---
-            // Attack is highest priority
             if (distanceToPlayer <= 2.5 && !enemyObj.anims.attack?.isRunning()) {
                 const directionToTarget = new THREE.Vector3().subVectors(player.position, enemyObj.mesh.position).normalize();
                 enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
                 if (playerDamageCooldown.current <= 0) {
                     enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.attack, 0.1);
-                    playerDamageCooldown.current = 1.2; // Enemy attack speed
-                    // Use timeout to apply damage mid-animation
+                    playerDamageCooldown.current = 1.2;
                     setTimeout(() => {
                         if (gameState.current.playerHealth > 0 && player.position.distanceTo(enemyObj.mesh.position) < 2.8) {
                             const damage = 15;
@@ -711,12 +709,11 @@ export function GameCanvas({
                      enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle, 0.2);
                 }
             } 
-            // Movement logic if not attacking
             else if (!enemyObj.anims.attack?.isRunning()) {
                 let currentTarget = new THREE.Vector3();
                 if (enemyData.aiState === 'chasing') {
                     currentTarget.copy(player.position);
-                } else { // Wandering
+                } else { 
                     if (enemyData.aiTimer <= 0 || enemyObj.mesh.position.distanceTo(enemyData.targetPosition) < 2) {
                         const newTarget = new THREE.Vector3(
                             (Math.random() - 0.5) * (planeSize - 20),
@@ -731,12 +728,11 @@ export function GameCanvas({
 
                 const directionToTarget = new THREE.Vector3().subVectors(currentTarget, enemyObj.mesh.position);
                 if (directionToTarget.length() > 1.5) {
-                    directionToTarget.y = 0; // Don't move up/down
+                    directionToTarget.y = 0;
                     directionToTarget.normalize();
                     
                     const enemySpeed = (enemyData.aiState === 'chasing' ? 3.2 : 1.8) * delta;
                     
-                    // Simple collision avoidance
                     const nextPos = enemyObj.mesh.position.clone().add(directionToTarget.clone().multiplyScalar(enemySpeed));
                     const enemyBodyBB = new THREE.Box3().setFromCenterAndSize(nextPos.clone().setY(nextPos.y + 1), new THREE.Vector3(1, 2, 1));
 
@@ -747,7 +743,6 @@ export function GameCanvas({
                         enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
                         moving = true;
                     } else {
-                        // Hit a wall, stop and trigger new wander point if stuck
                         if (enemyData.aiState === 'chasing') {
                             enemyData.aiState = 'wandering';
                             enemyData.aiTimer = 0;
@@ -756,7 +751,6 @@ export function GameCanvas({
                 }
             }
 
-            // --- Animation Logic ---
             if (!enemyObj.anims.attack?.isRunning()) {
                 if (moving) {
                     enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.walk, 0.2);
@@ -801,15 +795,12 @@ export function GameCanvas({
         
         const targetLookAt = player.position.clone().add(new THREE.Vector3(0, 1.8, 0));
         
-        // Add a simple camera collision check to prevent it from going through walls
         raycaster.set(targetLookAt, idealCameraPosition.clone().sub(targetLookAt).normalize());
         const intersections = raycaster.intersectObjects(obstacles, false);
-        if (intersections.length > 0) {
-            const intersectionPoint = intersections[0].point;
-            const distanceToPlayer = targetLookAt.distanceTo(intersectionPoint);
-            if (distanceToPlayer < cameraOffset.length()) {
-                 idealCameraPosition.copy(intersectionPoint);
-            }
+        const cameraDistance = idealCameraPosition.distanceTo(targetLookAt);
+        if (intersections.length > 0 && intersections[0].distance < cameraDistance) {
+            idealCameraPosition.copy(intersections[0].point);
+            idealCameraPosition.sub(targetLookAt).normalize().multiplyScalar(-0.2).add(idealCameraPosition); // Add padding
         }
 
         camera.position.lerp(idealCameraPosition, 0.08);
