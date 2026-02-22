@@ -85,9 +85,6 @@ export function GameCanvas({
     renderer.toneMappingExposure = 1.0;
     mountNode.appendChild(renderer.domElement);
 
-    camera.position.set(0, 15, 25);
-    camera.lookAt(0, 0, 0);
-
     const hemiLight = new THREE.HemisphereLight( 0x4040ff, 0x808080, 0.8 );
     scene.add( hemiLight );
     
@@ -417,6 +414,24 @@ export function GameCanvas({
         lastPosition: THREE.Vector3;
     };
     const enemyObjects: EnemyObject[] = [];
+    let modelsLoaded = false;
+
+
+    const switchAction = (mixer: THREE.AnimationMixer, anims: Record<string, THREE.AnimationAction | null>, fromName: string, toName: string) => {
+        if (fromName === toName) return fromName;
+
+        const fromAction = anims[fromName];
+        const toAction = anims[toName];
+
+        if (fromAction && toAction) {
+            fromAction.fadeOut(0.2);
+            toAction.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(0.2).play();
+        } else if (toAction) {
+            toAction.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(0.2).play();
+        }
+        
+        return toName;
+    };
 
     const loader = new GLTFLoader();
     loader.load('/models/GoldenRobot.glb', (gltf) => {
@@ -451,21 +466,20 @@ export function GameCanvas({
             attack: attackClip ? playerMixer.clipAction(attackClip) : null,
             jump: jumpClip ? playerMixer.clipAction(jumpClip) : null
         };
-        if(playerAnims.attack) {
-            playerAnims.attack.setLoop(THREE.LoopOnce, 1);
-            playerAnims.attack.clampWhenFinished = true;
-        }
-        if(playerAnims.jump) {
-            playerAnims.jump.setLoop(THREE.LoopOnce, 1);
-            playerAnims.jump.clampWhenFinished = true;
-        }
 
-        playerAnims.idle?.play();
+        Object.values(playerAnims).forEach(action => {
+            if(action && (action.getClip().name === playerAnims.attack?.getClip().name || action.getClip().name === playerAnims.jump?.getClip().name)) {
+                action.setLoop(THREE.LoopOnce, 1);
+                action.clampWhenFinished = true;
+            }
+        });
+        
+        currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'idle');
         
         playerMixer.addEventListener('finished', (e) => {
             const finishedAction = e.action as THREE.AnimationAction;
             if (finishedAction === playerAnims.attack || finishedAction === playerAnims.jump) {
-                // Will be transitioned to idle/walk in the next animation frame by the main logic
+                currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'idle');
             }
         });
 
@@ -499,10 +513,11 @@ export function GameCanvas({
                 anims.attack.clampWhenFinished = true;
             }
 
-            anims.idle?.play();
+            let enemyActionName = 'idle';
+            enemyActionName = switchAction(mixer, anims, enemyActionName, 'idle');
 
             mixer.addEventListener('finished', (e) => {
-                // Enemy finished attacking, will transition back to idle/walk in main loop
+                enemyActionName = switchAction(mixer, anims, enemyActionName, 'idle');
             });
 
             enemyObjects.push({
@@ -510,47 +525,33 @@ export function GameCanvas({
                 mesh: enemyMesh,
                 mixer: mixer,
                 anims: anims,
-                currentActionName: 'idle',
+                currentActionName: enemyActionName,
                 stuckTimer: 0,
                 lastPosition: enemyMesh.position.clone(),
             });
         });
+        
+        modelsLoaded = true;
 
     }, undefined, (error) => {
         console.error('An error happened while loading the model.', error);
-        setGameOver(); // Fail safe
+        // Don't call setGameOver here, let the scene run without models
     });
 
     const clock = new THREE.Clock();
     const raycaster = new THREE.Raycaster();
     let attackCooldown = 0;
-
-    const switchAction = (mixer: THREE.AnimationMixer, anims: typeof playerAnims, fromName: string, toName: string) => {
-        if (fromName === toName) return fromName;
-
-        const fromAction = anims[fromName];
-        const toAction = anims[toName];
-
-        if (fromAction && toAction) {
-            fromAction.fadeOut(0.2);
-            toAction.reset().fadeIn(0.2).play();
-        } else if (toAction) {
-            toAction.reset().fadeIn(0.2).play();
-        }
-        
-        return toName;
-    };
     
     const animate = () => {
         animationFrameId = requestAnimationFrame(animate);
-        const delta = clock.getDelta();
+        const delta = Math.min(clock.getDelta(), 0.1); // Clamp delta to avoid large jumps
         const elapsedTime = clock.getElapsedTime();
         uniforms.time.value = elapsedTime;
         
         lavaTexture.offset.y += delta * 0.1;
         if (attackEffect.material.opacity > 0) attackEffect.material.opacity -= delta * 4;
 
-        if (!player || !playerMixer) {
+        if (!modelsLoaded || !player || !playerMixer) {
             renderer.render(scene, camera);
             return;
         }
@@ -576,41 +577,39 @@ export function GameCanvas({
             playerVelocity.y = 0;
         }
 
-        const moveDirection = new THREE.Vector3();
+        const inputDirection = new THREE.Vector3();
         const joystick = gameState.current.joystickDelta;
         if (joystick.x !== 0 || joystick.z !== 0) {
-            moveDirection.set(joystick.x, 0, joystick.z);
+            inputDirection.set(joystick.x, 0, joystick.z);
         } else {
-            if (keys['w'] || keys['arrowup']) moveDirection.z -= 1;
-            if (keys['s'] || keys['arrowdown']) moveDirection.z += 1;
-            if (keys['a'] || keys['arrowleft']) moveDirection.x -= 1;
-            if (keys['d'] || keys['arrowright']) moveDirection.x += 1;
+            if (keys['w'] || keys['arrowup']) inputDirection.z = 1;
+            if (keys['s'] || keys['arrowdown']) inputDirection.z = -1;
+            if (keys['a'] || keys['arrowleft']) inputDirection.x = -1;
+            if (keys['d'] || keys['arrowright']) inputDirection.x = 1;
         }
         
-        const isMovingHorizontally = moveDirection.length() > 0.1;
+        const isMoving = inputDirection.lengthSq() > 0;
         
-        if (isMovingHorizontally) {
-            const cameraDirection = new THREE.Vector3();
-            camera.getWorldDirection(cameraDirection);
-            cameraDirection.y = 0;
-            cameraDirection.normalize();
-
-            const rightDirection = new THREE.Vector3().crossVectors(camera.up, cameraDirection).normalize();
+        const cameraForward = new THREE.Vector3();
+        camera.getWorldDirection(cameraForward);
+        cameraForward.y = 0;
+        cameraForward.normalize();
+        player.rotation.y = Math.atan2(cameraForward.x, cameraForward.z);
+        
+        if (isMoving) {
+            const cameraRight = new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0), cameraForward);
+            const moveVector = cameraForward.clone().multiplyScalar(inputDirection.z).add(
+                cameraRight.clone().multiplyScalar(inputDirection.x)
+            );
+            moveVector.normalize().multiplyScalar(5 * delta);
             
-            const finalMoveDirection = new THREE.Vector3();
-            const forwardMove = cameraDirection.clone().multiplyScalar(-moveDirection.z);
-            const rightMove = rightDirection.clone().multiplyScalar(moveDirection.x);
-            finalMoveDirection.add(forwardMove).add(rightMove);
-            finalMoveDirection.normalize();
+            const tempPlayerPos = player.position.clone().add(moveVector);
+            const playerBodyBB = new THREE.Box3().setFromCenterAndSize(tempPlayerPos.clone().setY(tempPlayerPos.y + 1), new THREE.Vector3(0.8, 2, 0.8));
 
-            const horizontalMove = finalMoveDirection.clone().multiplyScalar(5 * delta);
-            
-            const tempPlayerBB = playerBB.clone().translate(horizontalMove);
-            let collision = obstacleBBs.some(obsBB => tempPlayerBB.intersectsBox(obsBB));
-
-            if (!collision) player.position.add(horizontalMove);
-
-            player.rotation.y = Math.atan2(cameraDirection.x, cameraDirection.z);
+            let collision = obstacleBBs.some(obsBB => obsBB.intersectsBox(playerBodyBB));
+            if (!collision) {
+                player.position.add(moveVector);
+            }
         }
         playerBB.setFromObject(player);
         
@@ -622,7 +621,7 @@ export function GameCanvas({
             const isTryingToAttack = (gameState.current.isAttacking || keys['f']);
 
             if (isTryingToAttack && attackCooldown <= 0) {
-                attackCooldown = 0.6;
+                attackCooldown = 0.7;
                 currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'attack');
                 onAttack();
                 attackEffect.position.copy(player.position);
@@ -657,7 +656,7 @@ export function GameCanvas({
                 if (gameState.current.isJumping) setIsJumping(false);
 
             } else {
-                if (isMovingHorizontally) {
+                if (isMoving) {
                     currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'walk');
                 } else {
                     currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'idle');
@@ -677,7 +676,10 @@ export function GameCanvas({
                 setPlayerHealth(h => Math.max(0, h - damageAmount));
                 spawnFloatingText(`-${Math.round(damageAmount)}`, '#ff4400', player.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.5, Math.random()-0.5)));
                 playerLavaDamageCooldown.current = 0.5;
-                if (gameState.current.playerHealth - damageAmount <= 0) setGameOver();
+                if (gameState.current.playerHealth - damageAmount <= 0) {
+                    if(gameOverAudioRef.current) gameOverAudioRef.current.play().catch(e => {});
+                    setGameOver();
+                }
             }
             if (lavaAudioRef.current && lavaAudioRef.current.paused) {
                 lavaAudioRef.current.play().catch(e => {});
@@ -722,7 +724,10 @@ export function GameCanvas({
                             const damage = 15;
                             setPlayerHealth(h => {
                                 const newHealth = Math.max(0, h - damage);
-                                if (h > 0 && newHealth <= 0) setGameOver();
+                                if (h > 0 && newHealth <= 0) {
+                                    if(gameOverAudioRef.current) gameOverAudioRef.current.play().catch(e => {});
+                                    setGameOver();
+                                }
                                 return newHealth;
                             });
                             spawnFloatingText(`-${damage}`, '#ff4400', player.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.5, Math.random()-0.5)));
@@ -763,16 +768,17 @@ export function GameCanvas({
                         enemyObj.mesh.position.add(directionToTarget.clone().multiplyScalar(enemySpeed));
                         moving = true;
                     } else {
+                        // If chasing and collided, revert to wandering to find a new path
                         if (enemyData.aiState === 'chasing') {
                            enemyData.aiState = 'wandering';
-                           enemyData.aiTimer = 0;
+                           enemyData.aiTimer = 0; // Force new target immediately
                         }
                     }
                     enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
                 }
 
                 if (enemyData.aiState === 'chasing') {
-                    if (enemyObj.mesh.position.distanceTo(enemyObj.lastPosition) < 0.01) {
+                    if (enemyObj.mesh.position.distanceTo(enemyObj.lastPosition) < 0.01 * delta * 60) { // check if moved
                         enemyObj.stuckTimer += delta;
                     } else {
                         enemyObj.stuckTimer = 0;
@@ -819,28 +825,32 @@ export function GameCanvas({
                 walkAudioRef.current.pause();
             }
         }
-
-        const cameraOffset = new THREE.Vector3(0, 2.5, 4.5);
+        
+        // --- CAMERA LOGIC ---
+        const cameraOffset = new THREE.Vector3(0, 2.0, 3.5);
         cameraOffset.applyQuaternion(player.quaternion);
         const idealCameraPosition = player.position.clone().add(cameraOffset);
-        
-        const targetLookAt = player.position.clone().add(new THREE.Vector3(0, 1.8, 0));
-        
-        raycaster.set(targetLookAt, idealCameraPosition.clone().sub(targetLookAt).normalize());
+        const lookAtTarget = player.position.clone().add(new THREE.Vector3(0, 1.8, 0));
+
+        const rayDirection = idealCameraPosition.clone().sub(lookAtTarget).normalize();
+        const rayLength = idealCameraPosition.distanceTo(lookAtTarget);
+
+        raycaster.set(lookAtTarget, rayDirection);
         const intersections = raycaster.intersectObjects(obstacles, false);
-        const cameraDistance = idealCameraPosition.distanceTo(targetLookAt);
 
         let finalCameraPosition = idealCameraPosition;
-
-        if (intersections.length > 0 && intersections[0].distance < cameraDistance) {
-            finalCameraPosition = intersections[0].point.clone();
-            const direction = finalCameraPosition.clone().sub(targetLookAt).normalize();
-            finalCameraPosition.add(direction.multiplyScalar(0.2)); // Add padding
+        if (intersections.length > 0 && intersections[0].distance < rayLength) {
+            finalCameraPosition = lookAtTarget.clone().add(rayDirection.multiplyScalar(intersections[0].distance - 0.2));
         }
 
-        camera.position.lerp(finalCameraPosition, 0.1);
-        camera.lookAt(targetLookAt);
-        
+        // Use damping for smoother camera movement
+        const dampFactor = 4.0;
+        camera.position.x = THREE.MathUtils.damp(camera.position.x, finalCameraPosition.x, dampFactor, delta);
+        camera.position.y = THREE.MathUtils.damp(camera.position.y, finalCameraPosition.y, dampFactor, delta);
+        camera.position.z = THREE.MathUtils.damp(camera.position.z, finalCameraPosition.z, dampFactor, delta);
+
+        camera.lookAt(lookAtTarget);
+
         const updateHealthBarPosition = (mesh: THREE.Object3D, ref: React.RefObject<HTMLDivElement>, yOffset = 2.2) => {
             if (!ref.current || !mesh.visible) {
                 if(ref.current) ref.current.style.display = 'none';
@@ -925,13 +935,16 @@ export function GameCanvas({
                 materials.forEach(material => {
                     if (material.map) material.map.dispose();
                     if (material.emissiveMap) material.emissiveMap.dispose();
+                    if (material.normalMap) material.normalMap.dispose();
+                    if (material.roughnessMap) material.roughnessMap.dispose();
+                    if (material.metalnessMap) material.metalnessMap.dispose();
                     material.dispose();
                 });
             }
         });
         
         [groundTexture, lavaTexture, grassTexture, trunkMaterial, leavesMaterial, roadMaterial, collectibleMaterial, ...buildingMaterials].forEach(t => t.dispose());
-        [grassBladeGeometry, collectibleGeometry, ...roadSegments.map(s => s.length)].forEach(g => (g as THREE.BufferGeometry)?.dispose?.());
+        [grassBladeGeometry, collectibleGeometry].forEach(g => g?.dispose?.());
         
         renderer.dispose();
     };
