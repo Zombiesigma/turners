@@ -84,13 +84,24 @@ export function GameCanvas({
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     mountNode.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const hemiLight = new THREE.HemisphereLight( 0xffffbb, 0x080820, 1.5 );
+    scene.add( hemiLight );
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
     scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-    directionalLight.position.set(10, 20, 15);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    directionalLight.position.set(20, 30, 20);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 2048;
     directionalLight.shadow.mapSize.height = 2048;
+    const d = 50;
+    directionalLight.shadow.camera.left = -d;
+    directionalLight.shadow.camera.right = d;
+    directionalLight.shadow.camera.top = d;
+    directionalLight.shadow.camera.bottom = -d;
+    directionalLight.shadow.camera.far = 3500;
+    directionalLight.shadow.bias = -0.0001;
     scene.add(directionalLight);
 
     const textureLoader = new THREE.TextureLoader();
@@ -114,8 +125,8 @@ export function GameCanvas({
     const lavaTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/lava/lavatile.jpg');
     lavaTexture.wrapS = THREE.RepeatWrapping;
     lavaTexture.wrapT = THREE.RepeatWrapping;
-    lavaTexture.repeat.set(64, 64);
-    const lavaMaterial = new THREE.MeshStandardMaterial({ map: lavaTexture, emissiveMap: lavaTexture, emissive: 0xff4400, emissiveIntensity: 1.8, metalness: 0.2, roughness: 0.7 });
+    lavaTexture.repeat.set(32, 32);
+    const lavaMaterial = new THREE.MeshStandardMaterial({ map: lavaTexture, emissiveMap: lavaTexture, emissive: 0xff4400, emissiveIntensity: 2.2, metalness: 0.4, roughness: 0.6 });
     
     const lavaPools: THREE.Mesh[] = [];
 
@@ -622,7 +633,6 @@ export function GameCanvas({
         lavaTexture.dispose();
         portfolioTextures.forEach(t => t.dispose());
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return <div ref={mountRef} className="absolute top-0 left-0 w-full h-full" />;
