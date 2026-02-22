@@ -159,24 +159,56 @@ export function GameCanvas({
     const lavaBBs = lavaPools.map(lava => new THREE.Box3().setFromObject(lava));
 
     const obstacles: THREE.Mesh[] = [];
-    const obstacleGeometry = new THREE.BoxGeometry(3, 8, 3);
-    const obstacleMaterial = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.1, roughness: 0.8 });
+    const buildingMaterials = [
+        new THREE.MeshStandardMaterial({ color: 0x454545, metalness: 0.2, roughness: 0.7 }),
+        new THREE.MeshStandardMaterial({ color: 0x505050, metalness: 0.2, roughness: 0.7 }),
+        new THREE.MeshStandardMaterial({ color: 0x3a3a3a, metalness: 0.2, roughness: 0.7 }),
+    ];
 
-    for (let i = 0; i < 80; i++) {
-        const obstacle = new THREE.Mesh(obstacleGeometry, obstacleMaterial);
+    for (let i = 0; i < 70; i++) { // Slightly fewer buildings as they are larger
+        const width = Math.random() * 7 + 6;
+        const height = Math.random() * 30 + 20;
+        const depth = Math.random() * 7 + 6;
+        
+        const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
+        const material = buildingMaterials[Math.floor(Math.random() * buildingMaterials.length)];
+        const building = new THREE.Mesh(buildingGeometry, material);
         
         let validPosition = false;
-        while (!validPosition) {
-            obstacle.position.set((Math.random() - 0.5) * (planeSize - 4), 4, (Math.random() - 0.5) * (planeSize - 4));
-            const obstacleBB = new THREE.Box3().setFromObject(obstacle);
-            validPosition = !lavaBBs.some(lavaBB => lavaBB.intersectsBox(obstacleBB));
+        let attempts = 0;
+        while (!validPosition && attempts < 50) {
+            building.position.set(
+                (Math.random() - 0.5) * (planeSize - width), 
+                height / 2, 
+                (Math.random() - 0.5) * (planeSize - depth)
+            );
+            const buildingBB = new THREE.Box3().setFromObject(building);
+
+            let collision = lavaBBs.some(lavaBB => lavaBB.intersectsBox(buildingBB));
+            
+            if (!collision) {
+                 for (const obs of obstacles) {
+                    const obsBB = new THREE.Box3().setFromObject(obs);
+                    if (obsBB.intersectsBox(buildingBB)) {
+                        collision = true;
+                        break;
+                    }
+                }
+            }
+
+            validPosition = !collision;
+            attempts++;
         }
-        obstacle.rotation.y = Math.random() * Math.PI;
-        obstacle.castShadow = true;
-        scene.add(obstacle);
-        obstacles.push(obstacle);
+        
+        if (validPosition) {
+            building.castShadow = true;
+            building.receiveShadow = true;
+            scene.add(building);
+            obstacles.push(building);
+        }
     }
     const obstacleBBs = obstacles.map(obs => new THREE.Box3().setFromObject(obs));
+
 
     const collectibles: THREE.Mesh[] = [];
     const lightningShape = new THREE.Shape();
@@ -495,8 +527,8 @@ export function GameCanvas({
             }
         }
 
-        enemyObjects.forEach((enemyObj) => {
-            const enemyData = gameState.current.enemies.find(e => e.id === enemyObj.mesh.userData.id);
+        enemyObjects.forEach((enemyObj, index) => {
+            const enemyData = gameState.current.enemies[index];
              if (!enemyData || enemyData.health <= 0) {
                 if (enemyObj.mesh.visible) {
                     enemyObj.currentAction = switchAction(enemyObj.currentAction, null);
@@ -508,42 +540,61 @@ export function GameCanvas({
 
             const distanceToPlayer = enemyObj.mesh.position.distanceTo(player.position);
             
-            if (distanceToPlayer > 0.1) {
-                const directionToTarget = new THREE.Vector3().subVectors(player.position, enemyObj.mesh.position).normalize();
-                
-                if (distanceToPlayer > 1.5) {
-                     const enemySpeed = (distanceToPlayer < 20 ? 2.8 : 2.0) * delta;
-                     enemyObj.mesh.position.add(directionToTarget.clone().multiplyScalar(enemySpeed));
-                     enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.walk);
-                } else {
-                     enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle);
+            let targetState = 'idle';
+
+            if (distanceToPlayer < 20) {
+                targetState = 'chasing';
+            }
+            
+            if (distanceToPlayer < 1.5) {
+                targetState = 'attacking';
+            }
+
+            if (enemyObj.anims.attack?.isRunning()) {
+                // let attack animation finish
+                targetState = 'attacking';
+            }
+
+            switch(targetState) {
+                case 'chasing': {
+                    const directionToTarget = new THREE.Vector3().subVectors(player.position, enemyObj.mesh.position).normalize();
+                    const enemySpeed = 2.8 * delta;
+                    enemyObj.mesh.position.add(directionToTarget.clone().multiplyScalar(enemySpeed));
+                    enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
+                    enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.walk);
+                    break;
                 }
-
-                enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
-            } else {
-                enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle);
+                case 'attacking': {
+                    const directionToTarget = new THREE.Vector3().subVectors(player.position, enemyObj.mesh.position).normalize();
+                    enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
+                    if (enemyObj.bb?.intersectsBox(playerBB)) {
+                         if (playerDamageCooldown.current <= 0) {
+                            if(!enemyObj.anims.attack?.isRunning()){
+                                enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.attack);
+                                playerDamageCooldown.current = 1.0;
+                                const damage = 15;
+                                setPlayerHealth(h => {
+                                    const newHealth = Math.max(0, h - damage);
+                                    if (newHealth <= 0) setGameOver();
+                                    return newHealth;
+                                });
+                                spawnFloatingText(`-${damage}`, '#ff4400', player.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.5, Math.random()-0.5)));
+                            }
+                        }
+                    } else {
+                        enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle);
+                    }
+                    break;
+                }
+                default: { // idle
+                     enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle);
+                     break;
+                }
             }
 
-            if(enemyObj.anims.attack?.isRunning()) {
-              // let attack animation finish
-            }
 
             if (enemyObj.bb) {
                 enemyObj.bb.setFromObject(enemyObj.mesh);
-                if (enemyObj.bb.intersectsBox(playerBB) && playerDamageCooldown.current <= 0 && enemyData.health > 0) {
-                    onAttack();
-                    if(!enemyObj.anims.attack?.isRunning()){
-                        enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.attack);
-                    }
-                    playerDamageCooldown.current = 1.0;
-                    const damage = 15;
-                    setPlayerHealth(h => {
-                        const newHealth = Math.max(0, h - damage);
-                        if (newHealth <= 0) setGameOver();
-                        return newHealth;
-                    });
-                    spawnFloatingText(`-${damage}`, '#ff4400', player.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.5, Math.random()-0.5)));
-                }
             }
         });
 
@@ -571,13 +622,20 @@ export function GameCanvas({
             }
         }
 
-        const cameraOffset = new THREE.Vector3(1, 2.2, 3.2); // (right, up, behind)
-        cameraOffset.applyQuaternion(player.quaternion);
+        const cameraOffset = new THREE.Vector3(0, 2, 0); // (right, up, behind)
+        const cameraLookAtOffset = new THREE.Vector3(0, 1.5, 0);
+
         const idealCameraPosition = player.position.clone().add(cameraOffset);
-        const lookAtPosition = player.position.clone().add(new THREE.Vector3(0, 1.5, 0));
+        const idealLookAtPosition = player.position.clone().add(cameraLookAtOffset);
+        
+        const worldDirection = new THREE.Vector3();
+        player.getWorldDirection(worldDirection);
+        
+        const cameraBehindVector = worldDirection.clone().multiplyScalar(-3.2).add(new THREE.Vector3(0, 2.2, 0));
+        idealCameraPosition.add(cameraBehindVector);
 
         camera.position.lerp(idealCameraPosition, 0.2);
-        camera.lookAt(lookAtPosition);
+        camera.lookAt(idealLookAtPosition);
         
         const updateHealthBarPosition = (mesh: THREE.Object3D, ref: React.RefObject<HTMLDivElement>, yOffset = 2.2) => {
             if (!ref.current || !mesh.visible) {
@@ -665,6 +723,7 @@ export function GameCanvas({
         groundTexture.dispose();
         lavaTexture.dispose();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return <div ref={mountRef} className="absolute top-0 left-0 w-full h-full" />;
