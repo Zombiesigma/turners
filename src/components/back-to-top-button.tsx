@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Button } from './ui/button';
 import { ArrowUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function BackToTopButton() {
+  const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
 
   const toggleVisibility = () => {
@@ -27,6 +29,10 @@ export function BackToTopButton() {
     window.addEventListener('scroll', toggleVisibility);
     return () => window.removeEventListener('scroll', toggleVisibility);
   }, []);
+
+  if (pathname === '/game') {
+    return null;
+  }
 
   return (
     <Button
