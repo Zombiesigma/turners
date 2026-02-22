@@ -62,15 +62,18 @@ export default function GamePage() {
   };
 
   const handleGameWon = useCallback(() => {
-    setGameStatus('won');
-  }, []);
+    if (gameStatus === 'playing') {
+      setGameStatus('won');
+    }
+  }, [gameStatus]);
 
   const handleGameOver = useCallback(() => {
-      if (gameOverAudioRef.current) {
-          gameOverAudioRef.current.play().catch(e => {});
-      }
-      setGameStatus('lost');
-  }, []);
+    if (gameStatus !== 'playing') return; // Guard against multiple calls
+    if (gameOverAudioRef.current) {
+        gameOverAudioRef.current.play().catch(e => {});
+    }
+    setGameStatus('lost');
+  }, [gameStatus]);
   
   const handleCollectSound = useCallback(() => {
     if (collectAudioRef.current) {

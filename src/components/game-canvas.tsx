@@ -9,7 +9,7 @@ type Enemy = {
     health: number;
     maxHealth: number;
     position: THREE.Vector3;
-    aiState: 'chasing' | 'wandering' | 'collecting';
+    aiState: 'chasing' | 'wandering';
     targetPosition: THREE.Vector3;
     aiTimer: number;
 };
@@ -405,14 +405,16 @@ export function GameCanvas({
     let playerAnims: Record<string, THREE.AnimationAction | null> = {};
     const playerBB = new THREE.Box3();
     const playerVelocity = new THREE.Vector3();
-    let currentAction: THREE.AnimationAction | null = null;
-    let attackCooldown = 0;
+    let currentActionName: string = 'idle';
+
     type EnemyObject = { 
+        id: string;
         mesh: THREE.Group, 
-        bb: THREE.Box3 | null, 
         mixer: THREE.AnimationMixer, 
-        anims: typeof playerAnims, 
-        currentAction: THREE.AnimationAction | null 
+        anims: typeof playerAnims,
+        currentActionName: string;
+        stuckTimer: number;
+        lastPosition: THREE.Vector3;
     };
     const enemyObjects: EnemyObject[] = [];
 
@@ -458,8 +460,14 @@ export function GameCanvas({
             playerAnims.jump.clampWhenFinished = true;
         }
 
-        currentAction = playerAnims.idle;
-        if (currentAction) currentAction.play();
+        playerAnims.idle?.play();
+        
+        playerMixer.addEventListener('finished', (e) => {
+            const finishedAction = e.action as THREE.AnimationAction;
+            if (finishedAction === playerAnims.attack || finishedAction === playerAnims.jump) {
+                // Will be transitioned to idle/walk in the next animation frame by the main logic
+            }
+        });
 
         const enemyMaterial = new THREE.MeshStandardMaterial({
             color: 0xbb0000,
@@ -472,7 +480,6 @@ export function GameCanvas({
         gameState.current.enemies.forEach(enemyData => {
             if (!enemyData) return;
             const enemyMesh = model.clone();
-            enemyMesh.userData.id = enemyData.id;
             enemyMesh.position.copy(enemyData.position);
             enemyMesh.traverse((child) => {
                 if ((child as THREE.Mesh).isMesh) {
@@ -492,35 +499,47 @@ export function GameCanvas({
                 anims.attack.clampWhenFinished = true;
             }
 
-            let currentEnemyAction: THREE.AnimationAction | null = anims.idle;
-            if (currentEnemyAction) currentEnemyAction.play();
+            anims.idle?.play();
+
+            mixer.addEventListener('finished', (e) => {
+                // Enemy finished attacking, will transition back to idle/walk in main loop
+            });
 
             enemyObjects.push({
+                id: enemyData.id,
                 mesh: enemyMesh,
-                bb: new THREE.Box3(),
                 mixer: mixer,
                 anims: anims,
-                currentAction: currentEnemyAction,
+                currentActionName: 'idle',
+                stuckTimer: 0,
+                lastPosition: enemyMesh.position.clone(),
             });
         });
 
     }, undefined, (error) => {
         console.error('An error happened while loading the model.', error);
+        setGameOver(); // Fail safe
     });
 
     const clock = new THREE.Clock();
     const raycaster = new THREE.Raycaster();
-    
-    function switchAction(from: THREE.AnimationAction | null, to: THREE.AnimationAction | null, duration = 0.2): THREE.AnimationAction | null {
-        if (!to || from === to) return from;
-        if (from) {
-            from.fadeOut(duration);
+    let attackCooldown = 0;
+
+    const switchAction = (mixer: THREE.AnimationMixer, anims: typeof playerAnims, fromName: string, toName: string) => {
+        if (fromName === toName) return fromName;
+
+        const fromAction = anims[fromName];
+        const toAction = anims[toName];
+
+        if (fromAction && toAction) {
+            fromAction.fadeOut(0.2);
+            toAction.reset().fadeIn(0.2).play();
+        } else if (toAction) {
+            toAction.reset().fadeIn(0.2).play();
         }
-        if (to) {
-            to.reset().fadeIn(duration).play();
-        }
-        return to;
-    }
+        
+        return toName;
+    };
     
     const animate = () => {
         animationFrameId = requestAnimationFrame(animate);
@@ -591,19 +610,20 @@ export function GameCanvas({
 
             if (!collision) player.position.add(horizontalMove);
 
-            // Player faces the direction of the camera for strafing movement
-            const targetRotation = Math.atan2(cameraDirection.x, cameraDirection.z);
-            player.rotation.y = THREE.MathUtils.lerp(player.rotation.y, targetRotation, 0.2);
+            player.rotation.y = Math.atan2(cameraDirection.x, cameraDirection.z);
         }
         playerBB.setFromObject(player);
+        
+        const isAttackingAction = playerAnims.attack?.isRunning();
+        const isJumpingAction = playerAnims.jump?.isRunning();
 
-        if (onGround) {
+        if (!isAttackingAction && !isJumpingAction) {
             const isTryingToJump = (gameState.current.isJumping || keys[' ']);
             const isTryingToAttack = (gameState.current.isAttacking || keys['f']);
 
             if (isTryingToAttack && attackCooldown <= 0) {
-                attackCooldown = 0.5;
-                if(playerAnims.attack) currentAction = switchAction(currentAction, playerAnims.attack);
+                attackCooldown = 0.6;
+                currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'attack');
                 onAttack();
                 attackEffect.position.copy(player.position);
                 attackEffect.material.opacity = 0.8;
@@ -612,7 +632,7 @@ export function GameCanvas({
                 const attackDamage = 10;
                 const damagedEnemies = new Set<string>();
                 enemyObjects.forEach((enemyObj) => {
-                    const enemyData = gameState.current.enemies.find(e => e.id === enemyObj.mesh.userData.id);
+                    const enemyData = gameState.current.enemies.find(e => e.id === enemyObj.id);
                     if (enemyObj.mesh.visible && enemyData && enemyData.health > 0 && player.position.distanceTo(enemyObj.mesh.position) < attackRadius) {
                         damagedEnemies.add(enemyData.id);
                     }
@@ -630,19 +650,17 @@ export function GameCanvas({
                 }
                 if (gameState.current.isAttacking) setIsAttacking(false);
 
-            } else if (isTryingToJump) {
+            } else if (isTryingToJump && onGround) {
                 playerVelocity.y = 10;
-                if(playerAnims.jump) currentAction = switchAction(currentAction, playerAnims.jump);
+                currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'jump');
                 onJump();
                 if (gameState.current.isJumping) setIsJumping(false);
 
             } else {
-                if (!playerAnims.attack?.isRunning() && !playerAnims.jump?.isRunning()) {
-                    if (isMovingHorizontally) {
-                        currentAction = switchAction(currentAction, playerAnims.walk);
-                    } else {
-                        currentAction = switchAction(currentAction, playerAnims.idle);
-                    }
+                if (isMovingHorizontally) {
+                    currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'walk');
+                } else {
+                    currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'idle');
                 }
             }
         }
@@ -670,13 +688,12 @@ export function GameCanvas({
             }
         }
 
-        enemyObjects.forEach((enemyObj, index) => {
-            const enemyData = gameState.current.enemies[index];
+        enemyObjects.forEach((enemyObj) => {
+            const enemyData = gameState.current.enemies.find(e => e.id === enemyObj.id);
             if (!enemyData || enemyData.health <= 0) {
                 if (enemyObj.mesh.visible) {
-                    enemyObj.currentAction = switchAction(enemyObj.currentAction, null);
+                    enemyObj.currentActionName = switchAction(enemyObj.mixer, enemyObj.anims, enemyObj.currentActionName, 'idle');
                     enemyObj.mesh.visible = false;
-                    enemyObj.bb = null;
                 }
                 return;
             }
@@ -691,12 +708,14 @@ export function GameCanvas({
                 enemyData.aiState = 'wandering';
                 enemyData.aiTimer = 0;
             }
+            
+            const isEnemyAttacking = enemyObj.anims.attack?.isRunning();
 
-            if (distanceToPlayer <= 2.5 && !enemyObj.anims.attack?.isRunning()) {
+            if (distanceToPlayer <= 2.5 && !isEnemyAttacking) {
                 const directionToTarget = new THREE.Vector3().subVectors(player.position, enemyObj.mesh.position).normalize();
                 enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
                 if (playerDamageCooldown.current <= 0) {
-                    enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.attack, 0.1);
+                    enemyObj.currentActionName = switchAction(enemyObj.mixer, enemyObj.anims, enemyObj.currentActionName, 'attack');
                     playerDamageCooldown.current = 1.2;
                     setTimeout(() => {
                         if (gameState.current.playerHealth > 0 && player.position.distanceTo(enemyObj.mesh.position) < 2.8) {
@@ -709,11 +728,9 @@ export function GameCanvas({
                             spawnFloatingText(`-${damage}`, '#ff4400', player.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.5, Math.random()-0.5)));
                         }
                     }, 250);
-                } else {
-                     enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle, 0.2);
                 }
             } 
-            else if (!enemyObj.anims.attack?.isRunning()) {
+            else if (!isEnemyAttacking) {
                 let currentTarget = new THREE.Vector3();
                 if (enemyData.aiState === 'chasing') {
                     currentTarget.copy(player.position);
@@ -744,28 +761,37 @@ export function GameCanvas({
                     
                     if (!collision) {
                         enemyObj.mesh.position.add(directionToTarget.clone().multiplyScalar(enemySpeed));
-                        enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
                         moving = true;
                     } else {
-                        // If chasing and collided, go back to wandering to find a new path
                         if (enemyData.aiState === 'chasing') {
                            enemyData.aiState = 'wandering';
-                           enemyData.aiTimer = 0; // Force new target position
+                           enemyData.aiTimer = 0;
                         }
+                    }
+                    enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
+                }
+
+                if (enemyData.aiState === 'chasing') {
+                    if (enemyObj.mesh.position.distanceTo(enemyObj.lastPosition) < 0.01) {
+                        enemyObj.stuckTimer += delta;
+                    } else {
+                        enemyObj.stuckTimer = 0;
+                        enemyObj.lastPosition.copy(enemyObj.mesh.position);
+                    }
+                    if (enemyObj.stuckTimer > 1.0) { // Stuck for 1 second
+                        enemyData.aiState = 'wandering';
+                        enemyData.aiTimer = 0;
+                        enemyObj.stuckTimer = 0;
                     }
                 }
             }
 
-            if (!enemyObj.anims.attack?.isRunning()) {
+            if (!isEnemyAttacking) {
                 if (moving) {
-                    enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.walk, 0.2);
+                    enemyObj.currentActionName = switchAction(enemyObj.mixer, enemyObj.anims, enemyObj.currentActionName, 'walk');
                 } else {
-                    enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle, 0.3);
+                    enemyObj.currentActionName = switchAction(enemyObj.mixer, enemyObj.anims, enemyObj.currentActionName, 'idle');
                 }
-            }
-            
-            if (enemyObj.bb) {
-                enemyObj.bb.setFromObject(enemyObj.mesh);
             }
         });
 
@@ -784,7 +810,7 @@ export function GameCanvas({
             }
         }
         
-        if (isMovingHorizontally && onGround) {
+        if (currentActionName === 'walk') {
             if (walkAudioRef.current && walkAudioRef.current.paused) {
                 walkAudioRef.current.play().catch(e => {});
             }
@@ -803,12 +829,16 @@ export function GameCanvas({
         raycaster.set(targetLookAt, idealCameraPosition.clone().sub(targetLookAt).normalize());
         const intersections = raycaster.intersectObjects(obstacles, false);
         const cameraDistance = idealCameraPosition.distanceTo(targetLookAt);
+
+        let finalCameraPosition = idealCameraPosition;
+
         if (intersections.length > 0 && intersections[0].distance < cameraDistance) {
-            idealCameraPosition.copy(intersections[0].point);
-            idealCameraPosition.sub(targetLookAt).normalize().multiplyScalar(-0.2).add(idealCameraPosition); // Add padding
+            finalCameraPosition = intersections[0].point.clone();
+            const direction = finalCameraPosition.clone().sub(targetLookAt).normalize();
+            finalCameraPosition.add(direction.multiplyScalar(0.2)); // Add padding
         }
 
-        camera.position.lerp(idealCameraPosition, 0.08);
+        camera.position.lerp(finalCameraPosition, 0.1);
         camera.lookAt(targetLookAt);
         
         const updateHealthBarPosition = (mesh: THREE.Object3D, ref: React.RefObject<HTMLDivElement>, yOffset = 2.2) => {
@@ -883,20 +913,27 @@ export function GameCanvas({
         if (lavaAudioRef.current) lavaAudioRef.current.pause();
         if (walkAudioRef.current) walkAudioRef.current.pause();
 
+        if (floatingTextContainerRef.current) {
+          floatingTextContainerRef.current.innerHTML = '';
+        }
+        floatingTexts.current = [];
+
         scene.traverse(object => {
              if (object instanceof THREE.Mesh) {
                 object.geometry?.dispose();
                 const materials = Array.isArray(object.material) ? object.material : [object.material];
                 materials.forEach(material => {
-                    material.map?.dispose();
-                    material.emissiveMap?.dispose();
+                    if (material.map) material.map.dispose();
+                    if (material.emissiveMap) material.emissiveMap.dispose();
                     material.dispose();
                 });
             }
         });
-        groundTexture.dispose();
-        lavaTexture.dispose();
-        grassTexture.dispose();
+        
+        [groundTexture, lavaTexture, grassTexture, trunkMaterial, leavesMaterial, roadMaterial, collectibleMaterial, ...buildingMaterials].forEach(t => t.dispose());
+        [grassBladeGeometry, collectibleGeometry, ...roadSegments.map(s => s.length)].forEach(g => (g as THREE.BufferGeometry)?.dispose?.());
+        
+        renderer.dispose();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
