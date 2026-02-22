@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 type Enemy = {
     id: string;
@@ -22,6 +23,7 @@ type FloatingText = {
 };
 
 type GameCanvasProps = {
+    key: number;
     score: number;
     setScore: (fn: (s: number) => number) => void;
     setGameOver: () => void;
@@ -60,6 +62,7 @@ export function GameCanvas({
   const floatingTexts = useRef<FloatingText[]>([]);
   const playerLavaDamageCooldown = useRef(0);
   const playerDamageCooldown = useRef(0);
+  const nextTextId = useRef(0);
 
   useEffect(() => {
     gameState.current = { score, playerHealth, enemies, isAttacking, isJumping, joystickDelta, maxPlayerHealth };
@@ -89,6 +92,12 @@ export function GameCanvas({
     scene.add(directionalLight);
 
     const textureLoader = new THREE.TextureLoader();
+
+    const portfolioTextures = PlaceHolderImages
+        .filter(p => p.id.startsWith('painting-') || p.id.startsWith('book-cover-') || p.id.startsWith('certificate-'))
+        .map(img => textureLoader.load(img.imageUrl));
+
+    const obstacleMaterials = portfolioTextures.map(texture => new THREE.MeshStandardMaterial({ map: texture, metalness: 0.1, roughness: 0.8 }));
     
     const groundTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/terrain/rock_b.jpg');
     groundTexture.wrapS = THREE.RepeatWrapping;
@@ -219,12 +228,16 @@ export function GameCanvas({
 
     const obstacles: THREE.Mesh[] = [];
     for (let i = 0; i < 80; i++) {
-        const obstacle = new THREE.Mesh(new THREE.BoxGeometry(2, 4, 2), new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.6 }));
+        const material = obstacleMaterials[i % obstacleMaterials.length];
+        const obstacle = new THREE.Mesh(new THREE.BoxGeometry(3, 5, 0.5), material);
+        
         let validPosition = false;
         while (!validPosition) {
-            obstacle.position.set((Math.random() - 0.5) * (planeSize - 4), 2, (Math.random() - 0.5) * (planeSize - 4));
-            validPosition = !lavaBBs.some(lavaBB => lavaBB.intersectsBox(new THREE.Box3().setFromObject(obstacle)));
+            obstacle.position.set((Math.random() - 0.5) * (planeSize - 4), 2.5, (Math.random() - 0.5) * (planeSize - 4));
+            const obstacleBB = new THREE.Box3().setFromObject(obstacle);
+            validPosition = !lavaBBs.some(lavaBB => lavaBB.intersectsBox(obstacleBB));
         }
+        obstacle.rotation.y = Math.random() * Math.PI;
         obstacle.castShadow = true;
         scene.add(obstacle);
         obstacles.push(obstacle);
@@ -263,9 +276,6 @@ export function GameCanvas({
     attackEffect.rotation.x = -Math.PI/2;
     scene.add(attackEffect);
     
-    // --- Floating Text Logic ---
-    let nextTextId = 0;
-
     const spawnFloatingText = (text: string, color: string, position: THREE.Vector3) => {
         const container = floatingTextContainerRef.current;
         if (!container) return;
@@ -277,7 +287,7 @@ export function GameCanvas({
         container.appendChild(element);
         
         floatingTexts.current.push({
-            id: nextTextId++,
+            id: nextTextId.current++,
             element,
             position: position.clone(),
             lifespan: 1.0,
@@ -335,9 +345,17 @@ export function GameCanvas({
           moveDirection.normalize().multiplyScalar(5 * delta);
           const horizontalMove = new THREE.Vector3(moveDirection.x, 0, moveDirection.z);
           
-          const tempPlayerBB = new THREE.Box3().copy(playerBB).translate(horizontalMove);
+          const tempPlayerBB = playerBB.clone().translate(horizontalMove);
 
-          if (!obstacleBBs.some(obsBB => tempPlayerBB.intersectsBox(obsBB))) {
+          let collision = false;
+          for (const obsBB of obstacleBBs) {
+              if (tempPlayerBB.intersectsBox(obsBB)) {
+                  collision = true;
+                  break;
+              }
+          }
+
+          if (!collision) {
               player.position.add(horizontalMove);
           }
            player.rotation.y = Math.atan2(moveDirection.x, moveDirection.z);
@@ -358,18 +376,17 @@ export function GameCanvas({
         let isBurning = false;
         if (inLava && gameState.current.playerHealth > 0) {
             isBurning = true;
-            const damagePerSecond = 50;
-            const damageThisFrame = damagePerSecond * delta;
-            setPlayerHealth(h => Math.max(0, h - damageThisFrame));
-
             if (playerLavaDamageCooldown.current <= 0) {
+                const damagePerSecond = 20;
+                const damageAmount = damagePerSecond * 0.5;
+                setPlayerHealth(h => Math.max(0, h - damageAmount));
+                spawnFloatingText(`-${Math.round(damageAmount)}`, '#ff4400', player.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.5, Math.random()-0.5)));
                 playerLavaDamageCooldown.current = 0.5;
-                spawnFloatingText(`-${Math.round(damagePerSecond * 0.5)}`, '#ff4400', player.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.5, Math.random()-0.5)));
-            }
-            
-            if (gameState.current.playerHealth - damageThisFrame <= 0) {
-                setGameOver();
-                return;
+
+                if (gameState.current.playerHealth - damageAmount <= 0) {
+                    setGameOver();
+                    return;
+                }
             }
 
             if (lavaAudioRef.current?.paused) {
@@ -467,7 +484,16 @@ export function GameCanvas({
 
         // --- AI ---
         enemyObjects.forEach((enemyObj, index) => {
-            const enemyData = gameState.current.enemies[index];
+            const currentEnemyState = gameState.current.enemies[index];
+            if (!currentEnemyState || currentEnemyState.health <= 0) {
+                if (enemyObj.mesh.visible) {
+                    enemyObj.mesh.visible = false;
+                    enemyObj.bb = null;
+                }
+                return;
+            }
+
+            let enemyData = {...currentEnemyState};
             const enemyMesh = enemyObj.mesh;
             const enemyLimbs = enemyObj.limbs;
 
@@ -540,13 +566,14 @@ export function GameCanvas({
                     playerDamageCooldown.current = 1.0;
                     enemyAttackAnimations[index] = 0.4;
                     const damage = 15;
-                    const newHealth = Math.max(0, gameState.current.playerHealth - damage);
-                    setPlayerHealth(h => newHealth);
+                    setPlayerHealth(h => {
+                        const newHealth = Math.max(0, h - damage);
+                        if (newHealth <= 0) {
+                            setGameOver();
+                        }
+                        return newHealth;
+                    });
                     spawnFloatingText(`-${damage}`, '#ff4400', player.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.5, Math.random()-0.5)));
-                    if (newHealth <= 0) {
-                        setGameOver();
-                        return;
-                    }
                 }
             }
 
@@ -632,7 +659,9 @@ export function GameCanvas({
             text.position.y += text.yVelocity * delta;
 
             if (text.lifespan <= 0) {
-                floatingTextContainerRef.current?.removeChild(text.element);
+                if (floatingTextContainerRef.current && text.element.parentNode === floatingTextContainerRef.current) {
+                    floatingTextContainerRef.current.removeChild(text.element);
+                }
                 floatingTexts.current.splice(i, 1);
             } else {
                 const vector = text.position.clone().project(camera);
@@ -686,8 +715,10 @@ export function GameCanvas({
         });
         groundTexture.dispose();
         lavaTexture.dispose();
+        portfolioTextures.forEach(t => t.dispose());
     };
-  }, [collectibleCount, setGameOver, setScore, lavaAudioRef, walkAudioRef, onCollect, onAttack, onJump, onEnemyDefeated, setEnemies, setPlayerHealth, enemyHealthBarRefs, playerHealthBarRef, setIsAttacking, setIsJumping, maxPlayerHealth, floatingTextContainerRef]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return <div ref={mountRef} className="absolute top-0 left-0 w-full h-full" />;
 }

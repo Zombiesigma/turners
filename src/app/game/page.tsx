@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import { GameCanvas } from '@/components/game-canvas';
 import { Button } from '@/components/ui/button';
@@ -59,28 +59,18 @@ export default function GamePage() {
     setPlayerHealth(initialPlayerHealth);
     setEnemies(initialEnemies.map(e => ({ ...e, health: e.maxHealth, position: e.position.clone(), targetPosition: e.targetPosition.clone() })));
     setGameKey(Date.now());
-    if (lavaAudioRef.current) lavaAudioRef.current.pause();
-    if (walkAudioRef.current) walkAudioRef.current.pause();
   };
 
   const handleGameWon = useCallback(() => {
-    if (gameStatus === 'playing') {
-      setGameStatus('won');
-      if (lavaAudioRef.current) lavaAudioRef.current.pause();
-      if (walkAudioRef.current) walkAudioRef.current.pause();
-    }
-  }, [gameStatus]);
+    setGameStatus('won');
+  }, []);
 
   const handleGameOver = useCallback(() => {
-    if (gameStatus === 'playing') {
-        if (gameOverAudioRef.current) {
-            gameOverAudioRef.current.play().catch(e => {});
-        }
-        setGameStatus('lost');
-        if (lavaAudioRef.current) lavaAudioRef.current.pause();
-        if (walkAudioRef.current) walkAudioRef.current.pause();
-    }
-  }, [gameStatus]);
+      if (gameOverAudioRef.current) {
+          gameOverAudioRef.current.play().catch(e => {});
+      }
+      setGameStatus('lost');
+  }, []);
   
   const handleCollectSound = useCallback(() => {
     if (collectAudioRef.current) {
@@ -115,9 +105,19 @@ export default function GamePage() {
   }, []);
   
   const allEnemiesDefeated = useMemo(() => enemies.every(e => e.health <= 0), [enemies]);
-  if (score === totalCollectibles && allEnemiesDefeated && gameStatus === 'playing') {
-    handleGameWon();
-  }
+  
+  useEffect(() => {
+    if (score === totalCollectibles && allEnemiesDefeated && gameStatus === 'playing') {
+      handleGameWon();
+    }
+  }, [score, allEnemiesDefeated, totalCollectibles, gameStatus, handleGameWon]);
+
+  useEffect(() => {
+    if(gameStatus !== 'playing') {
+      if (lavaAudioRef.current) lavaAudioRef.current.pause();
+      if (walkAudioRef.current) walkAudioRef.current.pause();
+    }
+  }, [gameStatus]);
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
@@ -171,32 +171,34 @@ export default function GamePage() {
         </Button>
       </div>
       
-      <GameCanvas
-        key={gameKey}
-        score={score}
-        setScore={setScore}
-        setGameOver={handleGameOver}
-        collectibleCount={totalCollectibles}
-        lavaAudioRef={lavaAudioRef}
-        walkAudioRef={walkAudioRef}
-        onCollect={handleCollectSound}
-        onAttack={handleAttackSound}
-        onJump={handleJumpSound}
-        onEnemyDefeated={handleEnemyDeathSound}
-        joystickDelta={joystickDelta}
-        isAttacking={isAttacking}
-        setIsAttacking={setIsAttacking}
-        isJumping={isJumping}
-        setIsJumping={setIsJumping}
-        playerHealth={playerHealth}
-        setPlayerHealth={setPlayerHealth}
-        maxPlayerHealth={initialPlayerHealth}
-        enemies={enemies}
-        setEnemies={setEnemies}
-        playerHealthBarRef={playerHealthBarRef}
-        enemyHealthBarRefs={enemyHealthBarRefs}
-        floatingTextContainerRef={floatingTextContainerRef}
-      />
+      {gameStatus === 'playing' && (
+        <GameCanvas
+          key={gameKey}
+          score={score}
+          setScore={setScore}
+          setGameOver={handleGameOver}
+          collectibleCount={totalCollectibles}
+          lavaAudioRef={lavaAudioRef}
+          walkAudioRef={walkAudioRef}
+          onCollect={handleCollectSound}
+          onAttack={handleAttackSound}
+          onJump={handleJumpSound}
+          onEnemyDefeated={handleEnemyDeathSound}
+          joystickDelta={joystickDelta}
+          isAttacking={isAttacking}
+          setIsAttacking={setIsAttacking}
+          isJumping={isJumping}
+          setIsJumping={setIsJumping}
+          playerHealth={playerHealth}
+          setPlayerHealth={setPlayerHealth}
+          maxPlayerHealth={initialPlayerHealth}
+          enemies={enemies}
+          setEnemies={setEnemies}
+          playerHealthBarRef={playerHealthBarRef}
+          enemyHealthBarRefs={enemyHealthBarRefs}
+          floatingTextContainerRef={floatingTextContainerRef}
+        />
+      )}
 
       <div ref={playerHealthBarRef} className="fixed top-0 left-0 z-40" style={{ display: 'none' }}>
         <HealthBar health={playerHealth} maxHealth={initialPlayerHealth} />
