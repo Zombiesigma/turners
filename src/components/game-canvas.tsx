@@ -503,6 +503,7 @@ export function GameCanvas({
     });
 
     const clock = new THREE.Clock();
+    const raycaster = new THREE.Raycaster();
     
     function switchAction(from: THREE.AnimationAction | null, to: THREE.AnimationAction | null, duration = 0.2): THREE.AnimationAction | null {
         if (!to || from === to) return from;
@@ -661,7 +662,7 @@ export function GameCanvas({
 
         enemyObjects.forEach((enemyObj, index) => {
             const enemyData = gameState.current.enemies[index];
-             if (!enemyData || enemyData.health <= 0) {
+            if (!enemyData || enemyData.health <= 0) {
                 if (enemyObj.mesh.visible) {
                     enemyObj.currentAction = switchAction(enemyObj.currentAction, null);
                     enemyObj.mesh.visible = false;
@@ -670,36 +671,33 @@ export function GameCanvas({
                 return;
             }
 
+            enemyData.aiTimer -= delta;
             const distanceToPlayer = enemyObj.mesh.position.distanceTo(player.position);
-            
-            let targetState = 'idle';
+            let moving = false;
 
-            if (distanceToPlayer < 20 && distanceToPlayer > 1.5) {
-                targetState = 'chasing';
-            }
-            
-            if (distanceToPlayer <= 1.5) {
-                targetState = 'attacking';
+            // --- State Transitions ---
+            if (enemyData.aiState === 'wandering') {
+                if (distanceToPlayer < 25) { // Detection range
+                    enemyData.aiState = 'chasing';
+                }
+            } else if (enemyData.aiState === 'chasing') {
+                if (distanceToPlayer > 35) { // Lose range
+                    enemyData.aiState = 'wandering';
+                    enemyData.aiTimer = 0; // Find new wander point immediately
+                }
             }
 
-            if (enemyObj.anims.attack?.isRunning()) {
-                // let attack animation finish
-            } else {
-                 switch(targetState) {
-                    case 'chasing': {
-                        const directionToTarget = new THREE.Vector3().subVectors(player.position, enemyObj.mesh.position).normalize();
-                        const enemySpeed = 2.8 * delta;
-                        enemyObj.mesh.position.add(directionToTarget.clone().multiplyScalar(enemySpeed));
-                        enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
-                        enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.walk, 0.1);
-                        break;
-                    }
-                    case 'attacking': {
-                        const directionToTarget = new THREE.Vector3().subVectors(player.position, enemyObj.mesh.position).normalize();
-                        enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
-                        if (playerDamageCooldown.current <= 0) {
-                            enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.attack, 0.1);
-                            playerDamageCooldown.current = 1.0;
+            // --- Action Logic ---
+            // Attack is highest priority
+            if (distanceToPlayer <= 2.5 && !enemyObj.anims.attack?.isRunning()) {
+                const directionToTarget = new THREE.Vector3().subVectors(player.position, enemyObj.mesh.position).normalize();
+                enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
+                if (playerDamageCooldown.current <= 0) {
+                    enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.attack, 0.1);
+                    playerDamageCooldown.current = 1.2; // Enemy attack speed
+                    // Use timeout to apply damage mid-animation
+                    setTimeout(() => {
+                        if (gameState.current.playerHealth > 0 && player.position.distanceTo(enemyObj.mesh.position) < 2.8) {
                             const damage = 15;
                             setPlayerHealth(h => {
                                 const newHealth = Math.max(0, h - damage);
@@ -707,23 +705,71 @@ export function GameCanvas({
                                 return newHealth;
                             });
                             spawnFloatingText(`-${damage}`, '#ff4400', player.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.5, Math.random()-0.5)));
-                        } else {
-                            enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle, 0.1);
                         }
-                        break;
+                    }, 250);
+                } else {
+                     enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle, 0.2);
+                }
+            } 
+            // Movement logic if not attacking
+            else if (!enemyObj.anims.attack?.isRunning()) {
+                let currentTarget = new THREE.Vector3();
+                if (enemyData.aiState === 'chasing') {
+                    currentTarget.copy(player.position);
+                } else { // Wandering
+                    if (enemyData.aiTimer <= 0 || enemyObj.mesh.position.distanceTo(enemyData.targetPosition) < 2) {
+                        const newTarget = new THREE.Vector3(
+                            (Math.random() - 0.5) * (planeSize - 20),
+                            0.8,
+                            (Math.random() - 0.5) * (planeSize - 20)
+                        );
+                        enemyData.targetPosition.copy(newTarget);
+                        enemyData.aiTimer = 5 + Math.random() * 5;
                     }
-                    default: { // idle
-                         enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle, 0.3);
-                         break;
+                    currentTarget.copy(enemyData.targetPosition);
+                }
+
+                const directionToTarget = new THREE.Vector3().subVectors(currentTarget, enemyObj.mesh.position);
+                if (directionToTarget.length() > 1.5) {
+                    directionToTarget.y = 0; // Don't move up/down
+                    directionToTarget.normalize();
+                    
+                    const enemySpeed = (enemyData.aiState === 'chasing' ? 3.2 : 1.8) * delta;
+                    
+                    // Simple collision avoidance
+                    const nextPos = enemyObj.mesh.position.clone().add(directionToTarget.clone().multiplyScalar(enemySpeed));
+                    const enemyBodyBB = new THREE.Box3().setFromCenterAndSize(nextPos.clone().setY(nextPos.y + 1), new THREE.Vector3(1, 2, 1));
+
+                    let collision = obstacleBBs.some(obsBB => obsBB.intersectsBox(enemyBodyBB));
+                    
+                    if (!collision) {
+                        enemyObj.mesh.position.add(directionToTarget.clone().multiplyScalar(enemySpeed));
+                        enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
+                        moving = true;
+                    } else {
+                        // Hit a wall, stop and trigger new wander point if stuck
+                        if (enemyData.aiState === 'chasing') {
+                            enemyData.aiState = 'wandering';
+                            enemyData.aiTimer = 0;
+                        }
                     }
                 }
             }
 
-
+            // --- Animation Logic ---
+            if (!enemyObj.anims.attack?.isRunning()) {
+                if (moving) {
+                    enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.walk, 0.2);
+                } else {
+                    enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle, 0.3);
+                }
+            }
+            
             if (enemyObj.bb) {
                 enemyObj.bb.setFromObject(enemyObj.mesh);
             }
         });
+
 
         for (let i = collectibles.length - 1; i >= 0; i--) {
             const collectible = collectibles[i];
@@ -749,13 +795,24 @@ export function GameCanvas({
             }
         }
 
-        const cameraOffset = new THREE.Vector3(0, 2.0, 3.5);
+        const cameraOffset = new THREE.Vector3(0, 2.5, 4.5);
         cameraOffset.applyQuaternion(player.quaternion);
         const idealCameraPosition = player.position.clone().add(cameraOffset);
         
-        const targetLookAt = player.position.clone().add(new THREE.Vector3(0, 1.5, 0));
+        const targetLookAt = player.position.clone().add(new THREE.Vector3(0, 1.8, 0));
         
-        camera.position.lerp(idealCameraPosition, 0.1);
+        // Add a simple camera collision check to prevent it from going through walls
+        raycaster.set(targetLookAt, idealCameraPosition.clone().sub(targetLookAt).normalize());
+        const intersections = raycaster.intersectObjects(obstacles, false);
+        if (intersections.length > 0) {
+            const intersectionPoint = intersections[0].point;
+            const distanceToPlayer = targetLookAt.distanceTo(intersectionPoint);
+            if (distanceToPlayer < cameraOffset.length()) {
+                 idealCameraPosition.copy(intersectionPoint);
+            }
+        }
+
+        camera.position.lerp(idealCameraPosition, 0.08);
         camera.lookAt(targetLookAt);
         
         const updateHealthBarPosition = (mesh: THREE.Object3D, ref: React.RefObject<HTMLDivElement>, yOffset = 2.2) => {
