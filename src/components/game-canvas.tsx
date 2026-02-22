@@ -101,7 +101,7 @@ export function GameCanvas({
 
     const obstacleMaterials = portfolioTextures.map(texture => new THREE.MeshStandardMaterial({ map: texture, metalness: 0.1, roughness: 0.8 }));
     
-    const groundTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/terrain/rock_b.jpg');
+    const groundTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/terrain/grasslight-big.jpg');
     groundTexture.wrapS = THREE.RepeatWrapping;
     groundTexture.wrapT = THREE.RepeatWrapping;
     groundTexture.repeat.set(64, 64);

@@ -63,13 +63,13 @@
     {
       "id": "certificate-web-dev",
       "description": "Sertifikat Dasar Pemrograman Web Dicoding",
-      "imageUrl": "https://z-cdn-media.chatglm.cn/files/14e8307a-4585-4591-938d-5c8caa4c40ae.png?auth_key=1868883457-26d6c3753827451ca3ee14c2d898f8e1-0-c964f018a39cd0a2b7a071c074ebe2d3",
+      "imageUrl": "https://images.unsplash.com/photo-1771315022670-6719d46a45e1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjZXJ0aWZpY2F0ZSUyMGRvY3VtZW50fGVufDB8fHx8MTc3MTc1MDk1Mnww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "certificate document"
     },
     {
       "id": "certificate-js-dev",
       "description": "Sertifikat Dasar Pemrograman JavaScript Dicoding",
-      "imageUrl": "https://z-cdn-media.chatglm.cn/files/15badf6d-fc30-4b08-a902-f1b1c25ef7b6.png?auth_key=1868883457-bda49126ff6e427fa3c09ffd7f24aade-0-33072aac3ca9a255b513cb2836246941",
+      "imageUrl": "https://images.unsplash.com/photo-1768611873487-67930d5db1b8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjZXJ0aWZpY2F0ZSUyMHBhcGVyfGVufDB8fHx8MTc3MTc1MDk1Mnww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "certificate paper"
     },
     {
