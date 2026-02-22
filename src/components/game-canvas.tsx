@@ -53,7 +53,8 @@ export function GameCanvas({
     score, setScore, setGameOver, collectibleCount, lavaAudioRef, walkAudioRef,
     onCollect, onAttack, onJump, onEnemyDefeated, joystickDelta, isAttacking, setIsAttacking,
     isJumping, setIsJumping, playerHealth, setPlayerHealth, maxPlayerHealth, enemies, setEnemies,
-    playerHealthBarRef, enemyHealthBarRefs, floatingTextContainerRef
+    playerHealthBarRef, enemyHealthBarRefs, floatingTextContainerRef,
+    key: gameKey 
 }: GameCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   
@@ -112,7 +113,7 @@ export function GameCanvas({
     const lavaTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/lava/lavatile.jpg');
     lavaTexture.wrapS = THREE.RepeatWrapping;
     lavaTexture.wrapT = THREE.RepeatWrapping;
-    lavaTexture.repeat.set(32, 32);
+    lavaTexture.repeat.set(64, 64);
     const lavaMaterial = new THREE.MeshStandardMaterial({ map: lavaTexture, emissiveMap: lavaTexture, emissive: 0xff4400, emissiveIntensity: 1.8, metalness: 0.2, roughness: 0.7 });
     
     const lavaPools: THREE.Mesh[] = [];
@@ -718,7 +719,7 @@ export function GameCanvas({
         portfolioTextures.forEach(t => t.dispose());
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [gameKey]);
 
   return <div ref={mountRef} className="absolute top-0 left-0 w-full h-full" />;
 }
