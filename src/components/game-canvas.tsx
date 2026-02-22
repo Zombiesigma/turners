@@ -3,7 +3,6 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 type Enemy = {
     id: string;
@@ -275,7 +274,6 @@ export function GameCanvas({
 
     const obstacleBBs = obstacles.map(obs => new THREE.Box3().setFromObject(obs));
 
-    // Grass
     const grassTexture = textureLoader.load('https://raw.githubusercontent.com/al-ro/dat-ecosystem-archive/master/spike.city/src/assets/images/grass.png');
     grassTexture.colorSpace = THREE.SRGBColorSpace;
 
@@ -400,7 +398,6 @@ export function GameCanvas({
     attackEffect.rotation.x = -Math.PI/2;
     scene.add(attackEffect);
     
-    // Game object references
     let player: THREE.Group | null = null;
     let playerMixer: THREE.AnimationMixer | null = null;
     let playerAnims: Record<string, THREE.AnimationAction | null> = {};
@@ -428,7 +425,6 @@ export function GameCanvas({
         });
         const animations = gltf.animations;
 
-        // Player setup
         player = model.clone();
         player.position.y = 0.8;
         scene.add(player);
@@ -459,19 +455,6 @@ export function GameCanvas({
         currentAction = playerAnims.idle;
         if (currentAction) currentAction.play();
 
-        playerMixer.addEventListener('finished', (e) => {
-            if (!player) return;
-            if (e.action === playerAnims.attack || e.action === playerAnims.jump) {
-                 const isMoving = (keys['w'] || keys['arrowup'] || keys['s'] || keys['arrowdown'] || keys['a'] || keys['arrowleft'] || keys['d'] || keys['arrowright'] || gameState.current.joystickDelta.x !== 0 || gameState.current.joystickDelta.z !== 0);
-                 if(isMoving){
-                     currentAction = switchAction(currentAction, playerAnims.walk);
-                 } else {
-                     currentAction = switchAction(currentAction, playerAnims.idle);
-                 }
-            }
-        });
-
-        // Enemies
         const enemyMaterial = new THREE.MeshStandardMaterial({
             color: 0xcc0000,
             metalness: 0.8,
@@ -496,7 +479,7 @@ export function GameCanvas({
                 idle: idleClip ? mixer.clipAction(idleClip) : null,
                 walk: walkClip ? mixer.clipAction(walkClip) : null,
                 attack: attackClip ? mixer.clipAction(attackClip) : null,
-                jump: null // Enemies don't jump
+                jump: null
             };
             if(anims.attack) {
                 anims.attack.setLoop(THREE.LoopOnce, 1);
@@ -538,24 +521,21 @@ export function GameCanvas({
         const elapsedTime = clock.getElapsedTime();
         uniforms.time.value = elapsedTime;
         
-        // Update textures and non-player objects
         lavaTexture.offset.y += delta * 0.1;
         if (attackEffect.material.opacity > 0) attackEffect.material.opacity -= delta * 4;
 
-        enemyObjects.forEach(e => e.mixer.update(delta));
-        
-        // If player isn't loaded yet, just render the scene and return
         if (!player || !playerMixer) {
-            renderer.render(scene, camera);
-            return;
-        }
-        
-        if (gameState.current.playerHealth <= 0) {
             renderer.render(scene, camera);
             return;
         }
 
         playerMixer.update(delta);
+        enemyObjects.forEach(e => e.mixer.update(delta));
+        
+        if (gameState.current.playerHealth <= 0) {
+            renderer.render(scene, camera);
+            return;
+        }
 
         if (attackCooldown > 0) attackCooldown -= delta;
         if (playerDamageCooldown.current > 0) playerDamageCooldown.current -= delta;
@@ -568,14 +548,6 @@ export function GameCanvas({
         if (player.position.y < 0.8) {
             player.position.y = 0.8;
             playerVelocity.y = 0;
-        }
-
-        const isTryingToJump = gameState.current.isJumping || keys[' '];
-        if (isTryingToJump && onGround) {
-            playerVelocity.y = 10;
-            onJump();
-            if(playerAnims.jump) currentAction = switchAction(currentAction, playerAnims.jump);
-            if (gameState.current.isJumping) setIsJumping(false);
         }
 
         const moveDirection = new THREE.Vector3();
@@ -591,76 +563,79 @@ export function GameCanvas({
         
         const isMovingHorizontally = moveDirection.length() > 0.1;
         
-        const worldDirection = new THREE.Vector3();
-        camera.getWorldDirection(worldDirection);
-        worldDirection.y = 0;
-        worldDirection.normalize();
+        const finalMoveDirection = new THREE.Vector3();
+        if (isMovingHorizontally) {
+            const cameraDirection = new THREE.Vector3();
+            camera.getWorldDirection(cameraDirection);
+            cameraDirection.y = 0;
+            cameraDirection.normalize();
 
-        const rightDirection = new THREE.Vector3().crossVectors(camera.up, worldDirection).normalize();
-        
-        const finalMoveDirection = worldDirection.multiplyScalar(-moveDirection.z).add(rightDirection.multiplyScalar(moveDirection.x));
+            const rightDirection = new THREE.Vector3().crossVectors(camera.up, cameraDirection).normalize();
+            finalMoveDirection.add(cameraDirection.multiplyScalar(-moveDirection.z)).add(rightDirection.multiplyScalar(moveDirection.x));
 
-        if (finalMoveDirection.length() > 0.1) {
-            finalMoveDirection.normalize().multiplyScalar(5 * delta);
-            const horizontalMove = new THREE.Vector3(finalMoveDirection.x, 0, finalMoveDirection.z);
+            finalMoveDirection.normalize();
+            const horizontalMove = finalMoveDirection.clone().multiplyScalar(5 * delta);
+            
             const tempPlayerBB = playerBB.clone().translate(horizontalMove);
+            let collision = obstacleBBs.some(obsBB => tempPlayerBB.intersectsBox(obsBB));
 
-            let collision = false;
-            for (const obsBB of obstacleBBs) {
-                if (tempPlayerBB.intersectsBox(obsBB)) {
-                    collision = true;
-                    break;
-                }
-            }
             if (!collision) player.position.add(horizontalMove);
 
             const targetRotation = Math.atan2(finalMoveDirection.x, finalMoveDirection.z);
-            player.rotation.y += (targetRotation - player.rotation.y) * 0.2;
-
+            player.rotation.y = THREE.MathUtils.lerp(player.rotation.y, targetRotation, 0.2);
         }
         playerBB.setFromObject(player);
-        
-        if (onGround && !playerAnims.attack?.isRunning() && !playerAnims.jump?.isRunning()) {
-             if (isMovingHorizontally) {
-                if (playerAnims.walk) currentAction = switchAction(currentAction, playerAnims.walk);
-            } else {
-                if (playerAnims.idle) currentAction = switchAction(currentAction, playerAnims.idle);
-            }
-        }
-        
-        const isTryingToAttack = gameState.current.isAttacking || keys['f'];
-        if (isTryingToAttack && attackCooldown <= 0) {
-            attackCooldown = 0.5;
-            if(playerAnims.attack) {
-                currentAction = switchAction(currentAction, playerAnims.attack);
-            }
-            onAttack();
-            attackEffect.position.copy(player.position);
-            attackEffect.material.opacity = 0.8;
-            
-            const attackRadius = 3;
-            const attackDamage = 10;
-            const damagedEnemies = new Set<string>();
-            enemyObjects.forEach((enemyObj) => {
-                const enemyData = gameState.current.enemies.find(e => e.id === enemyObj.mesh.userData.id);
-                if (enemyObj.mesh.visible && enemyData && enemyData.health > 0 && player.position.distanceTo(enemyObj.mesh.position) < attackRadius) {
-                    damagedEnemies.add(enemyData.id);
-                }
-            });
-            if (damagedEnemies.size > 0) {
-                setEnemies(prev => prev.map(e => {
-                    if (damagedEnemies.has(e.id)) {
-                        const newHealth = Math.max(0, e.health - attackDamage);
-                        if (e.health > 0 && newHealth <= 0) onEnemyDefeated();
-                        spawnFloatingText(`-${attackDamage}`, '#ffcc00', e.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.8, Math.random()-0.5)));
-                        return { ...e, health: newHealth };
-                    }
-                    return e;
-                }));
-            }
-            if (gameState.current.isAttacking) setIsAttacking(false);
-        }
 
+        if (onGround) {
+            const isTryingToJump = (gameState.current.isJumping || keys[' ']);
+            const isTryingToAttack = (gameState.current.isAttacking || keys['f']);
+
+            if (isTryingToAttack && attackCooldown <= 0) {
+                attackCooldown = 0.5;
+                if(playerAnims.attack) currentAction = switchAction(currentAction, playerAnims.attack);
+                onAttack();
+                attackEffect.position.copy(player.position);
+                attackEffect.material.opacity = 0.8;
+                
+                const attackRadius = 3;
+                const attackDamage = 10;
+                const damagedEnemies = new Set<string>();
+                enemyObjects.forEach((enemyObj) => {
+                    const enemyData = gameState.current.enemies.find(e => e.id === enemyObj.mesh.userData.id);
+                    if (enemyObj.mesh.visible && enemyData && enemyData.health > 0 && player.position.distanceTo(enemyObj.mesh.position) < attackRadius) {
+                        damagedEnemies.add(enemyData.id);
+                    }
+                });
+                if (damagedEnemies.size > 0) {
+                    setEnemies(prev => prev.map(e => {
+                        if (damagedEnemies.has(e.id)) {
+                            const newHealth = Math.max(0, e.health - attackDamage);
+                            if (e.health > 0 && newHealth <= 0) onEnemyDefeated();
+                            spawnFloatingText(`-${attackDamage}`, '#ffcc00', e.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.8, Math.random()-0.5)));
+                            return { ...e, health: newHealth };
+                        }
+                        return e;
+                    }));
+                }
+                if (gameState.current.isAttacking) setIsAttacking(false);
+
+            } else if (isTryingToJump) {
+                playerVelocity.y = 10;
+                if(playerAnims.jump) currentAction = switchAction(currentAction, playerAnims.jump);
+                onJump();
+                if (gameState.current.isJumping) setIsJumping(false);
+
+            } else {
+                if (!playerAnims.attack?.isRunning() && !playerAnims.jump?.isRunning()) {
+                    if (isMovingHorizontally) {
+                        currentAction = switchAction(currentAction, playerAnims.walk);
+                    } else {
+                        currentAction = switchAction(currentAction, playerAnims.idle);
+                    }
+                }
+            }
+        }
+        
         player.position.x = THREE.MathUtils.clamp(player.position.x, -planeSize/2 + 0.5, planeSize/2 - 0.5);
         player.position.z = THREE.MathUtils.clamp(player.position.z, -planeSize/2 + 0.5, planeSize/2 - 0.5);
         
@@ -774,18 +749,13 @@ export function GameCanvas({
             }
         }
 
-        const cameraOffset = new THREE.Vector3(0, 2, 3.5); 
-        const cameraLookAtOffset = new THREE.Vector3(0, 1.5, 0);
-
-        const idealLookAtPosition = player.position.clone().add(cameraLookAtOffset);
-        
-        const playerWorldDirection = new THREE.Vector3();
-        player.getWorldDirection(playerWorldDirection);
-        
+        const cameraOffset = new THREE.Vector3(0, 2.0, 3.5);
+        cameraOffset.applyQuaternion(player.quaternion);
         const idealCameraPosition = player.position.clone().add(cameraOffset);
-        camera.position.lerp(idealCameraPosition, 0.1);
-
+        
         const targetLookAt = player.position.clone().add(new THREE.Vector3(0, 1.5, 0));
+        
+        camera.position.lerp(idealCameraPosition, 0.1);
         camera.lookAt(targetLookAt);
         
         const updateHealthBarPosition = (mesh: THREE.Object3D, ref: React.RefObject<HTMLDivElement>, yOffset = 2.2) => {
