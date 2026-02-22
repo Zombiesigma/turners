@@ -353,7 +353,7 @@ export function GameCanvas({
     lightningShape.moveTo(0, 0.6); lightningShape.lineTo(-0.2, 0.2); lightningShape.lineTo(0.2, 0.2); lightningShape.lineTo(0, -0.6); lightningShape.lineTo(-0.2, -0.2); lightningShape.lineTo(0.2, -0.2); lightningShape.lineTo(0, 0.6);
     const collectibleGeometry = new THREE.ExtrudeGeometry(lightningShape, { depth: 0.1, bevelEnabled: false });
     collectibleGeometry.center();
-    const collectibleMaterial = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 2.0, toneMapped: false });
+    const collectibleMaterial = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 3.0, toneMapped: false });
     for (let i = 0; i < collectibleCount; i++) {
         const collectible = new THREE.Mesh(collectibleGeometry, collectibleMaterial);
         let validPosition = false;
@@ -392,6 +392,31 @@ export function GameCanvas({
     const handleKeyUp = (e: KeyboardEvent) => keys[e.key.toLowerCase()] = false;
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
+    
+    const cameraPivot = new THREE.Group();
+    const cameraTarget = new THREE.Vector3();
+    const cameraIdealOffset = new THREE.Vector3(0, 2.0, 3.5);
+    const cameraLookat = new THREE.Vector3(0, 1.5, 0);
+    scene.add(cameraPivot);
+
+    const handleMouseMove = (event: MouseEvent) => {
+        if (document.pointerLockElement === renderer.domElement) {
+            cameraPivot.rotation.y -= event.movementX * 0.002;
+            const camX = cameraPivot.rotation.x - event.movementY * 0.002;
+            cameraPivot.rotation.x = THREE.MathUtils.clamp(camX, -0.5, 1.2);
+        }
+    };
+    
+    const handlePointerLockChange = () => {
+        if (document.pointerLockElement !== renderer.domElement) {
+             // Show cursor or other UI
+        }
+    };
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('pointerlockchange', handlePointerLockChange);
+    renderer.domElement.addEventListener('click', () => {
+        renderer.domElement.requestPointerLock();
+    });
 
     const attackEffect = new THREE.Mesh(new THREE.RingGeometry(2.8, 3, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0 }));
     attackEffect.rotation.x = -Math.PI/2;
@@ -418,17 +443,16 @@ export function GameCanvas({
 
 
     const switchAction = (mixer: THREE.AnimationMixer, anims: Record<string, THREE.AnimationAction | null>, fromName: string, toName: string) => {
-        if (fromName === toName) return fromName;
+        if (fromName === toName || !anims[toName]) return fromName;
 
         const fromAction = anims[fromName];
-        const toAction = anims[toName];
+        const toAction = anims[toName]!;
 
-        if (fromAction && toAction) {
+        if (fromAction) {
             fromAction.fadeOut(0.2);
-            toAction.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(0.2).play();
-        } else if (toAction) {
-            toAction.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(0.2).play();
         }
+        
+        toAction.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(0.2).play();
         
         return toName;
     };
@@ -468,19 +492,18 @@ export function GameCanvas({
         };
 
         Object.values(playerAnims).forEach(action => {
-            if(action && (action.getClip().name === playerAnims.attack?.getClip().name || action.getClip().name === playerAnims.jump?.getClip().name)) {
-                action.setLoop(THREE.LoopOnce, 1);
-                action.clampWhenFinished = true;
+            if (action) {
+                if (action.getClip().name === playerAnims.attack?.getClip().name || action.getClip().name === playerAnims.jump?.getClip().name) {
+                    action.setLoop(THREE.LoopOnce, 1);
+                    action.clampWhenFinished = true;
+                }
             }
         });
         
         currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'idle');
         
         playerMixer.addEventListener('finished', (e) => {
-            const finishedAction = e.action as THREE.AnimationAction;
-            if (finishedAction === playerAnims.attack || finishedAction === playerAnims.jump) {
-                currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'idle');
-            }
+            currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'idle');
         });
 
         const enemyMaterial = new THREE.MeshStandardMaterial({
@@ -535,7 +558,6 @@ export function GameCanvas({
 
     }, undefined, (error) => {
         console.error('An error happened while loading the model.', error);
-        // Don't call setGameOver here, let the scene run without models
     });
 
     const clock = new THREE.Clock();
@@ -544,7 +566,7 @@ export function GameCanvas({
     
     const animate = () => {
         animationFrameId = requestAnimationFrame(animate);
-        const delta = Math.min(clock.getDelta(), 0.1); // Clamp delta to avoid large jumps
+        const delta = Math.min(clock.getDelta(), 0.1); 
         const elapsedTime = clock.getElapsedTime();
         uniforms.time.value = elapsedTime;
         
@@ -570,7 +592,9 @@ export function GameCanvas({
         
         const onGround = player.position.y <= 0.8;
         const gravity = 30.0;
-        playerVelocity.y -= gravity * delta;
+        if (!onGround) {
+            playerVelocity.y -= gravity * delta;
+        }
         player.position.y += playerVelocity.y * delta;
         if (player.position.y < 0.8) {
             player.position.y = 0.8;
@@ -584,24 +608,21 @@ export function GameCanvas({
         } else {
             if (keys['w'] || keys['arrowup']) inputDirection.z = 1;
             if (keys['s'] || keys['arrowdown']) inputDirection.z = -1;
-            if (keys['a'] || keys['arrowleft']) inputDirection.x = -1;
-            if (keys['d'] || keys['arrowright']) inputDirection.x = 1;
+            if (keys['a'] || keys['arrowleft']) inputDirection.x = 1;
+            if (keys['d'] || keys['arrowright']) inputDirection.x = -1;
         }
         
         const isMoving = inputDirection.lengthSq() > 0;
         
         const cameraForward = new THREE.Vector3();
-        camera.getWorldDirection(cameraForward);
-        cameraForward.y = 0;
-        cameraForward.normalize();
-        player.rotation.y = Math.atan2(cameraForward.x, cameraForward.z);
+        cameraPivot.getWorldDirection(cameraForward);
+        
+        const playerTargetQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), cameraPivot.rotation.y);
+        player.quaternion.slerp(playerTargetQuaternion, 0.2);
         
         if (isMoving) {
-            const cameraRight = new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0), cameraForward);
-            const moveVector = cameraForward.clone().multiplyScalar(inputDirection.z).add(
-                cameraRight.clone().multiplyScalar(inputDirection.x)
-            );
-            moveVector.normalize().multiplyScalar(5 * delta);
+            const moveVector = new THREE.Vector3(inputDirection.x, 0, inputDirection.z);
+            moveVector.applyQuaternion(player.quaternion).normalize().multiplyScalar(5 * delta);
             
             const tempPlayerPos = player.position.clone().add(moveVector);
             const playerBodyBB = new THREE.Box3().setFromCenterAndSize(tempPlayerPos.clone().setY(tempPlayerPos.y + 1), new THREE.Vector3(0.8, 2, 0.8));
@@ -613,13 +634,16 @@ export function GameCanvas({
         }
         playerBB.setFromObject(player);
         
-        const isAttackingAction = playerAnims.attack?.isRunning();
-        const isJumpingAction = playerAnims.jump?.isRunning();
+        const isAttackingAction = currentActionName === 'attack';
+        const isJumpingAction = currentActionName === 'jump';
+
+        let isTryingToJump = (gameState.current.isJumping || keys[' ']);
+        let isTryingToAttack = (gameState.current.isAttacking || keys['f']);
+        
+        if(gameState.current.isJumping) setIsJumping(false);
+        if(gameState.current.isAttacking) setIsAttacking(false);
 
         if (!isAttackingAction && !isJumpingAction) {
-            const isTryingToJump = (gameState.current.isJumping || keys[' ']);
-            const isTryingToAttack = (gameState.current.isAttacking || keys['f']);
-
             if (isTryingToAttack && attackCooldown <= 0) {
                 attackCooldown = 0.7;
                 currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'attack');
@@ -647,13 +671,11 @@ export function GameCanvas({
                         return e;
                     }));
                 }
-                if (gameState.current.isAttacking) setIsAttacking(false);
 
             } else if (isTryingToJump && onGround) {
                 playerVelocity.y = 10;
                 currentActionName = switchAction(playerMixer, playerAnims, currentActionName, 'jump');
                 onJump();
-                if (gameState.current.isJumping) setIsJumping(false);
 
             } else {
                 if (isMoving) {
@@ -711,7 +733,7 @@ export function GameCanvas({
                 enemyData.aiTimer = 0;
             }
             
-            const isEnemyAttacking = enemyObj.anims.attack?.isRunning();
+            const isEnemyAttacking = enemyObj.currentActionName === 'attack';
 
             if (distanceToPlayer <= 2.5 && !isEnemyAttacking) {
                 const directionToTarget = new THREE.Vector3().subVectors(player.position, enemyObj.mesh.position).normalize();
@@ -768,23 +790,22 @@ export function GameCanvas({
                         enemyObj.mesh.position.add(directionToTarget.clone().multiplyScalar(enemySpeed));
                         moving = true;
                     } else {
-                        // If chasing and collided, revert to wandering to find a new path
                         if (enemyData.aiState === 'chasing') {
                            enemyData.aiState = 'wandering';
-                           enemyData.aiTimer = 0; // Force new target immediately
+                           enemyData.aiTimer = 0; 
                         }
                     }
                     enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
                 }
 
                 if (enemyData.aiState === 'chasing') {
-                    if (enemyObj.mesh.position.distanceTo(enemyObj.lastPosition) < 0.01 * delta * 60) { // check if moved
+                    if (enemyObj.mesh.position.distanceTo(enemyObj.lastPosition) < 0.01 * delta * 60) {
                         enemyObj.stuckTimer += delta;
                     } else {
                         enemyObj.stuckTimer = 0;
                         enemyObj.lastPosition.copy(enemyObj.mesh.position);
                     }
-                    if (enemyObj.stuckTimer > 1.0) { // Stuck for 1 second
+                    if (enemyObj.stuckTimer > 1.0) { 
                         enemyData.aiState = 'wandering';
                         enemyData.aiTimer = 0;
                         enemyObj.stuckTimer = 0;
@@ -827,29 +848,29 @@ export function GameCanvas({
         }
         
         // --- CAMERA LOGIC ---
-        const cameraOffset = new THREE.Vector3(0, 2.0, 3.5);
-        cameraOffset.applyQuaternion(player.quaternion);
-        const idealCameraPosition = player.position.clone().add(cameraOffset);
-        const lookAtTarget = player.position.clone().add(new THREE.Vector3(0, 1.8, 0));
+        cameraPivot.position.copy(player.position);
+        
+        const idealCameraOffsetRotated = cameraIdealOffset.clone().applyQuaternion(cameraPivot.quaternion);
+        const idealCameraPosition = player.position.clone().add(idealCameraOffsetRotated);
 
-        const rayDirection = idealCameraPosition.clone().sub(lookAtTarget).normalize();
-        const rayLength = idealCameraPosition.distanceTo(lookAtTarget);
-
-        raycaster.set(lookAtTarget, rayDirection);
+        const lookAtPoint = player.position.clone().add(cameraLookat);
+        const rayDirection = idealCameraPosition.clone().sub(lookAtPoint).normalize();
+        const rayLength = idealCameraPosition.distanceTo(lookAtPoint);
+        raycaster.set(lookAtPoint, rayDirection);
         const intersections = raycaster.intersectObjects(obstacles, false);
-
+        
         let finalCameraPosition = idealCameraPosition;
         if (intersections.length > 0 && intersections[0].distance < rayLength) {
-            finalCameraPosition = lookAtTarget.clone().add(rayDirection.multiplyScalar(intersections[0].distance - 0.2));
+             finalCameraPosition = lookAtPoint.clone().add(rayDirection.multiplyScalar(intersections[0].distance - 0.2));
         }
+        
+        const dampFactor = 10.0;
+        camera.position.lerp(finalCameraPosition, dampFactor * delta);
 
-        // Use damping for smoother camera movement
-        const dampFactor = 4.0;
-        camera.position.x = THREE.MathUtils.damp(camera.position.x, finalCameraPosition.x, dampFactor, delta);
-        camera.position.y = THREE.MathUtils.damp(camera.position.y, finalCameraPosition.y, dampFactor, delta);
-        camera.position.z = THREE.MathUtils.damp(camera.position.z, finalCameraPosition.z, dampFactor, delta);
+        const targetLookat = lookAtPoint;
+        cameraTarget.lerp(targetLookat, dampFactor * delta);
+        camera.lookAt(cameraTarget);
 
-        camera.lookAt(lookAtTarget);
 
         const updateHealthBarPosition = (mesh: THREE.Object3D, ref: React.RefObject<HTMLDivElement>, yOffset = 2.2) => {
             if (!ref.current || !mesh.visible) {
@@ -915,6 +936,12 @@ export function GameCanvas({
         window.removeEventListener('resize', handleResize);
         document.removeEventListener('keydown', handleKeyDown);
         document.removeEventListener('keyup', handleKeyUp);
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('pointerlockchange', handlePointerLockChange);
+        if (document.pointerLockElement === renderer.domElement) {
+            document.exitPointerLock();
+        }
+
         if (mountNode && renderer.domElement) {
             mountNode.removeChild(renderer.domElement);
         }
@@ -943,8 +970,8 @@ export function GameCanvas({
             }
         });
         
-        [groundTexture, lavaTexture, grassTexture, trunkMaterial, leavesMaterial, roadMaterial, collectibleMaterial, ...buildingMaterials].forEach(t => t.dispose());
-        [grassBladeGeometry, collectibleGeometry].forEach(g => g?.dispose?.());
+        [groundTexture, lavaTexture, grassTexture, trunkMaterial, leavesMaterial, roadMaterial, collectibleMaterial, ...buildingMaterials].forEach(t => t?.dispose?.());
+        [grassBladeGeometry, collectibleGeometry, riverGeom1, riverGeom2].forEach(g => g?.dispose?.());
         
         renderer.dispose();
     };
