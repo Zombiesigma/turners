@@ -86,13 +86,13 @@ export function GameCanvas({
     camera.position.set(0, 15, 25);
     camera.lookAt(0, 0, 0);
 
-    const hemiLight = new THREE.HemisphereLight( 0xffffbb, 0x080820, 1.5 );
+    const hemiLight = new THREE.HemisphereLight( 0xffffbb, 0x080820, 2.5 );
     scene.add( hemiLight );
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambientLight);
     
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
     directionalLight.position.set(20, 30, 20);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 2048;
@@ -263,7 +263,7 @@ export function GameCanvas({
         
         playerMixer = new THREE.AnimationMixer(player);
         const idleClip = animations.find(c => c.name.toLowerCase().includes("idle"));
-        const walkClip = animations.find(c => c.name.toLowerCase().includes("walk") || c.name.toLowerCase().includes("run"));
+        const walkClip = animations.find(c => ["walk", "run", "running"].some(name => c.name.toLowerCase().includes(name)));
         const attackClip = animations.find(c => c.name.toLowerCase().includes("attack") || c.name.toLowerCase().includes("punch"));
         const jumpClip = animations.find(c => c.name.toLowerCase().includes("jump"));
         
@@ -288,7 +288,7 @@ export function GameCanvas({
         playerMixer.addEventListener('finished', (e) => {
             if (!player) return;
             if (e.action === playerAnims.attack || e.action === playerAnims.jump) {
-                 const isMoving = (keys['w'] || keys['arrowup'] || keys['s'] || keys['arrowdown'] || keys['a'] || keys['arrowleft'] || keys['d'] || keys['arrowright'] || joystickDelta.x !== 0 || joystickDelta.z !== 0);
+                 const isMoving = (keys['w'] || keys['arrowup'] || keys['s'] || keys['arrowdown'] || keys['a'] || keys['arrowleft'] || keys['d'] || keys['arrowright'] || gameState.current.joystickDelta.x !== 0 || gameState.current.joystickDelta.z !== 0);
                  if(isMoving){
                      currentAction = switchAction(currentAction, playerAnims.walk);
                  } else {
@@ -562,7 +562,7 @@ export function GameCanvas({
             }
         }
 
-        camera.position.lerp(player.position.clone().add(new THREE.Vector3(0, 5, 6)), 0.05);
+        camera.position.lerp(player.position.clone().add(new THREE.Vector3(0, 4, 5)), 0.05);
         camera.lookAt(player.position);
         
         const updateHealthBarPosition = (mesh: THREE.Object3D, ref: React.RefObject<HTMLDivElement>, yOffset = 2.2) => {
