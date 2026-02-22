@@ -105,12 +105,6 @@ export function GameCanvas({
     scene.add(directionalLight);
 
     const textureLoader = new THREE.TextureLoader();
-
-    const portfolioTextures = PlaceHolderImages
-        .filter(p => p.id.startsWith('painting-') || p.id.startsWith('book-cover-') || p.id.startsWith('certificate-'))
-        .map(img => textureLoader.load(img.imageUrl));
-
-    const obstacleMaterials = portfolioTextures.map(texture => new THREE.MeshStandardMaterial({ map: texture, metalness: 0.1, roughness: 0.8 }));
     
     const groundTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/terrain/grasslight-big.jpg');
     groundTexture.wrapS = THREE.RepeatWrapping;
@@ -162,9 +156,11 @@ export function GameCanvas({
     const lavaBBs = lavaPools.map(lava => new THREE.Box3().setFromObject(lava));
 
     const obstacles: THREE.Mesh[] = [];
+    const obstacleGeometry = new THREE.BoxGeometry(3, 5, 0.5);
+    const obstacleMaterial = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.1, roughness: 0.8 });
+
     for (let i = 0; i < 80; i++) {
-        const material = obstacleMaterials[i % obstacleMaterials.length];
-        const obstacle = new THREE.Mesh(new THREE.BoxGeometry(3, 5, 0.5), material);
+        const obstacle = new THREE.Mesh(obstacleGeometry, obstacleMaterial);
         
         let validPosition = false;
         while (!validPosition) {
@@ -240,6 +236,12 @@ export function GameCanvas({
         });
         const animations = gltf.animations;
 
+        // Find animation clips
+        const idleClip = animations.find(c => c.name.toLowerCase().includes("idle"));
+        const walkClip = animations.find(c => c.name.toLowerCase().includes("walk") || c.name.toLowerCase().includes("run"));
+        const attackClip = animations.find(c => c.name.toLowerCase().includes("attack") || c.name.toLowerCase().includes("punch"));
+        const jumpClip = animations.find(c => c.name.toLowerCase().includes("jump"));
+
         // Player
         const player = model.clone();
         player.position.y = 0.8;
@@ -251,10 +253,10 @@ export function GameCanvas({
         const gravity = 30.0;
         const playerMixer = new THREE.AnimationMixer(player);
         const playerAnims = {
-            idle: animations.find(c => c.name.toLowerCase().includes("idle")) ? playerMixer.clipAction(animations.find(c => c.name.toLowerCase().includes("idle"))!) : null,
-            walk: animations.find(c => c.name.toLowerCase().includes("walk")) ? playerMixer.clipAction(animations.find(c => c.name.toLowerCase().includes("walk"))!) : null,
-            attack: animations.find(c => c.name.toLowerCase().includes("attack")) ? playerMixer.clipAction(animations.find(c => c.name.toLowerCase().includes("attack"))!) : null,
-            jump: animations.find(c => c.name.toLowerCase().includes("jump")) ? playerMixer.clipAction(animations.find(c => c.name.toLowerCase().includes("jump"))!) : null
+            idle: idleClip ? playerMixer.clipAction(idleClip) : null,
+            walk: walkClip ? playerMixer.clipAction(walkClip) : null,
+            attack: attackClip ? playerMixer.clipAction(attackClip) : null,
+            jump: jumpClip ? playerMixer.clipAction(jumpClip) : null
         };
         if(playerAnims.attack) {
             playerAnims.attack.setLoop(THREE.LoopOnce, 1);
@@ -298,9 +300,9 @@ export function GameCanvas({
             scene.add(enemyMesh);
             const mixer = new THREE.AnimationMixer(enemyMesh);
             const anims = {
-                idle: animations.find(c => c.name.toLowerCase().includes("idle")) ? mixer.clipAction(animations.find(c => c.name.toLowerCase().includes("idle"))!) : null,
-                walk: animations.find(c => c.name.toLowerCase().includes("walk")) ? mixer.clipAction(animations.find(c => c.name.toLowerCase().includes("walk"))!) : null,
-                attack: animations.find(c => c.name.toLowerCase().includes("attack")) ? mixer.clipAction(animations.find(c => c.name.toLowerCase().includes("attack"))!) : null,
+                idle: idleClip ? mixer.clipAction(idleClip) : null,
+                walk: walkClip ? mixer.clipAction(walkClip) : null,
+                attack: attackClip ? mixer.clipAction(attackClip) : null,
                 jump: null // Enemies don't jump
             };
             if(anims.attack) {
@@ -467,7 +469,7 @@ export function GameCanvas({
                     lavaAudioRef.current.play().catch(e => {});
                 }
             } else {
-                if (lavaAudioRef.current && !lavaAudioRef.current.paused) {
+                 if (lavaAudioRef.current && !lavaAudioRef.current.paused) {
                     lavaAudioRef.current.pause();
                 }
             }
@@ -631,7 +633,6 @@ export function GameCanvas({
         });
         groundTexture.dispose();
         lavaTexture.dispose();
-        portfolioTextures.forEach(t => t.dispose());
     };
   }, []);
 
