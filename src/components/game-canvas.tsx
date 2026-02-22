@@ -570,7 +570,6 @@ export function GameCanvas({
         
         const isMovingHorizontally = moveDirection.length() > 0.1;
         
-        const finalMoveDirection = new THREE.Vector3();
         if (isMovingHorizontally) {
             const cameraDirection = new THREE.Vector3();
             camera.getWorldDirection(cameraDirection);
@@ -578,9 +577,13 @@ export function GameCanvas({
             cameraDirection.normalize();
 
             const rightDirection = new THREE.Vector3().crossVectors(camera.up, cameraDirection).normalize();
-            finalMoveDirection.add(cameraDirection.multiplyScalar(-moveDirection.z)).add(rightDirection.multiplyScalar(moveDirection.x));
-
+            
+            const finalMoveDirection = new THREE.Vector3();
+            const forwardMove = cameraDirection.clone().multiplyScalar(-moveDirection.z);
+            const rightMove = rightDirection.clone().multiplyScalar(moveDirection.x);
+            finalMoveDirection.add(forwardMove).add(rightMove);
             finalMoveDirection.normalize();
+
             const horizontalMove = finalMoveDirection.clone().multiplyScalar(5 * delta);
             
             const tempPlayerBB = playerBB.clone().translate(horizontalMove);
@@ -588,7 +591,8 @@ export function GameCanvas({
 
             if (!collision) player.position.add(horizontalMove);
 
-            const targetRotation = Math.atan2(finalMoveDirection.x, finalMoveDirection.z);
+            // Player faces the direction of the camera for strafing movement
+            const targetRotation = Math.atan2(cameraDirection.x, cameraDirection.z);
             player.rotation.y = THREE.MathUtils.lerp(player.rotation.y, targetRotation, 0.2);
         }
         playerBB.setFromObject(player);
@@ -743,9 +747,10 @@ export function GameCanvas({
                         enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
                         moving = true;
                     } else {
+                        // If chasing and collided, go back to wandering to find a new path
                         if (enemyData.aiState === 'chasing') {
-                            enemyData.aiState = 'wandering';
-                            enemyData.aiTimer = 0;
+                           enemyData.aiState = 'wandering';
+                           enemyData.aiTimer = 0; // Force new target position
                         }
                     }
                 }
