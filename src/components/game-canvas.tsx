@@ -29,6 +29,7 @@ type GameCanvasProps = {
     collectibleCount: number;
     lavaAudioRef: React.RefObject<HTMLAudioElement>;
     walkAudioRef: React.RefObject<HTMLAudioElement>;
+    gameOverAudioRef: React.RefObject<HTMLAudioElement>;
     onCollect: () => void;
     onAttack: () => void;
     onJump: () => void;
@@ -49,7 +50,7 @@ type GameCanvasProps = {
 };
 
 export function GameCanvas({ 
-    score, setScore, setGameOver, collectibleCount, lavaAudioRef, walkAudioRef,
+    score, setScore, setGameOver, collectibleCount, lavaAudioRef, walkAudioRef, gameOverAudioRef,
     onCollect, onAttack, onJump, onEnemyDefeated, joystickDelta, isAttacking, setIsAttacking,
     isJumping, setIsJumping, playerHealth, setPlayerHealth, maxPlayerHealth, enemies, setEnemies,
     playerHealthBarRef, enemyHealthBarRefs, floatingTextContainerRef
@@ -773,13 +774,16 @@ export function GameCanvas({
         if (inLava && gameState.current.playerHealth > 0) {
             if (playerLavaDamageCooldown.current <= 0) {
                 const damageAmount = 10;
-                setPlayerHealth(h => Math.max(0, h - damageAmount));
+                setPlayerHealth(h => {
+                    const newHealth = Math.max(0, h - damageAmount);
+                    if (h > 0 && newHealth <= 0) {
+                        if (gameOverAudioRef.current) gameOverAudioRef.current.play().catch(e => {});
+                        setGameOver();
+                    }
+                    return newHealth;
+                });
                 spawnFloatingText(`-${Math.round(damageAmount)}`, '#ff4400', player.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.5, Math.random()-0.5)));
                 playerLavaDamageCooldown.current = 0.5;
-                if (gameState.current.playerHealth - damageAmount <= 0) {
-                    if(gameOverAudioRef.current) gameOverAudioRef.current.play().catch(e => {});
-                    setGameOver();
-                }
             }
             if (lavaAudioRef.current && lavaAudioRef.current.paused) {
                 lavaAudioRef.current.play().catch(e => {});

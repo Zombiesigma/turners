@@ -187,6 +187,7 @@ export default function GamePage() {
           onAttack={handleAttackSound}
           onJump={handleJumpSound}
           onEnemyDefeated={handleEnemyDeathSound}
+          gameOverAudioRef={gameOverAudioRef}
           joystickDelta={joystickDelta}
           isAttacking={isAttacking}
           setIsAttacking={setIsAttacking}
