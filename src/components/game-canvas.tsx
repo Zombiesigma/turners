@@ -505,28 +505,36 @@ export function GameCanvas({
                 }
                 return;
             }
-            // AI Logic
-            const distanceToPlayer = enemyObj.mesh.position.distanceTo(player.position);
-            const enemySpeed = (distanceToPlayer < 20 ? 2.8 : 2.0) * delta;
-            const directionToTarget = new THREE.Vector3().subVectors(player.position, enemyObj.mesh.position).normalize();
-            enemyObj.mesh.position.add(directionToTarget.multiplyScalar(enemySpeed));
-             if(directionToTarget.lengthSq() > 0) {
-                enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
-            }
 
-            if(enemyObj.anims.attack && enemyObj.anims.attack.isRunning()){
-                // do nothing, let attack finish
-            } else if(distanceToPlayer > 1) {
-                enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.walk);
+            const distanceToPlayer = enemyObj.mesh.position.distanceTo(player.position);
+            
+            if (distanceToPlayer > 0.1) {
+                const directionToTarget = new THREE.Vector3().subVectors(player.position, enemyObj.mesh.position).normalize();
+                
+                if (distanceToPlayer > 1.5) {
+                     const enemySpeed = (distanceToPlayer < 20 ? 2.8 : 2.0) * delta;
+                     enemyObj.mesh.position.add(directionToTarget.clone().multiplyScalar(enemySpeed));
+                     enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.walk);
+                } else {
+                     enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle);
+                }
+
+                enemyObj.mesh.rotation.y = Math.atan2(directionToTarget.x, directionToTarget.z);
             } else {
                 enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.idle);
             }
 
+            if(enemyObj.anims.attack?.isRunning()) {
+              // let attack animation finish
+            }
+
             if (enemyObj.bb) {
                 enemyObj.bb.setFromObject(enemyObj.mesh);
-                if (enemyObj.bb.intersectsBox(playerBB) && playerDamageCooldown.current <= 0) {
+                if (enemyObj.bb.intersectsBox(playerBB) && playerDamageCooldown.current <= 0 && enemyData.health > 0) {
                     onAttack();
-                    enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.attack);
+                    if(!enemyObj.anims.attack?.isRunning()){
+                        enemyObj.currentAction = switchAction(enemyObj.currentAction, enemyObj.anims.attack);
+                    }
                     playerDamageCooldown.current = 1.0;
                     const damage = 15;
                     setPlayerHealth(h => {
@@ -568,7 +576,7 @@ export function GameCanvas({
         const idealCameraPosition = player.position.clone().add(cameraOffset);
         const lookAtPosition = player.position.clone().add(new THREE.Vector3(0, 1.5, 0));
 
-        camera.position.lerp(idealCameraPosition, 0.1);
+        camera.position.lerp(idealCameraPosition, 0.2);
         camera.lookAt(lookAtPosition);
         
         const updateHealthBarPosition = (mesh: THREE.Object3D, ref: React.RefObject<HTMLDivElement>, yOffset = 2.2) => {
