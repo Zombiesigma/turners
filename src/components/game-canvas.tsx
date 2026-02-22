@@ -23,7 +23,6 @@ type FloatingText = {
 };
 
 type GameCanvasProps = {
-    key: number;
     score: number;
     setScore: (fn: (s: number) => number) => void;
     setGameOver: () => void;
@@ -53,8 +52,7 @@ export function GameCanvas({
     score, setScore, setGameOver, collectibleCount, lavaAudioRef, walkAudioRef,
     onCollect, onAttack, onJump, onEnemyDefeated, joystickDelta, isAttacking, setIsAttacking,
     isJumping, setIsJumping, playerHealth, setPlayerHealth, maxPlayerHealth, enemies, setEnemies,
-    playerHealthBarRef, enemyHealthBarRefs, floatingTextContainerRef,
-    key: gameKey 
+    playerHealthBarRef, enemyHealthBarRefs, floatingTextContainerRef
 }: GameCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   
@@ -719,7 +717,7 @@ export function GameCanvas({
         portfolioTextures.forEach(t => t.dispose());
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameKey]);
+  }, []);
 
   return <div ref={mountRef} className="absolute top-0 left-0 w-full h-full" />;
 }
