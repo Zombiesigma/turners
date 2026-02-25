@@ -584,7 +584,8 @@ export function GameCanvas({
     let previousMousePosition = { x: 0, y: 0 };
 
     const onMouseDown = (e: MouseEvent) => {
-        if(e.button === 0) {
+        if(e.button === 2) { // Right click
+            e.preventDefault();
             isMouseDragging = true;
             previousMousePosition = { x: e.clientX, y: e.clientY };
         }
@@ -596,7 +597,7 @@ export function GameCanvas({
         const deltaX = e.clientX - previousMousePosition.x;
         const deltaY = e.clientY - previousMousePosition.y;
 
-        cameraPivot.rotation.y -= deltaX * 0.002;
+        cameraPivot.rotation.y += deltaX * 0.002;
         const camX = cameraPivot.rotation.x - deltaY * 0.002;
         cameraPivot.rotation.x = THREE.MathUtils.clamp(camX, -0.5, 1.2);
 
@@ -604,11 +605,14 @@ export function GameCanvas({
     };
 
     const onMouseUp = (e: MouseEvent) => {
-        if(e.button === 0) {
+        if(e.button === 2) { // Right click
             isMouseDragging = false;
         }
     };
     
+    const onContextMenu = (e: MouseEvent) => e.preventDefault();
+
+    renderer.domElement.addEventListener('contextmenu', onContextMenu);
     renderer.domElement.addEventListener('mousedown', onMouseDown);
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
@@ -1414,7 +1418,7 @@ export function GameCanvas({
              finalCameraPosition = lookAtPoint.clone().add(rayDirection.multiplyScalar(intersections[0].distance - 0.2));
         }
         
-        const dampFactor = 15.0;
+        const dampFactor = 5.0;
         camera.position.lerp(finalCameraPosition, dampFactor * delta);
 
         const targetLookat = lookAtPoint;
@@ -1494,6 +1498,7 @@ export function GameCanvas({
         document.removeEventListener('keydown', handleKeyDown);
         document.removeEventListener('keyup', handleKeyUp);
         
+        renderer.domElement.removeEventListener('contextmenu', onContextMenu);
         renderer.domElement.removeEventListener('mousedown', onMouseDown);
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
