@@ -596,7 +596,7 @@ export function GameCanvas({
         
         // Arms with Elbows
         const armPartGeo = new THREE.BoxGeometry(0.2, 0.4, 0.2);
-        const handGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        const handGeo = new THREE.BoxGeometry(0.25, 0.25, 0.25);
 
 
         // Left Arm
@@ -622,7 +622,7 @@ export function GameCanvas({
 
         const leftHand = new THREE.Mesh(handGeo, material);
         leftHand.castShadow = true;
-        leftHand.position.y = -0.4; // Position at the end of the lower arm
+        leftHand.position.y = -0.45; // Position at the end of the lower arm
         leftElbow.add(leftHand);
 
         // Right Arm
@@ -648,7 +648,7 @@ export function GameCanvas({
 
         const rightHand = new THREE.Mesh(handGeo, material);
         rightHand.castShadow = true;
-        rightHand.position.y = -0.4; // Position at the end of the lower arm
+        rightHand.position.y = -0.45; // Position at the end of the lower arm
         rightElbow.add(rightHand);
 
         // Head
@@ -892,9 +892,11 @@ export function GameCanvas({
             const moveDirection = cameraForward.multiplyScalar(inputDirection.z).add(cameraRight.multiplyScalar(inputDirection.x));
             moveDirection.normalize();
 
-            const targetRotation = new THREE.Quaternion();
-            targetRotation.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(moveDirection.x, moveDirection.z));
-            player.quaternion.slerp(targetRotation, 0.2);
+            if (moveDirection.lengthSq() > 0.01) {
+                const targetRotation = new THREE.Quaternion();
+                targetRotation.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(moveDirection.x, moveDirection.z));
+                player.quaternion.slerp(targetRotation, 0.2);
+            }
             
             const moveVector = moveDirection.multiplyScalar(5 * delta);
             const tempPlayerPos = player.position.clone().add(moveVector);
