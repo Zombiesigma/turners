@@ -540,6 +540,8 @@ export function GameCanvas({
         
         // Arms with Elbows
         const armPartGeo = new THREE.BoxGeometry(0.2, 0.4, 0.2);
+        const handGeo = new THREE.SphereGeometry(0.15, 8, 8);
+
 
         // Left Arm
         const leftArmGroup = new THREE.Group(); // This is the shoulder
@@ -562,6 +564,11 @@ export function GameCanvas({
         lowerLeftArm.position.y = -0.2; // Hangs from elbow pivot
         leftElbow.add(lowerLeftArm);
 
+        const leftHand = new THREE.Mesh(handGeo, material);
+        leftHand.castShadow = true;
+        leftHand.position.y = -0.4; // Position at the end of the lower arm
+        leftElbow.add(leftHand);
+
         // Right Arm
         const rightArmGroup = new THREE.Group(); // This is the shoulder
         rightArmGroup.name = 'rightArmGroup';
@@ -582,6 +589,11 @@ export function GameCanvas({
         lowerRightArm.castShadow = true;
         lowerRightArm.position.y = -0.2;
         rightElbow.add(lowerRightArm);
+
+        const rightHand = new THREE.Mesh(handGeo, material);
+        rightHand.castShadow = true;
+        rightHand.position.y = -0.4; // Position at the end of the lower arm
+        rightElbow.add(rightHand);
 
         // Head
         const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), material);
