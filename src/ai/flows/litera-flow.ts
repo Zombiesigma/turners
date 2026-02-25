@@ -10,8 +10,19 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 
-const personalContext = `
-Anda adalah asisten AI profesional untuk Guntur Padilah bernama Litera.
+const ChatInputSchema = z.object({
+  question: z.string().describe("The user's question for the AI assistant."),
+});
+export type ChatInput = z.infer<typeof ChatInputSchema>;
+
+const ChatOutputSchema = z.object({
+  reply: z.string().describe("The AI assistant's reply."),
+});
+export type ChatOutput = z.infer<typeof ChatOutputSchema>;
+
+const literaPrompt = ai.definePrompt({
+    name: 'literaPrompt',
+    system: `Anda adalah asisten AI profesional untuk Guntur Padilah bernama Litera.
 IDENTITAS:
 - Nama: Guntur Padilah
 - Profesi: Penulis (Novelis), Pelukis, Web Developer
@@ -35,17 +46,16 @@ SOPAN RESPON:
 - Gunakan bahasa Indonesia.
 - Jangan mengaku sebagai Guntur Padilah, tetapi sebagai asisten yang mewakilinya.
 - Jika ditanya siapa pengembang website ini, jawab Guntur Padilah.
-`;
-
-const ChatInputSchema = z.object({
-  question: z.string().describe('The user\'s question for the AI assistant.'),
+- Jaga agar jawaban tetap ringkas namun lengkap.
+`,
+    input: { schema: z.string() },
+    output: { schema: z.string() },
+    config: {
+        temperature: 0.5,
+    },
+    prompt: (input) => `User: ${input}\nAsisten:`
 });
-export type ChatInput = z.infer<typeof ChatInputSchema>;
 
-const ChatOutputSchema = z.object({
-  reply: z.string().describe('The AI assistant\'s reply.'),
-});
-export type ChatOutput = z.infer<typeof ChatOutputSchema>;
 
 const chatFlow = ai.defineFlow(
   {
@@ -54,15 +64,10 @@ const chatFlow = ai.defineFlow(
     outputSchema: ChatOutputSchema,
   },
   async (input) => {
-    const llmResponse = await ai.generate({
-      prompt: `${personalContext}\nUser: ${input.question}\nAsisten:`,
-      config: {
-        temperature: 0.5,
-      },
-    });
-
+    const llmResponse = await literaPrompt(input.question);
+    
     return {
-      reply: llmResponse.text,
+      reply: llmResponse,
     };
   }
 );
