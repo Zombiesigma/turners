@@ -61,6 +61,30 @@
       "imageHint": "surreal painting"
     },
     {
+      "id": "painting-5",
+      "description": "Cityscape at twilight, oil on canvas.",
+      "imageUrl": "https://images.unsplash.com/photo-1579541629929-a185b009c8e8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxvbiUyMGNhbnZhcyUyMHBhaW50aW5nfGVufDB8fHx8MTc3MDgyODQ1NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cityscape painting"
+    },
+    {
+      "id": "painting-6",
+      "description": "Still life with fruit and wine.",
+      "imageUrl": "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzdGlsbCUyMGxpZmUlMjBwYWludGluZ3xlbnwwfHx8fDE3NzA4MTgwMjh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "still life painting"
+    },
+    {
+      "id": "painting-7",
+      "description": "A ship navigating a stormy sea.",
+      "imageUrl": "https://images.unsplash.com/photo-1616422285906-894b5f9a0d5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxzZWFzY2FwZSUyMHBhaW50aW5nfGVufDB8fHx8fDE3NzA4MjI4MTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "seascape painting"
+    },
+    {
+      "id": "painting-8",
+      "description": "Figurative abstract composition.",
+      "imageUrl": "https://images.unsplash.com/photo-1552435158-b1a13535fc18?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmaWd1cmF0aXZlJTIwcGFpbnRpbmd8ZW58MHx8fHwxNzcwODIyODEwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "figurative painting"
+    },
+    {
       "id": "certificate-web-dev",
       "description": "Sertifikat Dasar Pemrograman Web Dicoding",
       "imageUrl": "https://images.unsplash.com/photo-1771315022670-6719d46a45e1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjZXJ0aWZpY2F0ZSUyMGRvY3VtZW50fGVufDB8fHx8MTc3MTc1MDk1Mnww&ixlib=rb-4.1.0&q=80&w=1080",

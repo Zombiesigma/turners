@@ -1,16 +1,14 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Images } from 'lucide-react';
 
 export function PaintingsSection() {
-  const paintings = [
-    PlaceHolderImages.find(p => p.id === 'painting-1'),
-    PlaceHolderImages.find(p => p.id === 'painting-2'),
-    PlaceHolderImages.find(p => p.id === 'painting-3'),
-    PlaceHolderImages.find(p => p.id === 'painting-4'),
-  ].filter(Boolean) as typeof PlaceHolderImages;
+  const paintings = PlaceHolderImages.filter(p => p.id.startsWith('painting-'))
+    .slice(0, 4)
+    .filter(Boolean) as typeof PlaceHolderImages;
 
   return (
     <section id="paintings" className="py-24 bg-card/50">
@@ -45,9 +43,11 @@ export function PaintingsSection() {
         </div>
 
         <div className="mt-12 text-center">
-          <Button size="lg" className="rounded-full">
-            <Images className="mr-2 h-5 w-5" /> Lihat Galeri Lengkap
-          </Button>
+            <Button asChild size="lg" className="rounded-full">
+                <Link href="/gallery">
+                    <Images className="mr-2 h-5 w-5" /> Lihat Galeri Lengkap
+                </Link>
+            </Button>
         </div>
       </div>
     </section>
