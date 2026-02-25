@@ -616,10 +616,10 @@ export function GameCanvas({
         const inputDirection = new THREE.Vector3();
         const joystick = gameState.current.joystickDelta;
         if (joystick.x !== 0 || joystick.z !== 0) {
-            inputDirection.set(joystick.x, 0, joystick.z);
+            inputDirection.set(joystick.x, 0, -joystick.z);
         } else {
-            if (keys['w'] || keys['arrowup']) inputDirection.z = 1;
-            if (keys['s'] || keys['arrowdown']) inputDirection.z = -1;
+            if (keys['w'] || keys['arrowup']) inputDirection.z = -1;
+            if (keys['s'] || keys['arrowdown']) inputDirection.z = 1;
             if (keys['a'] || keys['arrowleft']) inputDirection.x = -1;
             if (keys['d'] || keys['arrowright']) inputDirection.x = 1;
         }
