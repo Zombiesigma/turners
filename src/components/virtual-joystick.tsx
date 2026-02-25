@@ -47,7 +47,7 @@ export function VirtualJoystick({ onMove }: VirtualJoystickProps) {
     setPosition({ x: dx, y: dy });
     onMove({
       x: dx / maxDistance,
-      z: dy / maxDistance, // Y-screen-axis maps to Z-game-axis
+      z: -dy / maxDistance, // Y-screen-axis maps to Z-game-axis, inverted
     });
   };
 
