@@ -484,7 +484,7 @@ export function GameCanvas({
     
     const cameraPivot = new THREE.Group();
     const cameraTarget = new THREE.Vector3();
-    const cameraIdealOffset = new THREE.Vector3(0, 2.5, 4.5);
+    const cameraIdealOffset = new THREE.Vector3(0, 2.5, -4.5);
     const cameraLookat = new THREE.Vector3(0, 1.5, 0);
     scene.add(cameraPivot);
 
@@ -869,12 +869,12 @@ export function GameCanvas({
         const inputDirection = new THREE.Vector3();
         const joystick = gameState.current.joystickDelta;
         if (joystick.x !== 0 || joystick.z !== 0) {
-            inputDirection.set(joystick.x, 0, joystick.z).normalize();
+            inputDirection.set(joystick.x, 0, -joystick.z).normalize();
         } else {
-            if (keys['w'] || keys['arrowup']) inputDirection.z = 1;
-            if (keys['s'] || keys['arrowdown']) inputDirection.z = -1;
-            if (keys['a'] || keys['arrowleft']) inputDirection.x = 1;
-            if (keys['d'] || keys['arrowright']) inputDirection.x = -1;
+            if (keys['w'] || keys['arrowup']) inputDirection.z = -1;
+            if (keys['s'] || keys['arrowdown']) inputDirection.z = 1;
+            if (keys['a'] || keys['arrowleft']) inputDirection.x = -1;
+            if (keys['d'] || keys['arrowright']) inputDirection.x = 1;
             inputDirection.normalize();
         }
         
@@ -887,7 +887,7 @@ export function GameCanvas({
             cameraForward.normalize();
 
             const cameraRight = new THREE.Vector3();
-            cameraRight.crossVectors(camera.up, cameraForward).negate();
+            cameraRight.crossVectors(camera.up, cameraForward);
             
             const moveDirection = cameraForward.multiplyScalar(inputDirection.z).add(cameraRight.multiplyScalar(inputDirection.x));
             moveDirection.normalize();
