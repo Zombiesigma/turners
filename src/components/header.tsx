@@ -63,14 +63,12 @@ export function Header() {
   ];
 
   const MegaMenuItem = ({ href, icon, title, description }: { href: string; icon: React.ReactNode; title: string; description: string }) => (
-    <Link href={href} passHref legacyBehavior>
-      <a className="flex items-start gap-3 rounded-lg p-3 transition-colors hover:bg-accent">
-        <div className="text-primary">{icon}</div>
-        <div>
-          <p className="font-semibold">{title}</p>
-          <p className="text-xs text-muted-foreground">{description}</p>
-        </div>
-      </a>
+    <Link href={href} className="flex items-start gap-3 rounded-lg p-3 transition-colors hover:bg-accent">
+      <div className="text-primary">{icon}</div>
+      <div>
+        <p className="font-semibold">{title}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
     </Link>
   );
 
