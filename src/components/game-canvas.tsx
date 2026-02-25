@@ -59,6 +59,13 @@ type FloatingText = {
     yVelocity: number;
 };
 
+type Projectile = {
+    mesh: THREE.Mesh;
+    velocity: THREE.Vector3;
+    lifespan: number;
+    boundingBox: THREE.Box3;
+};
+
 type GameCanvasProps = {
     score: number;
     setScore: (fn: (s: number) => number) => void;
@@ -68,7 +75,7 @@ type GameCanvasProps = {
     enemyWalkAudioRef: React.RefObject<HTMLAudioElement>;
     gameOverAudioRef: React.RefObject<HTMLAudioElement>;
     onCollect: () => void;
-    onAttack: () => void;
+    onShoot: () => void;
     onJump: () => void;
     onEnemyDefeated: () => void;
     onEnemyHit: () => void;
@@ -90,7 +97,7 @@ type GameCanvasProps = {
 
 export function GameCanvas({ 
     score, setScore, setGameOver, collectibleCount, walkAudioRef, enemyWalkAudioRef, gameOverAudioRef,
-    onCollect, onAttack, onJump, onEnemyDefeated, onEnemyHit, joystickDelta, isAttacking, setIsAttacking,
+    onCollect, onShoot, onJump, onEnemyDefeated, onEnemyHit, joystickDelta, isAttacking, setIsAttacking,
     isJumping, setIsJumping, playerHealth, setPlayerHealth, maxPlayerHealth, enemies, setEnemies,
     playerHealthBarRef, enemyHealthBarRefs, floatingTextContainerRef, minimapRef
 }: GameCanvasProps) {
@@ -98,6 +105,7 @@ export function GameCanvas({
   
   const gameState = useRef({ score, playerHealth, enemies, isAttacking, isJumping, joystickDelta, maxPlayerHealth });
 
+  const projectiles = useRef<Projectile[]>([]);
   const floatingTexts = useRef<FloatingText[]>([]);
   const playerDamageCooldown = useRef(0);
   const nextTextId = useRef(0);
@@ -457,6 +465,9 @@ export function GameCanvas({
     }
     const collectibleBBs = collectibles.map(c => new THREE.Box3().setFromObject(c));
     
+    const projectileGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+    const projectileMaterial = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 4.0, toneMapped: false });
+    
     const spawnFloatingText = (text: string, color: string, position: THREE.Vector3) => {
         const container = floatingTextContainerRef.current;
         if (!container) return;
@@ -484,7 +495,7 @@ export function GameCanvas({
     
     const cameraPivot = new THREE.Group();
     const cameraTarget = new THREE.Vector3();
-    const cameraIdealOffset = new THREE.Vector3(0, 2.5, -4.5);
+    const cameraIdealOffset = new THREE.Vector3(0, 2.5, 4.5); // Flipped Z
     const cameraLookat = new THREE.Vector3(0, 1.5, 0);
     scene.add(cameraPivot);
 
@@ -521,10 +532,6 @@ export function GameCanvas({
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
 
-    const attackEffect = new THREE.Mesh(new THREE.RingGeometry(2.8, 3, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0 }));
-    attackEffect.rotation.x = -Math.PI/2;
-    scene.add(attackEffect);
-    
     let player: THREE.Group | null = null;
     const playerBB = new THREE.Box3();
     const playerVelocity = new THREE.Vector3();
@@ -672,6 +679,7 @@ export function GameCanvas({
     const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00, metalness: 0.8, roughness: 0.4 });
     player = createCharacter(playerMaterial);
     player.position.y = 0;
+    player.rotation.y = Math.PI; // Face away from camera
     scene.add(player);
     
     const playerLight = new THREE.PointLight(0xffaa33, 1.2, 18, 1.8);
@@ -837,8 +845,6 @@ export function GameCanvas({
         const elapsedTime = clock.getElapsedTime();
         uniforms.time.value = elapsedTime;
         
-        if (attackEffect.material.opacity > 0) attackEffect.material.opacity -= delta * 4;
-
         if (!modelsLoaded || !player) {
             renderer.render(scene, camera);
             return;
@@ -871,8 +877,8 @@ export function GameCanvas({
         if (joystick.x !== 0 || joystick.z !== 0) {
             inputDirection.set(joystick.x, 0, -joystick.z).normalize();
         } else {
-            if (keys['w'] || keys['arrowup']) inputDirection.z = -1;
-            if (keys['s'] || keys['arrowdown']) inputDirection.z = 1;
+            if (keys['w'] || keys['arrowup']) inputDirection.z = 1;
+            if (keys['s'] || keys['arrowdown']) inputDirection.z = -1;
             if (keys['a'] || keys['arrowleft']) inputDirection.x = -1;
             if (keys['d'] || keys['arrowright']) inputDirection.x = 1;
             inputDirection.normalize();
@@ -881,29 +887,23 @@ export function GameCanvas({
         const isMoving = inputDirection.lengthSq() > 0;
         
         if (isMoving) {
-            // Get camera's horizontal rotation from the pivot
-            const cameraForward = new THREE.Vector3();
-            cameraPivot.getWorldDirection(cameraForward);
-            cameraForward.y = 0;
-            cameraForward.normalize();
-            
-            // Correctly calculate the camera's right vector
-            const cameraRight = new THREE.Vector3().crossVectors(cameraForward, camera.up);
+            const cameraDirection = new THREE.Vector3();
+            camera.getWorldDirection(cameraDirection);
+            cameraDirection.y = 0;
+            cameraDirection.normalize();
 
-            // Calculate the move direction based on input and camera orientation
-            const moveDirection = new THREE.Vector3();
-            moveDirection.add(cameraForward.clone().multiplyScalar(-inputDirection.z));
-            moveDirection.add(cameraRight.clone().multiplyScalar(inputDirection.x));
-            moveDirection.normalize();
+            const rightDirection = new THREE.Vector3().crossVectors(camera.up, cameraDirection).normalize();
 
-            // Rotate the player to face the direction of movement
+            const moveDirection = new THREE.Vector3()
+                .add(cameraDirection.multiplyScalar(inputDirection.z))
+                .add(rightDirection.multiplyScalar(inputDirection.x))
+                .normalize();
+
             if (moveDirection.lengthSq() > 0.01) {
-                const targetRotation = new THREE.Quaternion();
-                targetRotation.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(moveDirection.x, moveDirection.z));
+                const targetRotation = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), moveDirection);
                 player.quaternion.slerp(targetRotation, 0.2);
             }
             
-            // Calculate the movement vector for this frame
             const moveVector = moveDirection.clone().multiplyScalar(5 * delta);
             const tempPlayerPos = player.position.clone().add(moveVector);
             const playerBodyBB = new THREE.Box3().setFromCenterAndSize(tempPlayerPos.clone().setY(tempPlayerPos.y + 1), new THREE.Vector3(0.8, 2, 0.8));
@@ -923,37 +923,26 @@ export function GameCanvas({
 
         if (isTryingToAttack && attackCooldown <= 0) {
             attackCooldown = 0.7;
-            onAttack();
-            attackEffect.position.copy(player.position);
-            attackEffect.material.opacity = 0.8;
+            onShoot();
+
+            const projectile = new THREE.Mesh(projectileGeometry, projectileMaterial.clone());
             
-            const attackRadius = 3;
-            const attackDamage = 10;
-            const damagedEnemies = new Set<string>();
-            enemyObjects.forEach((enemyObj) => {
-                const enemyData = gameState.current.enemies.find(e => e.id === enemyObj.id);
-                if (enemyObj.mesh.visible && enemyData && enemyData.health > 0 && player.position.distanceTo(enemyObj.mesh.position) < attackRadius) {
-                    damagedEnemies.add(enemyData.id);
-                }
+            const direction = new THREE.Vector3();
+            player.getWorldDirection(direction);
+            
+            projectile.position.copy(player.position)
+                .add(new THREE.Vector3(0, 1.5, 0))
+                .add(direction.clone().multiplyScalar(1));
+            
+            const velocity = direction.clone().multiplyScalar(50);
+            
+            projectiles.current.push({ 
+                mesh: projectile, 
+                velocity, 
+                lifespan: 3, 
+                boundingBox: new THREE.Box3() 
             });
-            if (damagedEnemies.size > 0) {
-                setEnemies(prev => prev.map(e => {
-                    if (damagedEnemies.has(e.id)) {
-                        const enemyObj = enemyObjects.find(eo => eo.id === e.id);
-                        const newHealth = Math.max(0, e.health - attackDamage);
-                        if (e.health > 0 && newHealth <= 0) onEnemyDefeated();
-
-                        if (enemyObj?.mesh) {
-                             const enemyHeight = 2.0 * enemyObj.mesh.scale.y;
-                             spawnFloatingText(`-${attackDamage}`, '#ffcc00', enemyObj.mesh.position.clone().add(new THREE.Vector3(Math.random()-0.5, enemyHeight + 1.0, Math.random()-0.5)));
-                        }
-                        
-                        return { ...e, health: newHealth };
-                    }
-                    return e;
-                }));
-            }
-
+            scene.add(projectile);
         }
         
         if (isTryingToJump && onGround) {
@@ -1042,6 +1031,58 @@ export function GameCanvas({
 
         player.position.x = THREE.MathUtils.clamp(player.position.x, -planeSize/2 + 0.5, planeSize/2 - 0.5);
         player.position.z = THREE.MathUtils.clamp(player.position.z, -planeSize/2 + 0.5, planeSize/2 - 0.5);
+        
+        for (let i = projectiles.current.length - 1; i >= 0; i--) {
+            const p = projectiles.current[i];
+            p.lifespan -= delta;
+            
+            p.mesh.position.add(p.velocity.clone().multiplyScalar(delta));
+            p.boundingBox.setFromObject(p.mesh);
+
+            let hit = false;
+
+            for (const enemyObj of enemyObjects) {
+                const enemyData = gameState.current.enemies.find(e => e.id === enemyObj.id);
+                if (enemyData && enemyData.health > 0 && enemyObj.mesh.visible) {
+                    const enemyBB = new THREE.Box3().setFromObject(enemyObj.mesh);
+                    if (p.boundingBox.intersectsBox(enemyBB)) {
+                         const attackDamage = 10;
+                         setEnemies(prev => prev.map(e => {
+                            if (e.id === enemyData.id) {
+                                const newHealth = Math.max(0, e.health - attackDamage);
+                                if (e.health > 0 && newHealth <= 0) onEnemyDefeated();
+                                const enemyHeight = 2.0 * enemyObj.mesh.scale.y;
+                                spawnFloatingText(`-${attackDamage}`, '#ffcc00', enemyObj.mesh.position.clone().add(new THREE.Vector3(Math.random()-0.5, enemyHeight + 1.0, Math.random()-0.5)));
+                                onEnemyHit();
+                                return { ...e, health: newHealth };
+                            }
+                            return e;
+                        }));
+                         hit = true;
+                         break;
+                    }
+                }
+            }
+            
+            if (hit) {
+                scene.remove(p.mesh);
+                p.mesh.geometry.dispose();
+                (p.mesh.material as THREE.Material).dispose();
+                projectiles.current.splice(i, 1);
+                continue;
+            }
+
+            if (obstacleBBs.some(obsBB => obsBB.intersectsBox(p.boundingBox))) {
+                hit = true;
+            }
+
+            if (hit || p.lifespan <= 0) {
+                scene.remove(p.mesh);
+                p.mesh.geometry.dispose();
+                (p.mesh.material as THREE.Material).dispose();
+                projectiles.current.splice(i, 1);
+            }
+        }
         
         let isAnyEnemyWalkingNear = false;
 
@@ -1245,7 +1286,8 @@ export function GameCanvas({
         const idealCameraPosition = player.position.clone().add(idealCameraOffsetRotated);
 
         const lookAtPoint = player.position.clone().add(cameraLookat);
-        const rayDirection = idealCameraPosition.clone().sub(lookAtPoint).normalize();
+        
+        const rayDirection = new THREE.Vector3().subVectors(idealCameraPosition, lookAtPoint).normalize();
         const rayLength = idealCameraPosition.distanceTo(lookAtPoint);
         raycaster.set(lookAtPoint, rayDirection);
         const intersections = raycaster.intersectObjects(obstacles, false);
@@ -1255,7 +1297,7 @@ export function GameCanvas({
              finalCameraPosition = lookAtPoint.clone().add(rayDirection.multiplyScalar(intersections[0].distance - 0.2));
         }
         
-        const dampFactor = 8.0;
+        const dampFactor = 15.0;
         camera.position.lerp(finalCameraPosition, dampFactor * delta);
 
         const targetLookat = lookAtPoint;
@@ -1351,6 +1393,7 @@ export function GameCanvas({
           floatingTextContainerRef.current.innerHTML = '';
         }
         floatingTexts.current = [];
+        projectiles.current = [];
 
         scene.traverse(object => {
              if (object instanceof THREE.Mesh || object instanceof THREE.InstancedMesh || object instanceof THREE.LineSegments) {
@@ -1364,8 +1407,8 @@ export function GameCanvas({
             }
         });
         
-        [groundTexture, grassTexture, trunkMaterial, leavesMaterial, roadMaterial, collectibleMaterial, streetlightMaterial, lightMaterial, playerMaterial, algojo1Material, algojo2Material].forEach(t => t?.dispose?.());
-        [grassBladeGeometry, collectibleGeometry, streetlightPoleGeom, streetlightArmGeom, streetlightLampGeom].forEach(g => g?.dispose?.());
+        [groundTexture, grassTexture, trunkMaterial, leavesMaterial, roadMaterial, collectibleMaterial, streetlightMaterial, lightMaterial, playerMaterial, algojo1Material, algojo2Material, projectileMaterial].forEach(t => t?.dispose?.());
+        [grassBladeGeometry, collectibleGeometry, streetlightPoleGeom, streetlightArmGeom, streetlightLampGeom, projectileGeometry].forEach(g => g?.dispose?.());
         
         renderer.dispose();
     };

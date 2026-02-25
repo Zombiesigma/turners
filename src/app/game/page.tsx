@@ -40,7 +40,7 @@ export default function GamePage() {
   const [playerHealth, setPlayerHealth] = useState(initialPlayerHealth);
   const [enemies, setEnemies] = useState(initialEnemies);
 
-  const attackAudioRef = useRef<HTMLAudioElement>(null);
+  const shootAudioRef = useRef<HTMLAudioElement>(null);
   const collectAudioRef = useRef<HTMLAudioElement>(null);
   const walkAudioRef = useRef<HTMLAudioElement>(null);
   const jumpAudioRef = useRef<HTMLAudioElement>(null);
@@ -84,10 +84,11 @@ export default function GamePage() {
     }
   }, []);
 
-  const handleAttackSound = useCallback(() => {
-    if (attackAudioRef.current) {
-      attackAudioRef.current.currentTime = 0;
-      attackAudioRef.current.play().catch(e => {});
+  const handleShootSound = useCallback(() => {
+    if (shootAudioRef.current) {
+      shootAudioRef.current.currentTime = 0;
+      shootAudioRef.current.volume = 0.5;
+      shootAudioRef.current.play().catch(e => {});
     }
   }, []);
 
@@ -145,8 +146,8 @@ export default function GamePage() {
       <audio ref={collectAudioRef}>
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/floraphonic-arcade-ui-6-229503.mp3" type="audio/mpeg" />
       </audio>
-      <audio ref={attackAudioRef}>
-        <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/universfield-punch-03-352040.mp3" type="audio/mpeg" />
+      <audio ref={shootAudioRef}>
+        <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/zapsplat_fantasy_magic_spell_cast_powerful_001_81012.mp3" type="audio/mpeg" />
       </audio>
       <audio ref={walkAudioRef} loop>
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/freesound_community-180904-woodland04-run-steps-skip-jump-clip-47486.mp3" type="audio/mpeg" />
@@ -199,7 +200,7 @@ export default function GamePage() {
           walkAudioRef={walkAudioRef}
           enemyWalkAudioRef={enemyWalkAudioRef}
           onCollect={handleCollectSound}
-          onAttack={handleAttackSound}
+          onShoot={handleShootSound}
           onJump={handleJumpSound}
           onEnemyDefeated={handleEnemyDeathSound}
           onEnemyHit={handleEnemyHitSound}
