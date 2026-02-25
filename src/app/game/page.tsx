@@ -129,7 +129,7 @@ export default function GamePage() {
       </div>
 
       <audio autoPlay loop>
-        <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/freesound_community-horror01_loop-29220.mp3" type="audio/mpeg" />
+        <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/ncone-mysterious-melody-loop-197040.mp3" type="audio/mpeg" />
       </audio>
       <audio ref={collectAudioRef}>
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/floraphonic-arcade-ui-6-229503.mp3" type="audio/mpeg" />
