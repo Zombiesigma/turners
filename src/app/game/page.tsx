@@ -163,8 +163,8 @@ export default function GamePage() {
             Back to Portfolio
           </Link>
         </Button>
-        <div className="border-2 border-primary/20 rounded-lg overflow-hidden bg-card/80 backdrop-blur-xl hidden md:block">
-            <canvas ref={minimapCanvasRef} width={150} height={150} />
+        <div className="border-4 border-primary/30 rounded-lg overflow-hidden bg-card/90 backdrop-blur-xl hidden md:block shadow-lg">
+            <canvas ref={minimapCanvasRef} width={200} height={200} />
         </div>
       </div>
 

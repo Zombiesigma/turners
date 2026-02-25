@@ -743,35 +743,64 @@ export function GameCanvas({
         const mapSize = canvas.width;
         const scale = mapSize / planeSize;
 
-        // Clear canvas
-        ctx.fillStyle = 'rgba(16, 16, 37, 0.7)';
-        ctx.fillRect(0, 0, mapSize, mapSize);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.strokeRect(0, 0, mapSize, mapSize);
-
         const transformX = (x: number) => (x + planeSize / 2) * scale;
         const transformZ = (z: number) => (z + planeSize / 2) * scale;
+        
+        // Clear canvas with a slightly transparent background
+        ctx.fillStyle = 'rgba(16, 16, 37, 0.85)';
+        ctx.fillRect(0, 0, mapSize, mapSize);
+
+        // Draw roads
+        ctx.fillStyle = 'rgba(40, 40, 45, 0.9)';
+        roadBBs.forEach(bb => {
+            const minX = transformX(bb.min.x);
+            const minZ = transformZ(bb.min.z);
+            const width = (bb.max.x - bb.min.x) * scale;
+            const height = (bb.max.z - bb.min.z) * scale;
+            ctx.fillRect(minX, minZ, width, height);
+        });
+
+        // Draw obstacles (buildings, trees)
+        ctx.fillStyle = 'rgba(100, 100, 110, 0.6)';
+        obstacleBBs.forEach(bb => {
+            // filter out tiny obstacles
+            if ((bb.max.x - bb.min.x) < 0.5 && (bb.max.z - bb.min.z) < 0.5) return;
+            const minX = transformX(bb.min.x);
+            const minZ = transformZ(bb.min.z);
+            const width = (bb.max.x - bb.min.x) * scale;
+            const height = (bb.max.z - bb.min.z) * scale;
+            ctx.fillRect(minX, minZ, width, height);
+        });
 
         // Draw collectibles
-        ctx.fillStyle = 'rgba(0, 255, 255, 0.7)';
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
+        ctx.shadowColor = 'rgba(0, 255, 255, 0.7)';
+        ctx.shadowBlur = 4;
         collectibles.forEach(c => {
             ctx.beginPath();
-            ctx.arc(transformX(c.position.x), transformZ(c.position.z), 1.5, 0, 2 * Math.PI);
+            ctx.arc(transformX(c.position.x), transformZ(c.position.z), 2, 0, 2 * Math.PI);
             ctx.fill();
         });
+        ctx.shadowBlur = 0;
 
         // Draw enemies
         enemyObjects.forEach(eo => {
             const enemyData = gameState.current.enemies.find(e => e.id === eo.id);
             if (enemyData && enemyData.health > 0) {
                 if (eo.id === 'algojo1') {
-                    ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+                    ctx.fillStyle = 'rgba(255, 80, 80, 1)';
+                    ctx.strokeStyle = 'rgba(255, 0, 0, 1)';
                 } else if (eo.id === 'algojo2') {
-                    ctx.fillStyle = 'rgba(148, 0, 211, 0.8)';
+                    ctx.fillStyle = 'rgba(200, 80, 255, 1)';
+                    ctx.strokeStyle = 'rgba(148, 0, 211, 1)';
                 }
+                ctx.lineWidth = 1;
+                const enemyX = transformX(eo.mesh.position.x);
+                const enemyZ = transformZ(eo.mesh.position.z);
                 ctx.beginPath();
-                ctx.arc(transformX(eo.mesh.position.x), transformZ(eo.mesh.position.z), 4, 0, 2 * Math.PI);
+                ctx.arc(enemyX, enemyZ, 5, 0, 2 * Math.PI);
                 ctx.fill();
+                ctx.stroke();
             }
         });
 
@@ -783,13 +812,19 @@ export function GameCanvas({
         ctx.translate(playerX, playerZ);
         ctx.rotate(player.rotation.y);
 
-        ctx.fillStyle = 'yellow';
+        ctx.fillStyle = '#FFD700';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.lineWidth = 1;
+        ctx.shadowColor = '#FFD700';
+        ctx.shadowBlur = 6;
         ctx.beginPath();
-        ctx.moveTo(0, -6);
-        ctx.lineTo(5, 6);
-        ctx.lineTo(-5, 6);
+        ctx.moveTo(0, -7);
+        ctx.lineTo(5, 7);
+        ctx.lineTo(-5, 7);
         ctx.closePath();
         ctx.fill();
+        ctx.stroke();
+        ctx.shadowBlur = 0;
 
         ctx.restore();
     }
