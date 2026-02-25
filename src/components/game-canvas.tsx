@@ -194,6 +194,39 @@ export function GameCanvas({
 
     const obstacles: THREE.Object3D[] = [];
     
+    const profileTexture = textureLoader.load('https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/IMG-20251221-WA0058.jpg');
+    profileTexture.colorSpace = THREE.SRGBColorSpace;
+    const billboardMaterial = new THREE.MeshStandardMaterial({ map: profileTexture, metalness: 0.5, roughness: 0.7, side: THREE.DoubleSide });
+
+    const billboardLocations = [
+        { position: new THREE.Vector3(30, 0, -5.5), rotationY: -Math.PI / 2 },
+        { position: new THREE.Vector3(-30, 0, 5.5), rotationY: Math.PI / 2 },
+        { position: new THREE.Vector3(5.5, 0, 40), rotationY: Math.PI },
+        { position: new THREE.Vector3(-5.5, 0, -40), rotationY: 0 },
+    ];
+
+    billboardLocations.forEach(loc => {
+        const billboardGroup = new THREE.Group();
+        
+        const poleGeometry = new THREE.CylinderGeometry(0.2, 0.2, 10, 8);
+        const poleMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+        const pole = new THREE.Mesh(poleGeometry, poleMaterial);
+        pole.position.y = 5;
+        pole.castShadow = true;
+        billboardGroup.add(pole);
+
+        const panelGeometry = new THREE.PlaneGeometry(12, 6);
+        const panel = new THREE.Mesh(panelGeometry, billboardMaterial);
+        panel.position.y = 13;
+        panel.castShadow = true;
+        billboardGroup.add(panel);
+        
+        billboardGroup.position.copy(loc.position);
+        billboardGroup.rotation.y = loc.rotationY;
+        scene.add(billboardGroup);
+        obstacles.push(billboardGroup);
+    });
+
     for (let i = 0; i < 70; i++) {
         const width = Math.random() * 7 + 6;
         const height = Math.random() * 30 + 20;
@@ -576,7 +609,7 @@ export function GameCanvas({
     
     const cameraPivot = new THREE.Group();
     const cameraTarget = new THREE.Vector3();
-    const cameraIdealOffset = new THREE.Vector3(0, 2.5, 4.5); // Flipped Z
+    const cameraIdealOffset = new THREE.Vector3(0, 2.5, 4.5);
     const cameraLookat = new THREE.Vector3(0, 1.5, 0);
     scene.add(cameraPivot);
 
@@ -597,7 +630,7 @@ export function GameCanvas({
         const deltaX = e.clientX - previousMousePosition.x;
         const deltaY = e.clientY - previousMousePosition.y;
 
-        cameraPivot.rotation.y += deltaX * 0.002;
+        cameraPivot.rotation.y -= deltaX * 0.002;
         const camX = cameraPivot.rotation.x - deltaY * 0.002;
         cameraPivot.rotation.x = THREE.MathUtils.clamp(camX, -0.5, 1.2);
 
@@ -978,11 +1011,8 @@ export function GameCanvas({
             cameraDirection.normalize();
 
             const rightDirection = new THREE.Vector3().crossVectors(camera.up, cameraDirection).normalize();
-
-            const moveDirection = new THREE.Vector3()
-                .add(cameraDirection.multiplyScalar(inputDirection.z))
-                .add(rightDirection.multiplyScalar(inputDirection.x))
-                .normalize();
+            
+            const moveDirection = new THREE.Vector3().copy(cameraDirection).multiplyScalar(inputDirection.z).add(rightDirection.multiplyScalar(inputDirection.x)).normalize();
 
             if (moveDirection.lengthSq() > 0.01) {
                 const targetRotation = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), moveDirection);
@@ -1529,7 +1559,7 @@ export function GameCanvas({
             }
         });
         
-        [groundTexture, grassTexture, trunkMaterial, leavesMaterial, roadMaterial, collectibleMaterial, streetlightMaterial, lightMaterial, playerMaterial, algojo1Material, algojo2Material, projectileMaterial].forEach(t => t?.dispose?.());
+        [groundTexture, grassTexture, trunkMaterial, leavesMaterial, roadMaterial, collectibleMaterial, streetlightMaterial, lightMaterial, playerMaterial, algojo1Material, algojo2Material, projectileMaterial, profileTexture, billboardMaterial].forEach(t => t?.dispose?.());
         [grassBladeGeometry, collectibleGeometry, streetlightPoleGeom, streetlightArmGeom, streetlightLampGeom, projectileGeometry].forEach(g => g?.dispose?.());
         
         renderer.dispose();
