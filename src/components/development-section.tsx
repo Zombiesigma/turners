@@ -3,17 +3,16 @@
 import Link from 'next/link';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Book, Palette, PenTool, ExternalLink, Github, Copy, Check } from 'lucide-react';
-import { useState } from 'react';
+import { useState, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
-const CodeBlock = ({ children }: { children: string }) => {
+const CodeBlock = ({ children, rawCode }: { children: ReactNode; rawCode: string }) => {
   const { toast } = useToast();
   const [hasCopied, setHasCopied] = useState(false);
 
   const copyToClipboard = () => {
-    if (!children) return;
-    navigator.clipboard.writeText(children).then(() => {
+    navigator.clipboard.writeText(rawCode).then(() => {
       setHasCopied(true);
       toast({ title: "Code copied to clipboard!" });
       setTimeout(() => {
@@ -26,17 +25,12 @@ const CodeBlock = ({ children }: { children: string }) => {
   };
   
   return (
-    <div className="relative mt-4 rounded-lg bg-black/50 p-4 font-code text-sm group">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex gap-2">
-          <div className="h-3 w-3 rounded-full bg-red-500"></div>
-          <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-          <div className="h-3 w-3 rounded-full bg-green-500"></div>
-        </div>
+    <div className="relative mt-4 rounded-lg bg-black/80 p-4 font-code text-sm group text-left">
+       <div className="absolute top-2 right-2">
         <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-white/70 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/10 hover:text-white"
+            className="h-7 w-7 text-white/70 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20 hover:text-white"
             onClick={copyToClipboard}
         >
             {hasCopied ? <Check size={16} /> : <Copy size={16} />}
@@ -48,16 +42,53 @@ const CodeBlock = ({ children }: { children: string }) => {
   );
 };
 
-const projects = [
+const projects: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  code: ReactNode;
+  rawCode: string;
+  liveLink: string;
+  sourceLink: string;
+}[] = [
   {
     icon: <Book className="h-10 w-10 text-primary" />,
     title: 'Litera',
     description: 'Platform digital untuk menerbitkan dan membaca e-book dengan fitur social reading, dan 100% gratis.',
-    code: `const reader = new EBookReader({
+    rawCode: `const reader = new EBookReader({
   annotations: true,
   social: true,
   offline: true
 });`,
+    code: (
+      <>
+        <span className="text-pink-400">const</span>{' '}
+        <span className="text-sky-300">reader</span>{' '}
+        <span className="text-gray-500">=</span>{' '}
+        <span className="text-pink-400">new</span>{' '}
+        <span className="text-teal-300">EBookReader</span>
+        <span className="text-gray-500">{'({'}</span>
+        <br />
+        {'  '}
+        <span className="text-sky-300">annotations</span>
+        <span className="text-gray-500">:</span>{' '}
+        <span className="text-amber-300">true</span>
+        <span className="text-gray-500">,</span>
+        <br />
+        {'  '}
+        <span className="text-sky-300">social</span>
+        <span className="text-gray-500">:</span>{' '}
+        <span className="text-amber-300">true</span>
+        <span className="text-gray-500">,</span>
+        <br />
+        {'  '}
+        <span className="text-sky-300">offline</span>
+        <span className="text-gray-500">:</span>{' '}
+        <span className="text-amber-300">true</span>
+        <br />
+        <span className="text-gray-500">{'});'}</span>
+      </>
+    ),
     liveLink: 'https://www.litera.my.id',
     sourceLink: '#',
   },
@@ -65,11 +96,40 @@ const projects = [
     icon: <Palette className="h-10 w-10 text-primary" />,
     title: 'Art Gallery CMS',
     description: 'Sistem manajemen konten untuk galeri seni online dengan fitur virtual exhibition.',
-    code: `const gallery = new VirtualGallery({
+    rawCode: `const gallery = new VirtualGallery({
   '3D': true,
   VR: true,
   AR: true
 });`,
+    code: (
+      <>
+        <span className="text-pink-400">const</span>{' '}
+        <span className="text-sky-300">gallery</span>{' '}
+        <span className="text-gray-500">=</span>{' '}
+        <span className="text-pink-400">new</span>{' '}
+        <span className="text-teal-300">VirtualGallery</span>
+        <span className="text-gray-500">{'({'}</span>
+        <br />
+        {'  '}
+        <span className="text-green-300">{"'3D'"}</span>
+        <span className="text-gray-500">:</span>{' '}
+        <span className="text-amber-300">true</span>
+        <span className="text-gray-500">,</span>
+        <br />
+        {'  '}
+        <span className="text-sky-300">VR</span>
+        <span className="text-gray-500">:</span>{' '}
+        <span className="text-amber-300">true</span>
+        <span className="text-gray-500">,</span>
+        <br />
+        {'  '}
+        <span className="text-sky-300">AR</span>
+        <span className="text-gray-500">:</span>{' '}
+        <span className="text-amber-300">true</span>
+        <br />
+        <span className="text-gray-500">{'});'}</span>
+      </>
+    ),
     liveLink: '#',
     sourceLink: '#',
   },
@@ -77,11 +137,40 @@ const projects = [
     icon: <PenTool className="h-10 w-10 text-primary" />,
     title: 'Writing Assistant AI',
     description: 'AI-powered writing assistant untuk membantu penulis meningkatkan kualitas tulisan.',
-    code: `const ai = new WritingAI({
+    rawCode: `const ai = new WritingAI({
   style: 'creative',
   language: 'id',
   genre: 'novel'
 });`,
+    code: (
+      <>
+        <span className="text-pink-400">const</span>{' '}
+        <span className="text-sky-300">ai</span>{' '}
+        <span className="text-gray-500">=</span>{' '}
+        <span className="text-pink-400">new</span>{' '}
+        <span className="text-teal-300">WritingAI</span>
+        <span className="text-gray-500">{'({'}</span>
+        <br />
+        {'  '}
+        <span className="text-sky-300">style</span>
+        <span className="text-gray-500">:</span>{' '}
+        <span className="text-green-300">{"'creative'"}</span>
+        <span className="text-gray-500">,</span>
+        <br />
+        {'  '}
+        <span className="text-sky-300">language</span>
+        <span className="text-gray-500">:</span>{' '}
+        <span className="text-green-300">{"'id'"}</span>
+        <span className="text-gray-500">,</span>
+        <br />
+        {'  '}
+        <span className="text-sky-300">genre</span>
+        <span className="text-gray-500">:</span>{' '}
+        <span className="text-green-300">{"'novel'"}</span>
+        <br />
+        <span className="text-gray-500">{'});'}</span>
+      </>
+    ),
     liveLink: '#',
     sourceLink: '#',
   },
@@ -98,24 +187,30 @@ export function DevelopmentSection() {
         <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3">
           {projects.map((project, index) => (
             <div key={project.title} className="animate-in fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
-              <Card className="flex h-full flex-col glow-card transition-all duration-300 hover:-translate-y-2">
-                <CardHeader>
-                  {project.icon}
+              <Card className="flex h-full flex-col glow-card transition-all duration-300 hover:-translate-y-2 text-center">
+                <CardHeader className="items-center">
+                   <div className="mb-4 rounded-full bg-primary/10 p-5">
+                    {project.icon}
+                  </div>
                   <CardTitle>{project.title}</CardTitle>
                   <CardDescription>{project.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">
-                  <CodeBlock>{project.code}</CodeBlock>
+                  <CodeBlock rawCode={project.rawCode}>{project.code}</CodeBlock>
                 </CardContent>
                 <CardFooter className="flex justify-between">
-                  <Link href={project.liveLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary transition-colors hover:text-primary/80">
-                    <ExternalLink size={16} />
-                    {project.liveLink === '#' ? 'Live Demo' : 'Kunjungi'}
-                  </Link>
-                  <Link href={project.sourceLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary transition-colors hover:text-primary/80">
-                    <Github size={16} />
-                    Source
-                  </Link>
+                  <Button asChild variant="link">
+                    <Link href={project.liveLink} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        {project.liveLink === '#' ? 'Live Demo' : 'Kunjungi'}
+                    </Link>
+                  </Button>
+                   <Button asChild variant="link">
+                    <Link href={project.sourceLink} target="_blank" rel="noopener noreferrer">
+                        <Github className="mr-2 h-4 w-4" />
+                        Source
+                    </Link>
+                  </Button>
                 </CardFooter>
               </Card>
             </div>
