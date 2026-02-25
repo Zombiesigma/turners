@@ -27,8 +27,8 @@ export default function GamePage() {
   const totalCollectibles = 40;
   const initialPlayerHealth = 100;
   const initialEnemies = useMemo(() => [
-    { id: 'algojo1', health: 100, maxHealth: 100, position: new THREE.Vector3(-20, 0.8, -20), aiState: 'wandering' as const, targetPosition: new THREE.Vector3(-20, 0.8, -20), aiTimer: Math.random() * 5 },
-    { id: 'algojo2', health: 100, maxHealth: 100, position: new THREE.Vector3(20, 0.8, 20), aiState: 'wandering' as const, targetPosition: new THREE.Vector3(20, 0.8, 20), aiTimer: Math.random() * 5 },
+    { id: 'algojo1', health: 100, maxHealth: 100, position: new THREE.Vector3(-30, 0.8, 0), aiState: 'wandering' as const, targetPosition: new THREE.Vector3(-30, 0.8, 0), aiTimer: Math.random() * 5 },
+    { id: 'algojo2', health: 100, maxHealth: 100, position: new THREE.Vector3(30, 0.8, 0), aiState: 'wandering' as const, targetPosition: new THREE.Vector3(30, 0.8, 0), aiTimer: Math.random() * 5 },
   ], []);
 
   const [score, setScore] = useState(0);
