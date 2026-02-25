@@ -511,26 +511,43 @@ export function GameCanvas({
     const createCharacter = (material: THREE.Material) => {
         const character = new THREE.Group();
 
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), material);
-        head.position.y = 1.6;
+        // Legs
+        const legGeometry = new THREE.BoxGeometry(0.25, 0.8, 0.25);
+        const leftLeg = new THREE.Mesh(legGeometry, material);
+        leftLeg.position.set(-0.2, 0.4, 0);
+        character.add(leftLeg);
+
+        const rightLeg = new THREE.Mesh(legGeometry, material);
+        rightLeg.position.set(0.2, 0.4, 0);
+        character.add(rightLeg);
+
+        // Torso
+        const torso = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.6, 0.5), material);
+        torso.position.y = 1.1;
+        character.add(torso);
+
+        // Arms
+        const armGeometry = new THREE.BoxGeometry(0.2, 0.7, 0.2);
+        const leftArm = new THREE.Mesh(armGeometry, material);
+        leftArm.position.set(-0.5, 1.05, 0);
+        character.add(leftArm);
+
+        const rightArm = new THREE.Mesh(armGeometry, material);
+        rightArm.position.set(0.5, 1.05, 0);
+        character.add(rightArm);
+
+        // Head
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), material);
+        head.position.y = 1.7;
         character.add(head);
-
-        // Updated body - from single box to two parts for more detail
-        const upperBody = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.7, 0.9), material);
-        upperBody.position.y = 1.15;
-        character.add(upperBody);
         
-        const lowerBody = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 0.6, 16), material);
-        lowerBody.position.y = 0.6;
-        character.add(lowerBody);
-
         const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
         const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), eyeMaterial);
-        leftEye.position.set(-0.15, 1.7, 0.35);
+        leftEye.position.set(-0.1, 0.05, 0.28);
         head.add(leftEye);
 
         const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), eyeMaterial);
-        rightEye.position.set(0.15, 1.7, 0.35);
+        rightEye.position.set(0.1, 0.05, 0.28);
         head.add(rightEye);
 
         character.traverse((child) => {
