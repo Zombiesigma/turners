@@ -709,6 +709,12 @@ export function GameCanvas({
         const enemyMesh = createCharacter(material);
         enemyMesh.position.copy(enemyData.position);
         enemyMesh.position.y = 0;
+        
+        if (enemyData.id.startsWith('algojo')) {
+            const scale = 4.0;
+            enemyMesh.scale.set(scale, scale, scale);
+        }
+
         scene.add(enemyMesh);
         
         enemyObjects.push({
@@ -826,9 +832,15 @@ export function GameCanvas({
             if (damagedEnemies.size > 0) {
                 setEnemies(prev => prev.map(e => {
                     if (damagedEnemies.has(e.id)) {
+                        const enemyObj = enemyObjects.find(eo => eo.id === e.id);
                         const newHealth = Math.max(0, e.health - attackDamage);
                         if (e.health > 0 && newHealth <= 0) onEnemyDefeated();
-                        spawnFloatingText(`-${attackDamage}`, '#ffcc00', e.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.8, Math.random()-0.5)));
+
+                        if (enemyObj?.mesh) {
+                             const enemyHeight = 2.0 * enemyObj.mesh.scale.y;
+                             spawnFloatingText(`-${attackDamage}`, '#ffcc00', enemyObj.mesh.position.clone().add(new THREE.Vector3(Math.random()-0.5, enemyHeight + 1.0, Math.random()-0.5)));
+                        }
+                        
                         return { ...e, health: newHealth };
                     }
                     return e;
@@ -992,7 +1004,14 @@ export function GameCanvas({
                     
                     const enemySpeed = (enemyData.aiState === 'chasing' ? 3.2 : 1.8) * delta;
                     const nextPos = enemyObj.mesh.position.clone().add(directionToTarget.clone().multiplyScalar(enemySpeed));
-                    const enemyBodyBB = new THREE.Box3().setFromCenterAndSize(nextPos.clone().setY(nextPos.y + 1), new THREE.Vector3(1, 2, 1));
+                    
+                    const enemyScale = enemyObj.mesh.scale.y;
+                    const enemyHeight = 2.0 * enemyScale;
+                    const enemyWidth = 1.0 * enemyScale;
+                    const enemyBodyBB = new THREE.Box3().setFromCenterAndSize(
+                        nextPos.clone().setY(enemyHeight / 2), 
+                        new THREE.Vector3(enemyWidth, enemyHeight, enemyWidth)
+                    );
                     
                     if (!obstacleBBs.some(obsBB => obsBB.intersectsBox(enemyBodyBB))) {
                         enemyObj.mesh.position.add(directionToTarget.clone().multiplyScalar(enemySpeed));
@@ -1143,7 +1162,12 @@ export function GameCanvas({
         if(player) {
             updateHealthBarPosition(player, playerHealthBarRef, 2.2);
         }
-        enemyObjects.forEach((em, i) => em.mesh && updateHealthBarPosition(em.mesh, { current: enemyHealthBarRefs.current[i] }, 2.5));
+        enemyObjects.forEach((em, i) => {
+            if (em.mesh) {
+                const enemyHeight = 2.0 * em.mesh.scale.y;
+                updateHealthBarPosition(em.mesh, { current: enemyHealthBarRefs.current[i] }, enemyHeight + 0.5);
+            }
+        });
         
         for (let i = floatingTexts.current.length - 1; i >= 0; i--) {
             const text = floatingTexts.current[i];
