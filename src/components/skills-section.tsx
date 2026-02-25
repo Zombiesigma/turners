@@ -17,86 +17,46 @@ function useOnScreen(ref: React.RefObject<HTMLElement>) {
   return isIntersecting;
 }
 
-function Counter({ to, duration = 1500 }: { to: number; duration?: number }) {
-    const [count, setCount] = useState(0);
-    const animationFrame = useRef(0);
-    const startTimestamp = useRef<number | null>(null);
+const SkillBar = ({ name, percentage, isVisible }: { name: string; percentage: number; isVisible: boolean }) => {
+    const [currentPercentage, setCurrentPercentage] = useState(0);
 
     useEffect(() => {
-        const step = (timestamp: number) => {
-            if (!startTimestamp.current) {
-                startTimestamp.current = timestamp;
-            }
-            const progress = timestamp - startTimestamp.current;
-            const percentage = Math.min(progress / duration, 1);
-            setCount(Math.floor(to * percentage));
+        let animationFrameId: number;
+        if (isVisible) {
+            const startTime = performance.now();
+            const duration = 1500;
 
-            if (progress < duration) {
-                animationFrame.current = requestAnimationFrame(step);
-            }
-        };
-        animationFrame.current = requestAnimationFrame(step);
-        return () => {
-            cancelAnimationFrame(animationFrame.current);
-            startTimestamp.current = null;
+            const animate = (currentTime: number) => {
+                const elapsedTime = currentTime - startTime;
+                const progress = Math.min(elapsedTime / duration, 1);
+                const animatedValue = Math.floor(progress * percentage);
+                setCurrentPercentage(animatedValue);
+                if (progress < 1) {
+                    animationFrameId = requestAnimationFrame(animate);
+                }
+            };
+
+            animationFrameId = requestAnimationFrame(animate);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [to, duration]);
-
-    return <span>{count}%</span>;
-}
-
-const RadialProgress = ({ percentage, name, isVisible }: { percentage: number; name: string; isVisible: boolean }) => {
-    const radius = 50;
-    const stroke = 6;
-    const normalizedRadius = radius - stroke / 2;
-    const circumference = normalizedRadius * 2 * Math.PI;
-    const strokeDashoffset = circumference - (isVisible ? (percentage / 100) * circumference : circumference);
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [isVisible, percentage]);
 
     return (
-        <div className="relative flex flex-col items-center justify-center gap-1">
-            <svg
-                height={radius * 2}
-                width={radius * 2}
-                className="transform -rotate-90"
-            >
-                 <defs>
-                    <linearGradient id="skill-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="hsl(var(--accent))" />
-                        <stop offset="100%" stopColor="hsl(var(--primary))" />
-                    </linearGradient>
-                </defs>
-                <circle
-                    className="text-primary/10"
-                    stroke="currentColor"
-                    fill="transparent"
-                    strokeWidth={stroke}
-                    r={normalizedRadius}
-                    cx={radius}
-                    cy={radius}
-                />
-                <circle
-                    stroke="url(#skill-gradient)"
-                    fill="transparent"
-                    strokeWidth={stroke}
-                    strokeDasharray={circumference + ' ' + circumference}
-                    style={{ strokeDashoffset }}
-                    className="transition-[stroke-dashoffset] duration-[1500ms] ease-out"
-                    strokeLinecap="round"
-                    r={normalizedRadius}
-                    cx={radius}
-                    cy={radius}
-                />
-            </svg>
-            <div className="absolute flex flex-col items-center justify-center">
-                <span className="text-xl font-bold text-foreground">
-                    {isVisible ? <Counter to={percentage} /> : "0%"}
-                </span>
+        <div className="w-full">
+            <div className="flex justify-between mb-2">
+                <span className="text-base font-semibold text-foreground">{name}</span>
+                <span className="text-sm font-bold text-primary">{currentPercentage}%</span>
             </div>
-            <span className="mt-1 text-xs font-medium text-muted-foreground">{name}</span>
+            <div className="w-full bg-primary/10 rounded-full h-2 overflow-hidden">
+                <div 
+                    className="bg-gradient-to-r from-primary to-accent h-full rounded-full transition-[width] duration-1500 ease-out" 
+                    style={{ width: `${currentPercentage}%` }}
+                />
+            </div>
         </div>
     );
 };
+
 
 type Skill = {
   name: string;
@@ -163,9 +123,9 @@ export function SkillsSection() {
                   </div>
                   <CardTitle className="font-headline text-2xl mb-2">{category.title}</CardTitle>
                   <CardDescription className="mb-8 min-h-[60px]">{category.description}</CardDescription>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-5 text-left">
                     {category.skills.map(skill => (
-                      <RadialProgress key={skill.name} name={skill.name} percentage={skill.percentage} isVisible={isVisible} />
+                      <SkillBar key={skill.name} name={skill.name} percentage={skill.percentage} isVisible={isVisible} />
                     ))}
                   </div>
                 </CardContent>
