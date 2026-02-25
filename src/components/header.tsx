@@ -17,11 +17,9 @@ import {
   ScrollText,
   Search,
   Wrench,
-  ChevronDown,
   X,
   Home,
   Award,
-  Mail,
   Contact,
   Gamepad2,
 } from "lucide-react";
@@ -37,7 +35,7 @@ import {
 import { ThemeToggle } from "./theme-toggle";
 import { cn } from "@/lib/utils";
 import { SearchOverlay } from "./search-overlay";
-
+import { Separator } from "@/components/ui/separator";
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -53,10 +51,12 @@ export function Header() {
 
   const menuItems = [
     { href: "/#home", label: "Beranda", icon: <Home size={20} /> },
-    { href: "/#writing", label: "Tulisan", icon: <Feather size={20} /> },
-    { href: "/#paintings", label: "Lukisan", icon: <Palette size={20} /> },
+    { type: 'heading', label: "Karya Saya" },
+    { href: "/#writing", label: "Tulisan", icon: <Feather size={20} />, isSub: true },
+    { href: "/#paintings", label: "Lukisan", icon: <Palette size={20} />, isSub: true },
+    { href: "/#projects", label: "Proyek", icon: <Code size={20} />, isSub: true },
+    { type: 'divider' },
     { href: "/#certificates", label: "Sertifikat", icon: <Award size={20} /> },
-    { href: "/#projects", label: "Proyek", icon: <Code size={20} /> },
     { href: "/#about", label: "Keahlian", icon: <Wrench size={20} /> },
     { href: "/game", label: "3D Game", icon: <Gamepad2 size={20} /> },
     { href: "/#contact", label: "Kontak", icon: <Contact size={20} /> },
@@ -167,15 +167,29 @@ export function Header() {
                         <Button variant="ghost" size="icon"><X /></Button>
                       </SheetClose>
                     </div>
-                    <nav className="flex flex-col gap-2">
-                      {menuItems.map((item) => (
-                         <SheetClose asChild key={item.href}>
-                            <Link href={item.href} className="flex items-center gap-4 rounded-lg p-3 text-base font-medium transition-colors hover:bg-accent">
-                              <span className="text-primary">{item.icon}</span>
-                              {item.label}
-                            </Link>
-                         </SheetClose>
-                      ))}
+                    <nav className="flex flex-col gap-1">
+                      {menuItems.map((item, index) => {
+                          if (item.type === 'heading') {
+                            return <h4 key={index} className="px-3 pt-4 pb-2 text-sm font-semibold text-muted-foreground">{item.label}</h4>
+                          }
+                          if (item.type === 'divider') {
+                            return <Separator key={index} className="my-2" />;
+                          }
+                          return (
+                            <SheetClose asChild key={item.href}>
+                              <Link
+                                href={item.href!}
+                                className={cn(
+                                  "flex items-center gap-4 rounded-lg p-3 text-base font-medium transition-colors hover:bg-accent",
+                                  item.isSub && "pl-8"
+                                )}
+                              >
+                                <span className="text-primary">{item.icon}</span>
+                                {item.label}
+                              </Link>
+                            </SheetClose>
+                          )
+                        })}
                     </nav>
                     <div className="mt-auto flex justify-center">
                         <ThemeToggle />
