@@ -31,7 +31,7 @@ export function AiChat() {
   const [messages, setMessages] = useState<Message[]>([
     {
       sender: 'ai',
-      text: 'Halo! Saya Litera, asisten AI dari Guntur Padilah. Ada yang bisa saya bantu terkait karya, proyek, atau kolaborasi?',
+      text: 'Halo! Saya Elitera, asisten AI dari Guntur Padilah. Ada yang bisa saya bantu terkait karya, proyek, atau kolaborasi?',
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -83,7 +83,7 @@ export function AiChat() {
             </Button>
           </TooltipTrigger>
           <TooltipContent side="left">
-            <p>Tanya Litera AI</p>
+            <p>Tanya Elitera AI</p>
           </TooltipContent>
         </Tooltip>
       </div>
@@ -105,7 +105,7 @@ export function AiChat() {
               <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-500 border-2 border-card" />
             </div>
             <div>
-              <h3 className="font-semibold text-foreground">Litera AI</h3>
+              <h3 className="font-semibold text-foreground">Elitera AI</h3>
               <p className="text-xs text-muted-foreground">Online</p>
             </div>
           </div>
@@ -154,7 +154,7 @@ export function AiChat() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Tanya sesuatu pada Litera..." 
+              placeholder="Tanya sesuatu pada Elitera..." 
               disabled={isLoading}
               className="pr-10"
             />

@@ -2,9 +2,9 @@
 /**
  * @fileOverview A professional AI assistant for Guntur Padilah.
  *
- * - chatWithLitera - A function that handles the chat interaction.
- * - ChatInput - The input type for the chatWithLitera function.
- * - ChatOutput - The return type for the chatWithLitera function.
+ * - chatWithElitera - A function that handles the chat interaction.
+ * - ChatInput - The input type for the chatWithElitera function.
+ * - ChatOutput - The return type for the chatWithElitera function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -20,9 +20,9 @@ const ChatOutputSchema = z.object({
 });
 export type ChatOutput = z.infer<typeof ChatOutputSchema>;
 
-const literaPrompt = ai.definePrompt({
-    name: 'literaPrompt',
-    system: `Anda adalah asisten AI profesional untuk Guntur Padilah bernama Litera.
+const eliteraPrompt = ai.definePrompt({
+    name: 'eliteraPrompt',
+    system: `Anda adalah asisten AI profesional untuk Guntur Padilah bernama Elitera.
 IDENTITAS:
 - Nama: Guntur Padilah
 - Profesi: Penulis (Novelis), Pelukis, Web Developer
@@ -59,12 +59,12 @@ SOPAN RESPON:
 
 const chatFlow = ai.defineFlow(
   {
-    name: 'literaChatFlow',
+    name: 'eliteraChatFlow',
     inputSchema: ChatInputSchema,
     outputSchema: ChatOutputSchema,
   },
   async (input) => {
-    const llmResponse = await literaPrompt(input.question);
+    const llmResponse = await eliteraPrompt(input.question);
     
     return {
       reply: llmResponse,
@@ -73,6 +73,6 @@ const chatFlow = ai.defineFlow(
 );
 
 
-export async function chatWithLitera(input: ChatInput): Promise<ChatOutput> {
+export async function chatWithElitera(input: ChatInput): Promise<ChatOutput> {
   return chatFlow(input);
 }

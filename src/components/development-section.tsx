@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Book, Palette, PenTool, ExternalLink, Github, Copy, Check } from 'lucide-react';
 import { useState, ReactNode } from 'react';
@@ -53,7 +54,7 @@ const projects: {
 }[] = [
   {
     icon: <Book className="h-10 w-10 text-primary" />,
-    title: 'Litera',
+    title: 'Elitera',
     description: 'Platform digital untuk menerbitkan dan membaca e-book dengan fitur social reading, dan 100% gratis.',
     rawCode: `const reader = new EBookReader({
   annotations: true,
@@ -89,7 +90,7 @@ const projects: {
         <span className="text-gray-500">{'});'}</span>
       </>
     ),
-    liveLink: 'https://www.litera.my.id',
+    liveLink: 'https://www.elitera.my.id',
     sourceLink: '#',
   },
   {
@@ -189,9 +190,15 @@ export function DevelopmentSection() {
             <div key={project.title} className="animate-in fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
               <Card className="flex h-full flex-col glow-card transition-all duration-300 hover:-translate-y-2 text-center">
                 <CardHeader className="items-center">
-                   <div className="mb-4 rounded-full bg-primary/10 p-5">
-                    {project.icon}
-                  </div>
+                   {project.title === 'Elitera' ? (
+                    <div className="mb-4 h-24 w-24 rounded-full overflow-hidden relative">
+                      <Image src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/uploads/1770616886999-WhatsApp_Image_2026-02-07_at_13.45.35.jpeg" alt="Elitera" fill className="object-cover"/>
+                    </div>
+                  ) : (
+                    <div className="mb-4 rounded-full bg-primary/10 p-5">
+                      {project.icon}
+                    </div>
+                  )}
                   <CardTitle>{project.title}</CardTitle>
                   <CardDescription>{project.description}</CardDescription>
                 </CardHeader>

@@ -1,10 +1,10 @@
 'use server';
 
-import { chatWithLitera, type ChatInput } from "@/ai/flows/litera-flow";
+import { chatWithElitera, type ChatInput } from "@/ai/flows/litera-flow";
 
 export async function getAiReply(input: ChatInput) {
     try {
-        const result = await chatWithLitera(input);
+        const result = await chatWithElitera(input);
         return result.reply;
     } catch (error) {
         console.error("AI flow error:", error);
