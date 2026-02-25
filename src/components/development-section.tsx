@@ -1,18 +1,52 @@
+'use client';
+
 import Link from 'next/link';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Book, Palette, PenTool, ExternalLink, Github } from 'lucide-react';
-import { ReactNode } from 'react';
+import { Book, Palette, PenTool, ExternalLink, Github, Copy, Check } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
-const CodeBlock = ({ children }: { children: ReactNode }) => (
-  <div className="mt-4 rounded-lg bg-black/50 p-4 font-code text-sm">
-    <div className="mb-3 flex gap-2">
-      <div className="h-3 w-3 rounded-full bg-red-500"></div>
-      <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-      <div className="h-3 w-3 rounded-full bg-green-500"></div>
+const CodeBlock = ({ children }: { children: string }) => {
+  const { toast } = useToast();
+  const [hasCopied, setHasCopied] = useState(false);
+
+  const copyToClipboard = () => {
+    if (!children) return;
+    navigator.clipboard.writeText(children).then(() => {
+      setHasCopied(true);
+      toast({ title: "Code copied to clipboard!" });
+      setTimeout(() => {
+        setHasCopied(false);
+      }, 2000);
+    }).catch(err => {
+      console.error("Failed to copy text: ", err);
+      toast({ title: "Failed to copy", description: "Could not copy code to clipboard.", variant: "destructive" });
+    });
+  };
+  
+  return (
+    <div className="relative mt-4 rounded-lg bg-black/50 p-4 font-code text-sm group">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex gap-2">
+          <div className="h-3 w-3 rounded-full bg-red-500"></div>
+          <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
+          <div className="h-3 w-3 rounded-full bg-green-500"></div>
+        </div>
+        <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-white/70 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/10 hover:text-white"
+            onClick={copyToClipboard}
+        >
+            {hasCopied ? <Check size={16} /> : <Copy size={16} />}
+            <span className="sr-only">Copy code</span>
+        </Button>
+      </div>
+      <pre><code>{children}</code></pre>
     </div>
-    <pre><code>{children}</code></pre>
-  </div>
-);
+  );
+};
 
 const projects = [
   {
