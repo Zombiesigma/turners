@@ -881,24 +881,30 @@ export function GameCanvas({
         const isMoving = inputDirection.lengthSq() > 0;
         
         if (isMoving) {
+            // Get camera's horizontal rotation from the pivot
             const cameraForward = new THREE.Vector3();
             cameraPivot.getWorldDirection(cameraForward);
             cameraForward.y = 0;
             cameraForward.normalize();
-
-            const cameraRight = new THREE.Vector3();
-            cameraRight.crossVectors(camera.up, cameraForward);
             
-            const moveDirection = cameraForward.multiplyScalar(inputDirection.z).add(cameraRight.multiplyScalar(inputDirection.x));
+            // Correctly calculate the camera's right vector
+            const cameraRight = new THREE.Vector3().crossVectors(cameraForward, camera.up);
+
+            // Calculate the move direction based on input and camera orientation
+            const moveDirection = new THREE.Vector3();
+            moveDirection.add(cameraForward.clone().multiplyScalar(-inputDirection.z));
+            moveDirection.add(cameraRight.clone().multiplyScalar(inputDirection.x));
             moveDirection.normalize();
 
+            // Rotate the player to face the direction of movement
             if (moveDirection.lengthSq() > 0.01) {
                 const targetRotation = new THREE.Quaternion();
                 targetRotation.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(moveDirection.x, moveDirection.z));
                 player.quaternion.slerp(targetRotation, 0.2);
             }
             
-            const moveVector = moveDirection.multiplyScalar(5 * delta);
+            // Calculate the movement vector for this frame
+            const moveVector = moveDirection.clone().multiplyScalar(5 * delta);
             const tempPlayerPos = player.position.clone().add(moveVector);
             const playerBodyBB = new THREE.Box3().setFromCenterAndSize(tempPlayerPos.clone().setY(tempPlayerPos.y + 1), new THREE.Vector3(0.8, 2, 0.8));
 
