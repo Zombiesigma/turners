@@ -872,8 +872,8 @@ export function GameCanvas({
         } else {
             if (keys['w'] || keys['arrowup']) inputDirection.z = 1;
             if (keys['s'] || keys['arrowdown']) inputDirection.z = -1;
-            if (keys['a'] || keys['arrowleft']) inputDirection.x = 1;
-            if (keys['d'] || keys['arrowright']) inputDirection.x = -1;
+            if (keys['a'] || keys['arrowleft']) inputDirection.x = -1;
+            if (keys['d'] || keys['arrowright']) inputDirection.x = 1;
             inputDirection.normalize();
         }
         
