@@ -515,9 +515,14 @@ export function GameCanvas({
         head.position.y = 1.6;
         character.add(head);
 
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1, 0.8), material);
-        body.position.y = 0.9;
-        character.add(body);
+        // Updated body - from single box to two parts for more detail
+        const upperBody = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.7, 0.9), material);
+        upperBody.position.y = 1.15;
+        character.add(upperBody);
+        
+        const lowerBody = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 0.6, 16), material);
+        lowerBody.position.y = 0.6;
+        character.add(lowerBody);
 
         const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
         const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), eyeMaterial);
@@ -616,7 +621,7 @@ export function GameCanvas({
         const inputDirection = new THREE.Vector3();
         const joystick = gameState.current.joystickDelta;
         if (joystick.x !== 0 || joystick.z !== 0) {
-            inputDirection.set(joystick.x, 0, -joystick.z);
+            inputDirection.set(joystick.x, 0, joystick.z);
         } else {
             if (keys['w'] || keys['arrowup']) inputDirection.z = -1;
             if (keys['s'] || keys['arrowdown']) inputDirection.z = 1;
