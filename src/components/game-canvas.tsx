@@ -3,6 +3,44 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
+const createWindowTexture = () => {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+
+    canvas.width = 64;
+    canvas.height = 256;
+
+    context.fillStyle = '#222228'; // Dark building color
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    const windowCols = 4;
+    const windowRows = 10;
+    const colWidth = canvas.width / windowCols;
+    const rowHeight = canvas.height / windowRows;
+
+    for (let row = 0; row < windowRows; row++) {
+        for (let col = 0; col < windowCols; col++) {
+            const x = col * colWidth;
+            const y = row * rowHeight;
+            
+            const inset = 4;
+
+            if (Math.random() > 0.1) { // 90% chance of a window
+                // 65% chance of being unlit, 35% lit
+                if (Math.random() > 0.65) {
+                    context.fillStyle = `hsl(45, 100%, ${Math.random() * 15 + 75}%)`; // variations of yellow/white
+                } else {
+                    context.fillStyle = '#151518'; // Unlit window
+                }
+                context.fillRect(x + inset, y + inset * 1.5, colWidth - inset * 2, rowHeight - inset * 3);
+            }
+        }
+    }
+    return new THREE.CanvasTexture(canvas);
+};
+
+
 type Enemy = {
     id: string;
     health: number;
@@ -173,20 +211,53 @@ export function GameCanvas({
     });
 
     const obstacles: THREE.Object3D[] = [];
-    const buildingMaterials = [
-        new THREE.MeshStandardMaterial({ color: 0x222228, metalness: 0.8, roughness: 0.3 }),
-        new THREE.MeshStandardMaterial({ color: 0x303035, metalness: 0.7, roughness: 0.4 }),
-        new THREE.MeshStandardMaterial({ color: 0x1a1a20, metalness: 0.9, roughness: 0.2 }),
-    ];
-
+    
     for (let i = 0; i < 70; i++) {
         const width = Math.random() * 7 + 6;
         const height = Math.random() * 30 + 20;
         const depth = Math.random() * 7 + 6;
         
         const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
-        const material = buildingMaterials[Math.floor(Math.random() * buildingMaterials.length)];
-        const building = new THREE.Mesh(buildingGeometry, material);
+        
+        const windowTexture = createWindowTexture();
+        if (!windowTexture) continue;
+
+        windowTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        windowTexture.wrapS = THREE.RepeatWrapping;
+        windowTexture.wrapT = THREE.RepeatWrapping;
+
+        const topMaterial = new THREE.MeshStandardMaterial({ color: 0x111115, metalness: 0.8, roughness: 0.3 });
+        const sideMaterial = new THREE.MeshStandardMaterial({
+            map: windowTexture,
+            metalness: 0.8,
+            roughness: 0.3,
+            emissiveMap: windowTexture,
+            emissive: 0xffffff,
+            emissiveIntensity: 1.8,
+        });
+
+        const frontBackMaterial = sideMaterial.clone();
+        const frontBackTexture = windowTexture.clone();
+        frontBackTexture.repeat.set(Math.round(width / 6), Math.round(height / 24));
+        frontBackTexture.needsUpdate = true;
+        frontBackMaterial.map = frontBackTexture;
+        frontBackMaterial.emissiveMap = frontBackTexture;
+        
+        const leftRightMaterial = sideMaterial.clone();
+        const leftRightTexture = windowTexture.clone();
+        leftRightTexture.repeat.set(Math.round(depth / 6), Math.round(height / 24));
+        leftRightTexture.needsUpdate = true;
+        leftRightMaterial.map = leftRightTexture;
+        leftRightMaterial.emissiveMap = leftRightTexture;
+        
+        const building = new THREE.Mesh(buildingGeometry, [
+            leftRightMaterial, // right
+            leftRightMaterial, // left
+            topMaterial,      // top
+            topMaterial,      // bottom
+            frontBackMaterial,// front
+            frontBackMaterial // back
+        ]);
         
         let validPosition = false;
         let attempts = 0;
@@ -704,8 +775,8 @@ export function GameCanvas({
         if (joystick.x !== 0 || joystick.z !== 0) {
             inputDirection.set(joystick.x, 0, joystick.z).normalize();
         } else {
-            if (keys['w'] || keys['arrowup']) inputDirection.z = -1;
-            if (keys['s'] || keys['arrowdown']) inputDirection.z = 1;
+            if (keys['w'] || keys['arrowup']) inputDirection.z = 1;
+            if (keys['s'] || keys['arrowdown']) inputDirection.z = -1;
             if (keys['a'] || keys['arrowleft']) inputDirection.x = -1;
             if (keys['d'] || keys['arrowright']) inputDirection.x = 1;
             inputDirection.normalize();
@@ -1152,7 +1223,7 @@ export function GameCanvas({
             }
         });
         
-        [groundTexture, lavaTexture, grassTexture, trunkMaterial, leavesMaterial, roadMaterial, collectibleMaterial, streetlightMaterial, lightMaterial, ...buildingMaterials, playerMaterial, enemyMaterial].forEach(t => t?.dispose?.());
+        [groundTexture, lavaTexture, grassTexture, trunkMaterial, leavesMaterial, roadMaterial, collectibleMaterial, streetlightMaterial, lightMaterial, playerMaterial, enemyMaterial].forEach(t => t?.dispose?.());
         [grassBladeGeometry, collectibleGeometry, riverGeom1, riverGeom2, streetlightPoleGeom, streetlightArmGeom, streetlightLampGeom].forEach(g => g?.dispose?.());
         
         renderer.dispose();
@@ -1162,5 +1233,3 @@ export function GameCanvas({
 
   return <div ref={mountRef} className="absolute top-0 left-0 w-full h-full" />;
 }
-
-    
