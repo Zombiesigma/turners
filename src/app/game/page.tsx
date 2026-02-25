@@ -41,7 +41,6 @@ export default function GamePage() {
   const [enemies, setEnemies] = useState(initialEnemies);
 
   const attackAudioRef = useRef<HTMLAudioElement>(null);
-  const lavaAudioRef = useRef<HTMLAudioElement>(null);
   const collectAudioRef = useRef<HTMLAudioElement>(null);
   const walkAudioRef = useRef<HTMLAudioElement>(null);
   const jumpAudioRef = useRef<HTMLAudioElement>(null);
@@ -117,7 +116,6 @@ export default function GamePage() {
 
   useEffect(() => {
     if(gameStatus !== 'playing') {
-      if (lavaAudioRef.current) lavaAudioRef.current.pause();
       if (walkAudioRef.current) walkAudioRef.current.pause();
     }
   }, [gameStatus]);
@@ -132,9 +130,6 @@ export default function GamePage() {
 
       <audio autoPlay loop>
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/freesound_community-horror01_loop-29220.mp3" type="audio/mpeg" />
-      </audio>
-      <audio ref={lavaAudioRef} loop>
-        <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/u_5iteaickfa-lava-steam-with-bubbles-312339.mp3" type="audio/mpeg" />
       </audio>
       <audio ref={collectAudioRef}>
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/floraphonic-arcade-ui-6-229503.mp3" type="audio/mpeg" />
@@ -181,7 +176,6 @@ export default function GamePage() {
           setScore={setScore}
           setGameOver={handleGameOver}
           collectibleCount={totalCollectibles}
-          lavaAudioRef={lavaAudioRef}
           walkAudioRef={walkAudioRef}
           onCollect={handleCollectSound}
           onAttack={handleAttackSound}

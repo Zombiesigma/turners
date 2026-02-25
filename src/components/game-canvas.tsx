@@ -64,7 +64,6 @@ type GameCanvasProps = {
     setScore: (fn: (s: number) => number) => void;
     setGameOver: () => void;
     collectibleCount: number;
-    lavaAudioRef: React.RefObject<HTMLAudioElement>;
     walkAudioRef: React.RefObject<HTMLAudioElement>;
     gameOverAudioRef: React.RefObject<HTMLAudioElement>;
     onCollect: () => void;
@@ -87,7 +86,7 @@ type GameCanvasProps = {
 };
 
 export function GameCanvas({ 
-    score, setScore, setGameOver, collectibleCount, lavaAudioRef, walkAudioRef, gameOverAudioRef,
+    score, setScore, setGameOver, collectibleCount, walkAudioRef, gameOverAudioRef,
     onCollect, onAttack, onJump, onEnemyDefeated, joystickDelta, isAttacking, setIsAttacking,
     isJumping, setIsJumping, playerHealth, setPlayerHealth, maxPlayerHealth, enemies, setEnemies,
     playerHealthBarRef, enemyHealthBarRefs, floatingTextContainerRef
@@ -97,7 +96,6 @@ export function GameCanvas({
   const gameState = useRef({ score, playerHealth, enemies, isAttacking, isJumping, joystickDelta, maxPlayerHealth });
 
   const floatingTexts = useRef<FloatingText[]>([]);
-  const playerLavaDamageCooldown = useRef(0);
   const playerDamageCooldown = useRef(0);
   const nextTextId = useRef(0);
 
@@ -151,45 +149,6 @@ export function GameCanvas({
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
-
-    const lavaTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/lava/lavatile.jpg');
-    lavaTexture.wrapS = THREE.RepeatWrapping;
-    lavaTexture.wrapT = THREE.RepeatWrapping;
-    lavaTexture.repeat.set(32, 32);
-    const lavaMaterial = new THREE.MeshStandardMaterial({ map: lavaTexture, emissiveMap: lavaTexture, emissive: 0xff4400, emissiveIntensity: 2.5, metalness: 0.2, roughness: 0.8 });
-    
-    const lavaPools: THREE.Mesh[] = [];
-
-    const riverShape1 = new THREE.Shape();
-    riverShape1.moveTo(-60, -10);
-    riverShape1.bezierCurveTo(-40, 5, -20, -15, 0, -20);
-    riverShape1.bezierCurveTo(20, -25, 40, -10, 60, -5);
-    riverShape1.lineTo(60, 8);
-    riverShape1.bezierCurveTo(40, 2, 20, -13, 0, -8);
-    riverShape1.bezierCurveTo(-20, -3, -40, 15, -60, 2);
-    riverShape1.closePath();
-
-    const riverGeom1 = new THREE.ShapeGeometry(riverShape1);
-    const riverMesh1 = new THREE.Mesh(riverGeom1, lavaMaterial);
-    riverMesh1.rotation.x = -Math.PI / 2;
-    riverMesh1.position.y = 0.01;
-    scene.add(riverMesh1);
-    lavaPools.push(riverMesh1);
-
-    const riverShape2 = new THREE.Shape();
-    riverShape2.moveTo(10, 60);
-    riverShape2.bezierCurveTo(25, 40, 15, 20, 0, 15);
-    riverShape2.bezierCurveTo(-15, 10, -25, 30, -5, 60);
-    riverShape2.closePath();
-
-    const riverGeom2 = new THREE.ShapeGeometry(riverShape2);
-    const riverMesh2 = new THREE.Mesh(riverGeom2, lavaMaterial);
-    riverMesh2.rotation.x = -Math.PI / 2;
-    riverMesh2.position.y = 0.01;
-    scene.add(riverMesh2);
-    lavaPools.push(riverMesh2);
-
-    const lavaBBs = lavaPools.map(lava => new THREE.Box3().setFromObject(lava));
 
     const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8, metalness: 0.1 });
     const roadWidth = 8;
@@ -269,7 +228,7 @@ export function GameCanvas({
             );
             const buildingBB = new THREE.Box3().setFromObject(building);
 
-            let collision = lavaBBs.some(lavaBB => lavaBB.intersectsBox(buildingBB)) || roadBBs.some(rBB => rBB.intersectsBox(buildingBB));
+            let collision = roadBBs.some(rBB => rBB.intersectsBox(buildingBB));
             
             if (!collision) {
                  for (const obs of obstacles) {
@@ -326,10 +285,9 @@ export function GameCanvas({
             );
             const treeBB = new THREE.Box3().setFromObject(tree);
             const onRoad = roadBBs.some(roadBB => roadBB.intersectsBox(treeBB));
-            const inLava = lavaBBs.some(lavaBB => lavaBB.intersectsBox(treeBB));
             const inBuilding = obstacles.some(obs => new THREE.Box3().setFromObject(obs).intersectsBox(treeBB));
             
-            if (!onRoad && !inLava && !inBuilding) {
+            if (!onRoad && !inBuilding) {
                 validPosition = true;
             }
             attempts++;
@@ -466,10 +424,9 @@ export function GameCanvas({
         const checkPoint = dummy.position;
         
         let onRoad = roadBBs.some(roadBB => roadBB.containsPoint(checkPoint));
-        let inLava = lavaBBs.some(lavaBB => lavaBB.containsPoint(checkPoint));
         let inBuilding = obstacleBBs.some(obsBB => obsBB.containsPoint(checkPoint));
 
-        if (!onRoad && !inLava && !inBuilding) {
+        if (!onRoad && !inBuilding) {
             grassInstancedMesh.setMatrixAt(instances++, dummy.matrix);
         }
         if (instances >= grassInstanceCount) break;
@@ -489,7 +446,7 @@ export function GameCanvas({
         while (!validPosition) {
             collectible.position.set((Math.random() - 0.5) * (planeSize - 2), 0.75, (Math.random() - 0.5) * (planeSize - 2));
             const collectibleBB = new THREE.Box3().setFromObject(collectible);
-            validPosition = !obstacleBBs.some(obsBB => obsBB.intersectsBox(collectibleBB)) && !lavaBBs.some(lavaBB => lavaBB.intersectsBox(collectibleBB));
+            validPosition = !obstacleBBs.some(obsBB => obsBB.intersectsBox(collectibleBB));
         }
         collectible.rotation.x = Math.PI / 2;
         scene.add(collectible);
@@ -732,7 +689,6 @@ export function GameCanvas({
         const elapsedTime = clock.getElapsedTime();
         uniforms.time.value = elapsedTime;
         
-        lavaTexture.offset.y += delta * 0.1;
         if (attackEffect.material.opacity > 0) attackEffect.material.opacity -= delta * 4;
 
         if (!modelsLoaded || !player) {
@@ -757,7 +713,6 @@ export function GameCanvas({
 
         if (attackCooldown > 0) attackCooldown -= delta;
         if (playerDamageCooldown.current > 0) playerDamageCooldown.current -= delta;
-        if (playerLavaDamageCooldown.current > 0) playerLavaDamageCooldown.current -= delta;
         
         const onGround = player.position.y <= 0;
         const gravity = 30.0;
@@ -916,31 +871,6 @@ export function GameCanvas({
         player.position.x = THREE.MathUtils.clamp(player.position.x, -planeSize/2 + 0.5, planeSize/2 - 0.5);
         player.position.z = THREE.MathUtils.clamp(player.position.z, -planeSize/2 + 0.5, planeSize/2 - 0.5);
         
-        const playerFeetBB = new THREE.Box3().setFromCenterAndSize(player.position.clone().setY(player.position.y - 0.9), new THREE.Vector3(0.6, 0.2, 0.6));
-        const inLava = lavaBBs.some(lavaBB => lavaBB.intersectsBox(playerFeetBB));
-        
-        if (inLava && gameState.current.playerHealth > 0) {
-            if (playerLavaDamageCooldown.current <= 0) {
-                const damageAmount = 10;
-                setPlayerHealth(h => {
-                    const newHealth = Math.max(0, h - damageAmount);
-                    if (h > 0 && newHealth <= 0) {
-                        if (gameOverAudioRef.current) gameOverAudioRef.current.play().catch(e => {});
-                        setGameOver();
-                    }
-                    return newHealth;
-                });
-                spawnFloatingText(`-${Math.round(damageAmount)}`, '#ff4400', player.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.5, Math.random()-0.5)));
-                playerLavaDamageCooldown.current = 0.5;
-            }
-            if (lavaAudioRef.current && lavaAudioRef.current.paused) {
-                lavaAudioRef.current.play().catch(e => {});
-            }
-        } else {
-             if (lavaAudioRef.current && !lavaAudioRef.current.paused) {
-                lavaAudioRef.current.pause();
-            }
-        }
 
         enemyObjects.forEach((enemyObj) => {
             const enemyData = gameState.current.enemies.find(e => e.id === enemyObj.id);
@@ -1203,7 +1133,6 @@ export function GameCanvas({
         }
         cancelAnimationFrame(animationFrameId);
         
-        if (lavaAudioRef.current) lavaAudioRef.current.pause();
         if (walkAudioRef.current) walkAudioRef.current.pause();
 
         if (floatingTextContainerRef.current) {
@@ -1223,8 +1152,8 @@ export function GameCanvas({
             }
         });
         
-        [groundTexture, lavaTexture, grassTexture, trunkMaterial, leavesMaterial, roadMaterial, collectibleMaterial, streetlightMaterial, lightMaterial, playerMaterial, enemyMaterial].forEach(t => t?.dispose?.());
-        [grassBladeGeometry, collectibleGeometry, riverGeom1, riverGeom2, streetlightPoleGeom, streetlightArmGeom, streetlightLampGeom].forEach(g => g?.dispose?.());
+        [groundTexture, grassTexture, trunkMaterial, leavesMaterial, roadMaterial, collectibleMaterial, streetlightMaterial, lightMaterial, playerMaterial, enemyMaterial].forEach(t => t?.dispose?.());
+        [grassBladeGeometry, collectibleGeometry, streetlightPoleGeom, streetlightArmGeom, streetlightLampGeom].forEach(g => g?.dispose?.());
         
         renderer.dispose();
     };
