@@ -66,6 +66,16 @@ type Projectile = {
     boundingBox: THREE.Box3;
 };
 
+type ExplosionParticle = {
+    velocity: THREE.Vector3;
+    lifespan: number;
+    maxLifespan: number;
+};
+type Explosion = {
+    points: THREE.Points;
+    particles: ExplosionParticle[];
+};
+
 type GameCanvasProps = {
     score: number;
     setScore: (fn: (s: number) => number) => void;
@@ -79,6 +89,7 @@ type GameCanvasProps = {
     onJump: () => void;
     onEnemyDefeated: () => void;
     onEnemyHit: () => void;
+    onExplosion: () => void;
     joystickDelta: { x: number; z: number };
     isAttacking: boolean;
     setIsAttacking: (v: boolean) => void;
@@ -97,7 +108,7 @@ type GameCanvasProps = {
 
 export function GameCanvas({ 
     score, setScore, setGameOver, collectibleCount, walkAudioRef, enemyWalkAudioRef, gameOverAudioRef,
-    onCollect, onShoot, onJump, onEnemyDefeated, onEnemyHit, joystickDelta, isAttacking, setIsAttacking,
+    onCollect, onShoot, onJump, onEnemyDefeated, onEnemyHit, onExplosion, joystickDelta, isAttacking, setIsAttacking,
     isJumping, setIsJumping, playerHealth, setPlayerHealth, maxPlayerHealth, enemies, setEnemies,
     playerHealthBarRef, enemyHealthBarRefs, floatingTextContainerRef, minimapRef
 }: GameCanvasProps) {
@@ -106,6 +117,7 @@ export function GameCanvas({
   const gameState = useRef({ score, playerHealth, enemies, isAttacking, isJumping, joystickDelta, maxPlayerHealth });
 
   const projectiles = useRef<Projectile[]>([]);
+  const explosions = useRef<Explosion[]>([]);
   const floatingTexts = useRef<FloatingText[]>([]);
   const playerDamageCooldown = useRef(0);
   const nextTextId = useRef(0);
@@ -484,6 +496,75 @@ export function GameCanvas({
             position: position.clone(),
             lifespan: 1.0,
             yVelocity: 2.0,
+        });
+    };
+
+    const spawnExplosion = (position: THREE.Vector3) => {
+        onExplosion();
+
+        const particleCount = 50;
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const alphas = new Float32Array(particleCount);
+
+        const material = new THREE.PointsMaterial({
+            color: 0x00ffff,
+            size: 0.4,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+        });
+        
+        material.onBeforeCompile = shader => {
+            shader.vertexShader = `
+                attribute float alpha;
+                varying float vAlpha;
+                ${shader.vertexShader}
+            `.replace(
+                '#include <color_vertex>',
+                `
+                #include <color_vertex>
+                vAlpha = alpha;
+                `
+            );
+            shader.fragmentShader = `
+                varying float vAlpha;
+                ${shader.fragmentShader}
+            `.replace(
+                'vec4 diffuseColor = vec4( diffuse, opacity );',
+                'vec4 diffuseColor = vec4( diffuse, opacity * vAlpha );'
+            );
+        };
+
+        const explosionParticles: ExplosionParticle[] = [];
+
+        for (let i = 0; i < particleCount; i++) {
+            positions[i * 3] = position.x;
+            positions[i * 3 + 1] = position.y;
+            positions[i * 3 + 2] = position.z;
+            alphas[i] = 1.0;
+
+            const maxLifespan = Math.random() * 0.4 + 0.2;
+            explosionParticles.push({
+                velocity: new THREE.Vector3(
+                    (Math.random() - 0.5),
+                    (Math.random() - 0.5),
+                    (Math.random() - 0.5)
+                ).normalize().multiplyScalar(Math.random() * 15 + 10),
+                lifespan: maxLifespan,
+                maxLifespan: maxLifespan,
+            });
+        }
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
+        
+        const points = new THREE.Points(geometry, material);
+        scene.add(points);
+
+        explosions.current.push({
+            points: points,
+            particles: explosionParticles,
         });
     };
 
@@ -1040,6 +1121,7 @@ export function GameCanvas({
             p.boundingBox.setFromObject(p.mesh);
 
             let hit = false;
+            let hitPosition = new THREE.Vector3();
 
             for (const enemyObj of enemyObjects) {
                 const enemyData = gameState.current.enemies.find(e => e.id === enemyObj.id);
@@ -1053,37 +1135,72 @@ export function GameCanvas({
                                 if (e.health > 0 && newHealth <= 0) onEnemyDefeated();
                                 const enemyHeight = 2.0 * enemyObj.mesh.scale.y;
                                 spawnFloatingText(`-${attackDamage}`, '#ffcc00', enemyObj.mesh.position.clone().add(new THREE.Vector3(Math.random()-0.5, enemyHeight + 1.0, Math.random()-0.5)));
-                                onEnemyHit();
+                                // onEnemyHit(); // Don't play player hit sound
                                 return { ...e, health: newHealth };
                             }
                             return e;
                         }));
                          hit = true;
+                         hitPosition.copy(p.mesh.position);
                          break;
                     }
                 }
             }
             
-            if (hit) {
-                scene.remove(p.mesh);
-                p.mesh.geometry.dispose();
-                (p.mesh.material as THREE.Material).dispose();
-                projectiles.current.splice(i, 1);
-                continue;
-            }
-
-            if (obstacleBBs.some(obsBB => obsBB.intersectsBox(p.boundingBox))) {
-                hit = true;
+            if (!hit) {
+                 if (obstacleBBs.some(obsBB => obsBB.intersectsBox(p.boundingBox))) {
+                    hit = true;
+                    hitPosition.copy(p.mesh.position);
+                }
             }
 
             if (hit || p.lifespan <= 0) {
+                if (hit) {
+                    spawnExplosion(hitPosition);
+                }
                 scene.remove(p.mesh);
                 p.mesh.geometry.dispose();
-                (p.mesh.material as THREE.Material).dispose();
+                if (Array.isArray(p.mesh.material)) {
+                    p.mesh.material.forEach(m => m.dispose());
+                } else {
+                    p.mesh.material.dispose();
+                }
                 projectiles.current.splice(i, 1);
             }
         }
         
+        // Update explosions
+        for (let i = explosions.current.length - 1; i >= 0; i--) {
+            const explosion = explosions.current[i];
+            const positions = explosion.points.geometry.getAttribute('position');
+            const alphas = explosion.points.geometry.getAttribute('alpha');
+            let aliveParticles = 0;
+
+            for (let j = 0; j < explosion.particles.length; j++) {
+                const particle = explosion.particles[j];
+                if (particle.lifespan > 0) {
+                    particle.lifespan -= delta;
+                    
+                    const oldPos = new THREE.Vector3(positions.getX(j), positions.getY(j), positions.getZ(j));
+                    const newPos = oldPos.add(particle.velocity.clone().multiplyScalar(delta));
+                    
+                    positions.setXYZ(j, newPos.x, newPos.y, newPos.z);
+                    alphas.setX(j, Math.max(0, particle.lifespan / particle.maxLifespan));
+                    aliveParticles++;
+                }
+            }
+
+            positions.needsUpdate = true;
+            alphas.needsUpdate = true;
+
+            if (aliveParticles === 0) {
+                scene.remove(explosion.points);
+                explosion.points.geometry.dispose();
+                (explosion.points.material as THREE.Material).dispose();
+                explosions.current.splice(i, 1);
+            }
+        }
+
         let isAnyEnemyWalkingNear = false;
 
         enemyObjects.forEach((enemyObj) => {
@@ -1400,9 +1517,9 @@ export function GameCanvas({
                 object.geometry?.dispose();
                 const materials = Array.isArray(object.material) ? object.material : [object.material];
                 materials.forEach(material => {
-                    if (material.map) material.map.dispose();
-                    if (material.emissiveMap) material.emissiveMap.dispose();
-                    material.dispose();
+                    if (material?.map) material.map.dispose();
+                    if (material?.emissiveMap) material.emissiveMap.dispose();
+                    material?.dispose?.();
                 });
             }
         });

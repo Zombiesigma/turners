@@ -48,6 +48,7 @@ export default function GamePage() {
   const enemyDeathAudioRef = useRef<HTMLAudioElement>(null);
   const enemyWalkAudioRef = useRef<HTMLAudioElement>(null);
   const enemyHitAudioRef = useRef<HTMLAudioElement>(null);
+  const explosionAudioRef = useRef<HTMLAudioElement>(null);
   const playerHealthBarRef = useRef<HTMLDivElement>(null);
   const enemyHealthBarRefs = useRef<(HTMLDivElement | null)[]>([]);
   const floatingTextContainerRef = useRef<HTMLDivElement>(null);
@@ -112,6 +113,14 @@ export default function GamePage() {
       enemyHitAudioRef.current.play().catch(e => {});
     }
   }, []);
+  
+  const handleExplosionSound = useCallback(() => {
+    if (explosionAudioRef.current) {
+      explosionAudioRef.current.currentTime = 0;
+      explosionAudioRef.current.volume = 0.4;
+      explosionAudioRef.current.play().catch(e => {});
+    }
+  }, []);
 
   const handleJoystickMove = useCallback((delta: { x: number; z: number }) => {
     setJoystickDelta(delta);
@@ -167,6 +176,9 @@ export default function GamePage() {
       <audio ref={enemyHitAudioRef}>
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/lordsonny-heavy-cineamtic-hit-166888.mp3" type="audio/mpeg" />
       </audio>
+       <audio ref={explosionAudioRef}>
+        <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/sound-effect-for-explosion-155711.mp3" type="audio/mpeg" />
+      </audio>
       
       <div className="absolute top-4 left-4 z-20 flex flex-col gap-4">
         <Button asChild variant="outline">
@@ -204,6 +216,7 @@ export default function GamePage() {
           onJump={handleJumpSound}
           onEnemyDefeated={handleEnemyDeathSound}
           onEnemyHit={handleEnemyHitSound}
+          onExplosion={handleExplosionSound}
           gameOverAudioRef={gameOverAudioRef}
           joystickDelta={joystickDelta}
           isAttacking={isAttacking}
