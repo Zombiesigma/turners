@@ -593,7 +593,7 @@ export function GameCanvas({
         
         // Arms with Elbows
         const armPartGeo = new THREE.BoxGeometry(0.2, 0.4, 0.2);
-        const handGeo = new THREE.SphereGeometry(0.15, 8, 8);
+        const handGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
 
 
         // Left Arm
@@ -678,17 +678,35 @@ export function GameCanvas({
     playerLight.shadow.bias = -0.01;
     player.add(playerLight);
     
-    const enemyMaterial = new THREE.MeshStandardMaterial({
+    const algojo1Material = new THREE.MeshStandardMaterial({
         color: 0xbb0000,
         metalness: 0.9,
         roughness: 0.4,
         emissive: 0x880000,
         emissiveIntensity: 0.8
     });
+    
+    const algojo2Material = new THREE.MeshStandardMaterial({
+        color: 0x9400D3, // DarkViolet
+        metalness: 0.8,
+        roughness: 0.6,
+        emissive: 0x6A0DAD,
+        emissiveIntensity: 0.9
+    });
 
     gameState.current.enemies.forEach(enemyData => {
         if (!enemyData) return;
-        const enemyMesh = createCharacter(enemyMaterial);
+        
+        let material;
+        if (enemyData.id === 'algojo1') {
+            material = algojo1Material;
+        } else if (enemyData.id === 'algojo2') {
+            material = algojo2Material;
+        } else {
+            material = algojo1Material;
+        }
+        
+        const enemyMesh = createCharacter(material);
         enemyMesh.position.copy(enemyData.position);
         enemyMesh.position.y = 0;
         scene.add(enemyMesh);
@@ -750,8 +768,8 @@ export function GameCanvas({
         } else {
             if (keys['w'] || keys['arrowup']) inputDirection.z = 1;
             if (keys['s'] || keys['arrowdown']) inputDirection.z = -1;
-            if (keys['a'] || keys['arrowleft']) inputDirection.x = -1;
-            if (keys['d'] || keys['arrowright']) inputDirection.x = 1;
+            if (keys['a'] || keys['arrowleft']) inputDirection.x = 1;
+            if (keys['d'] || keys['arrowright']) inputDirection.x = -1;
             inputDirection.normalize();
         }
         
@@ -1197,7 +1215,7 @@ export function GameCanvas({
             }
         });
         
-        [groundTexture, grassTexture, trunkMaterial, leavesMaterial, roadMaterial, collectibleMaterial, streetlightMaterial, lightMaterial, playerMaterial, enemyMaterial].forEach(t => t?.dispose?.());
+        [groundTexture, grassTexture, trunkMaterial, leavesMaterial, roadMaterial, collectibleMaterial, streetlightMaterial, lightMaterial, playerMaterial, algojo1Material, algojo2Material].forEach(t => t?.dispose?.());
         [grassBladeGeometry, collectibleGeometry, streetlightPoleGeom, streetlightArmGeom, streetlightLampGeom].forEach(g => g?.dispose?.());
         
         renderer.dispose();
