@@ -71,6 +71,7 @@ type GameCanvasProps = {
     onAttack: () => void;
     onJump: () => void;
     onEnemyDefeated: () => void;
+    onEnemyHit: () => void;
     joystickDelta: { x: number; z: number };
     isAttacking: boolean;
     setIsAttacking: (v: boolean) => void;
@@ -89,7 +90,7 @@ type GameCanvasProps = {
 
 export function GameCanvas({ 
     score, setScore, setGameOver, collectibleCount, walkAudioRef, enemyWalkAudioRef, gameOverAudioRef,
-    onCollect, onAttack, onJump, onEnemyDefeated, joystickDelta, isAttacking, setIsAttacking,
+    onCollect, onAttack, onJump, onEnemyDefeated, onEnemyHit, joystickDelta, isAttacking, setIsAttacking,
     isJumping, setIsJumping, playerHealth, setPlayerHealth, maxPlayerHealth, enemies, setEnemies,
     playerHealthBarRef, enemyHealthBarRefs, floatingTextContainerRef, minimapRef
 }: GameCanvasProps) {
@@ -872,8 +873,8 @@ export function GameCanvas({
         } else {
             if (keys['w'] || keys['arrowup']) inputDirection.z = 1;
             if (keys['s'] || keys['arrowdown']) inputDirection.z = -1;
-            if (keys['a'] || keys['arrowleft']) inputDirection.x = -1;
-            if (keys['d'] || keys['arrowright']) inputDirection.x = 1;
+            if (keys['a'] || keys['arrowleft']) inputDirection.x = 1;
+            if (keys['d'] || keys['arrowright']) inputDirection.x = -1;
             inputDirection.normalize();
         }
         
@@ -1078,6 +1079,7 @@ export function GameCanvas({
                             return newHealth;
                         });
                         spawnFloatingText(`-${damage}`, '#ff4400', player.position.clone().add(new THREE.Vector3(Math.random()-0.5, 2.5, Math.random()-0.5)));
+                        onEnemyHit();
                     }
                 }, 300);
 

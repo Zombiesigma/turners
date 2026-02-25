@@ -47,6 +47,7 @@ export default function GamePage() {
   const gameOverAudioRef = useRef<HTMLAudioElement>(null);
   const enemyDeathAudioRef = useRef<HTMLAudioElement>(null);
   const enemyWalkAudioRef = useRef<HTMLAudioElement>(null);
+  const enemyHitAudioRef = useRef<HTMLAudioElement>(null);
   const playerHealthBarRef = useRef<HTMLDivElement>(null);
   const enemyHealthBarRefs = useRef<(HTMLDivElement | null)[]>([]);
   const floatingTextContainerRef = useRef<HTMLDivElement>(null);
@@ -104,6 +105,13 @@ export default function GamePage() {
     }
   }, []);
 
+  const handleEnemyHitSound = useCallback(() => {
+    if (enemyHitAudioRef.current) {
+      enemyHitAudioRef.current.currentTime = 0;
+      enemyHitAudioRef.current.play().catch(e => {});
+    }
+  }, []);
+
   const handleJoystickMove = useCallback((delta: { x: number; z: number }) => {
     setJoystickDelta(delta);
   }, []);
@@ -155,6 +163,9 @@ export default function GamePage() {
       <audio ref={enemyWalkAudioRef} loop>
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/bannythecoolio-large-mech-robot-steps-432560.mp3" type="audio/mpeg" />
       </audio>
+      <audio ref={enemyHitAudioRef}>
+        <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/lordsonny-heavy-cineamtic-hit-166888.mp3" type="audio/mpeg" />
+      </audio>
       
       <div className="absolute top-4 left-4 z-20 flex flex-col gap-4">
         <Button asChild variant="outline">
@@ -191,6 +202,7 @@ export default function GamePage() {
           onAttack={handleAttackSound}
           onJump={handleJumpSound}
           onEnemyDefeated={handleEnemyDeathSound}
+          onEnemyHit={handleEnemyHitSound}
           gameOverAudioRef={gameOverAudioRef}
           joystickDelta={joystickDelta}
           isAttacking={isAttacking}
