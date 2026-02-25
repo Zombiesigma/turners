@@ -12,12 +12,21 @@ import { cn } from '@/lib/utils';
 
 const HealthBar = ({ health, maxHealth }: { health: number, maxHealth: number }) => {
   const healthPercentage = Math.max(0, (health / maxHealth) * 100);
+  const healthColorClass =
+    healthPercentage > 60 ? 'from-green-400 to-cyan-400' :
+    healthPercentage > 30 ? 'from-yellow-400 to-orange-400' :
+    'from-red-500 to-pink-500';
+
   return (
-    <div className="h-2 w-16 rounded-full bg-red-800 border border-black/50">
-      <div
-        className="h-full rounded-full bg-green-500 transition-all duration-300"
-        style={{ width: `${healthPercentage}%` }}
-      />
+    <div className="w-24 h-4 rounded-full bg-neutral-800/90 border-2 border-neutral-600/70 p-[3px] shadow-lg backdrop-blur-sm">
+      <div className="w-full h-full bg-neutral-900/50 rounded-sm">
+        <div
+          className={`h-full rounded-sm bg-gradient-to-r ${healthColorClass} transition-all duration-500 ease-out relative`}
+          style={{ width: `${healthPercentage}%` }}
+        >
+            <div className="absolute top-0 right-0 h-full w-full bg-white/30 rounded-sm" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 30%, 0 70%)' }} />
+        </div>
+      </div>
     </div>
   );
 };
@@ -27,8 +36,8 @@ export default function GamePage() {
   const totalCollectibles = 40;
   const initialPlayerHealth = 100;
   const initialEnemies = useMemo(() => [
-    { id: 'algojo1', health: 100, maxHealth: 100, position: new THREE.Vector3(-30, 0.8, 0), aiState: 'wandering' as const, targetPosition: new THREE.Vector3(-30, 0.8, 0), aiTimer: Math.random() * 5 },
-    { id: 'algojo2', health: 100, maxHealth: 100, position: new THREE.Vector3(30, 0.8, 0), aiState: 'wandering' as const, targetPosition: new THREE.Vector3(30, 0.8, 0), aiTimer: Math.random() * 5 },
+    { id: 'algojo1', health: 100, maxHealth: 100, position: new THREE.Vector3(0, 0.8, -15), aiState: 'wandering' as const, targetPosition: new THREE.Vector3(-30, 0.8, 0), aiTimer: Math.random() * 5 },
+    { id: 'algojo2', health: 100, maxHealth: 100, position: new THREE.Vector3(0, 0.8, 15), aiState: 'wandering' as const, targetPosition: new THREE.Vector3(30, 0.8, 0), aiTimer: Math.random() * 5 },
   ], []);
 
   const [score, setScore] = useState(0);
