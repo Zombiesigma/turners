@@ -539,26 +539,51 @@ export function GameCanvas({
     const createCharacter = (material: THREE.Material) => {
         const character = new THREE.Group();
 
-        // Legs
-        const legGeometry = new THREE.BoxGeometry(0.25, 0.8, 0.25);
-        
-        const leftLegGroup = new THREE.Group();
-        const leftLeg = new THREE.Mesh(legGeometry, material);
-        leftLeg.castShadow = true;
-        leftLeg.position.y = -0.4;
-        leftLegGroup.add(leftLeg);
-        leftLegGroup.position.set(-0.2, 0.8, 0);
-        leftLegGroup.name = 'leftLegGroup';
-        character.add(leftLegGroup);
+        // Legs with Knees
+        const legPartGeo = new THREE.BoxGeometry(0.25, 0.4, 0.25);
 
-        const rightLegGroup = new THREE.Group();
-        const rightLeg = new THREE.Mesh(legGeometry, material);
-        rightLeg.castShadow = true;
-        rightLeg.position.y = -0.4;
-        rightLegGroup.add(rightLeg);
-        rightLegGroup.position.set(0.2, 0.8, 0);
+        // Left Leg
+        const leftLegGroup = new THREE.Group(); // This is the hip
+        leftLegGroup.name = 'leftLegGroup';
+        leftLegGroup.position.set(-0.2, 0.8, 0);
+        character.add(leftLegGroup);
+        
+        const upperLeftLeg = new THREE.Mesh(legPartGeo, material);
+        upperLeftLeg.castShadow = true;
+        upperLeftLeg.position.y = -0.2; // Centered
+        leftLegGroup.add(upperLeftLeg);
+
+        const leftKnee = new THREE.Group();
+        leftKnee.name = 'leftKnee';
+        leftKnee.position.y = -0.4; // Position knee at end of upper leg
+        leftLegGroup.add(leftKnee);
+
+        const lowerLeftLeg = new THREE.Mesh(legPartGeo, material);
+        lowerLeftLeg.castShadow = true;
+        lowerLeftLeg.position.y = -0.2; // Hangs from knee pivot
+        leftKnee.add(lowerLeftLeg);
+        
+        // Right Leg
+        const rightLegGroup = new THREE.Group(); // This is the hip
         rightLegGroup.name = 'rightLegGroup';
+        rightLegGroup.position.set(0.2, 0.8, 0);
         character.add(rightLegGroup);
+
+        const upperRightLeg = new THREE.Mesh(legPartGeo, material);
+        upperRightLeg.castShadow = true;
+        upperRightLeg.position.y = -0.2;
+        rightLegGroup.add(upperRightLeg);
+
+        const rightKnee = new THREE.Group();
+        rightKnee.name = 'rightKnee';
+        rightKnee.position.y = -0.4;
+        rightLegGroup.add(rightKnee);
+
+        const lowerRightLeg = new THREE.Mesh(legPartGeo, material);
+        lowerRightLeg.castShadow = true;
+        lowerRightLeg.position.y = -0.2;
+        rightKnee.add(lowerRightLeg);
+
 
         // Torso
         const torso = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.6, 0.5), material);
@@ -696,15 +721,8 @@ export function GameCanvas({
             return;
         }
 
-        const leftLeg = player.getObjectByName('leftLegGroup');
-        const rightLeg = player.getObjectByName('rightLegGroup');
-        const leftArm = player.getObjectByName('leftArmGroup');
-        const rightArm = player.getObjectByName('rightArmGroup');
-        const leftElbow = player.getObjectByName('leftElbow');
-        const rightElbow = player.getObjectByName('rightElbow');
-
         if (gameState.current.playerHealth <= 0) {
-            if(leftLeg && rightLeg && leftArm && rightArm) {
+            if (player) {
                 // death pose or animation
             }
             renderer.render(scene, camera);
@@ -807,7 +825,16 @@ export function GameCanvas({
         }
         
         // Character Animations
-        if (leftLeg && rightLeg && leftArm && rightArm && leftElbow && rightElbow) {
+        const leftLeg = player.getObjectByName('leftLegGroup');
+        const rightLeg = player.getObjectByName('rightLegGroup');
+        const leftArm = player.getObjectByName('leftArmGroup');
+        const rightArm = player.getObjectByName('rightArmGroup');
+        const leftElbow = player.getObjectByName('leftElbow');
+        const rightElbow = player.getObjectByName('rightElbow');
+        const leftKnee = player.getObjectByName('leftKnee');
+        const rightKnee = player.getObjectByName('rightKnee');
+
+        if (leftLeg && rightLeg && leftArm && rightArm && leftElbow && rightElbow && leftKnee && rightKnee) {
             const attackAnimationProgress = attackCooldown > 0.3 ? (1 - (attackCooldown - 0.3) / 0.4) : -1;
 
             if (attackAnimationProgress >= 0) {
@@ -834,6 +861,8 @@ export function GameCanvas({
 
                 leftLeg.rotation.x = THREE.MathUtils.lerp(leftLeg.rotation.x, jumpAngle, 0.1);
                 rightLeg.rotation.x = THREE.MathUtils.lerp(rightLeg.rotation.x, jumpAngle * 0.5, 0.1);
+                leftKnee.rotation.x = THREE.MathUtils.lerp(leftKnee.rotation.x, jumpAngle * 1.5, 0.1);
+                rightKnee.rotation.x = THREE.MathUtils.lerp(rightKnee.rotation.x, jumpAngle * 1.5, 0.1);
 
             } else if (isMoving) {
                 // Walking animation
@@ -844,6 +873,9 @@ export function GameCanvas({
                 const rightLegAngle = Math.sin(walkCycle + Math.PI) * walkAmplitude;
                 leftLeg.rotation.x = leftLegAngle;
                 rightLeg.rotation.x = rightLegAngle;
+
+                leftKnee.rotation.x = Math.max(0, leftLegAngle) * 1.5;
+                rightKnee.rotation.x = Math.max(0, rightLegAngle) * 1.5;
                 
                 const leftArmAngle = Math.sin(walkCycle + Math.PI) * walkAmplitude * 0.7;
                 const rightArmAngle = Math.sin(walkCycle) * walkAmplitude * 0.7;
@@ -860,6 +892,9 @@ export function GameCanvas({
                 // Idle animation
                 leftLeg.rotation.x = THREE.MathUtils.lerp(leftLeg.rotation.x, 0, 0.15);
                 rightLeg.rotation.x = THREE.MathUtils.lerp(rightLeg.rotation.x, 0, 0.15);
+                leftKnee.rotation.x = THREE.MathUtils.lerp(leftKnee.rotation.x, 0, 0.15);
+                rightKnee.rotation.x = THREE.MathUtils.lerp(rightKnee.rotation.x, 0, 0.15);
+
                 leftArm.rotation.x = THREE.MathUtils.lerp(leftArm.rotation.x, 0, 0.15);
                 rightArm.rotation.x = THREE.MathUtils.lerp(rightArm.rotation.x, 0, 0.15);
                 leftElbow.rotation.x = THREE.MathUtils.lerp(leftElbow.rotation.x, 0, 0.15);
@@ -970,8 +1005,10 @@ export function GameCanvas({
             const eRightArm = enemyObj.mesh.getObjectByName('rightArmGroup');
             const eLeftElbow = enemyObj.mesh.getObjectByName('leftElbow');
             const eRightElbow = enemyObj.mesh.getObjectByName('rightElbow');
+            const eLeftKnee = enemyObj.mesh.getObjectByName('leftKnee');
+            const eRightKnee = enemyObj.mesh.getObjectByName('rightKnee');
 
-            if(eLeftLeg && eRightLeg && eLeftArm && eRightArm && eLeftElbow && eRightElbow) {
+            if(eLeftLeg && eRightLeg && eLeftArm && eRightArm && eLeftElbow && eRightElbow && eLeftKnee && eRightKnee) {
                 if(isEnemyAttacking) {
                     const attackProgress = 1 - ((enemyObj.attackCooldown - 1.0) / 0.5);
                     const swingAngle = Math.sin(attackProgress * Math.PI); // 0 -> 1 -> 0
@@ -992,6 +1029,9 @@ export function GameCanvas({
                     eLeftLeg.rotation.x = leftLegAngle;
                     eRightLeg.rotation.x = rightLegAngle;
 
+                    eLeftKnee.rotation.x = Math.max(0, leftLegAngle) * 1.5;
+                    eRightKnee.rotation.x = Math.max(0, rightLegAngle) * 1.5;
+
                     const leftArmAngle = Math.sin(walkCycle + Math.PI) * walkAmplitude * 0.7;
                     const rightArmAngle = Math.sin(walkCycle) * walkAmplitude * 0.7;
                     eLeftArm.rotation.x = leftArmAngle;
@@ -1004,6 +1044,9 @@ export function GameCanvas({
                 } else {
                     eLeftLeg.rotation.x = THREE.MathUtils.lerp(eLeftLeg.rotation.x, 0, 0.15);
                     eRightLeg.rotation.x = THREE.MathUtils.lerp(eRightLeg.rotation.x, 0, 0.15);
+                    eLeftKnee.rotation.x = THREE.MathUtils.lerp(eLeftKnee.rotation.x, 0, 0.15);
+                    eRightKnee.rotation.x = THREE.MathUtils.lerp(eRightKnee.rotation.x, 0, 0.15);
+
                     eLeftArm.rotation.x = THREE.MathUtils.lerp(eLeftArm.rotation.x, 0, 0.15);
                     eRightArm.rotation.x = THREE.MathUtils.lerp(eRightArm.rotation.x, 0, 0.15);
                     eLeftElbow.rotation.x = THREE.MathUtils.lerp(eLeftElbow.rotation.x, 0, 0.15);
@@ -1079,7 +1122,9 @@ export function GameCanvas({
             }
         };
 
-        updateHealthBarPosition(player, playerHealthBarRef, 2.2);
+        if(player) {
+            updateHealthBarPosition(player, playerHealthBarRef, 2.2);
+        }
         enemyObjects.forEach((em, i) => em.mesh && updateHealthBarPosition(em.mesh, { current: enemyHealthBarRefs.current[i] }, 2.5));
         
         for (let i = floatingTexts.current.length - 1; i >= 0; i--) {
