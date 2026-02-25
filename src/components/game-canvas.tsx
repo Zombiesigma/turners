@@ -634,9 +634,15 @@ export function GameCanvas({
         const playerTargetQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), cameraPivot.rotation.y);
 
         if (isMoving) {
-            const moveVector = new THREE.Vector3(inputDirection.x, 0, inputDirection.z);
-            moveVector.applyQuaternion(playerTargetQuaternion).normalize().multiplyScalar(5 * delta);
+            const moveDirection = new THREE.Vector3(inputDirection.x, 0, inputDirection.z);
+            moveDirection.applyQuaternion(playerTargetQuaternion);
+            moveDirection.normalize();
+
+            const targetRotation = new THREE.Quaternion();
+            targetRotation.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(moveDirection.x, moveDirection.z));
+            player.quaternion.slerp(targetRotation, 0.2);
             
+            const moveVector = moveDirection.multiplyScalar(5 * delta);
             const tempPlayerPos = player.position.clone().add(moveVector);
             const playerBodyBB = new THREE.Box3().setFromCenterAndSize(tempPlayerPos.clone().setY(tempPlayerPos.y + 1), new THREE.Vector3(0.8, 2, 0.8));
 
@@ -644,7 +650,6 @@ export function GameCanvas({
             if (!collision) {
                 player.position.add(moveVector);
             }
-             player.quaternion.slerp(playerTargetQuaternion, 0.2);
         }
         playerBB.setFromObject(player);
         
@@ -959,3 +964,5 @@ export function GameCanvas({
 
   return <div ref={mountRef} className="absolute top-0 left-0 w-full h-full" />;
 }
+
+    
