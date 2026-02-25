@@ -46,6 +46,7 @@ export default function GamePage() {
   const jumpAudioRef = useRef<HTMLAudioElement>(null);
   const gameOverAudioRef = useRef<HTMLAudioElement>(null);
   const enemyDeathAudioRef = useRef<HTMLAudioElement>(null);
+  const enemyWalkAudioRef = useRef<HTMLAudioElement>(null);
   const playerHealthBarRef = useRef<HTMLDivElement>(null);
   const enemyHealthBarRefs = useRef<(HTMLDivElement | null)[]>([]);
   const floatingTextContainerRef = useRef<HTMLDivElement>(null);
@@ -117,6 +118,7 @@ export default function GamePage() {
   useEffect(() => {
     if(gameStatus !== 'playing') {
       if (walkAudioRef.current) walkAudioRef.current.pause();
+      if (enemyWalkAudioRef.current) enemyWalkAudioRef.current.pause();
     }
   }, [gameStatus]);
 
@@ -149,6 +151,9 @@ export default function GamePage() {
       <audio ref={enemyDeathAudioRef}>
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/vinodadora-male-death-sound-128357%20(1).mp3" type="audio/mpeg" />
       </audio>
+      <audio ref={enemyWalkAudioRef} loop>
+        <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/bannythecoolio-large-mech-robot-steps-432560.mp3" type="audio/mpeg" />
+      </audio>
       
       <div className="absolute top-4 left-4 z-20">
         <Button asChild variant="outline">
@@ -177,6 +182,7 @@ export default function GamePage() {
           setGameOver={handleGameOver}
           collectibleCount={totalCollectibles}
           walkAudioRef={walkAudioRef}
+          enemyWalkAudioRef={enemyWalkAudioRef}
           onCollect={handleCollectSound}
           onAttack={handleAttackSound}
           onJump={handleJumpSound}

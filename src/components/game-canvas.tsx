@@ -65,6 +65,7 @@ type GameCanvasProps = {
     setGameOver: () => void;
     collectibleCount: number;
     walkAudioRef: React.RefObject<HTMLAudioElement>;
+    enemyWalkAudioRef: React.RefObject<HTMLAudioElement>;
     gameOverAudioRef: React.RefObject<HTMLAudioElement>;
     onCollect: () => void;
     onAttack: () => void;
@@ -86,7 +87,7 @@ type GameCanvasProps = {
 };
 
 export function GameCanvas({ 
-    score, setScore, setGameOver, collectibleCount, walkAudioRef, gameOverAudioRef,
+    score, setScore, setGameOver, collectibleCount, walkAudioRef, enemyWalkAudioRef, gameOverAudioRef,
     onCollect, onAttack, onJump, onEnemyDefeated, joystickDelta, isAttacking, setIsAttacking,
     isJumping, setIsJumping, playerHealth, setPlayerHealth, maxPlayerHealth, enemies, setEnemies,
     playerHealthBarRef, enemyHealthBarRefs, floatingTextContainerRef
@@ -936,6 +937,7 @@ export function GameCanvas({
         player.position.x = THREE.MathUtils.clamp(player.position.x, -planeSize/2 + 0.5, planeSize/2 - 0.5);
         player.position.z = THREE.MathUtils.clamp(player.position.z, -planeSize/2 + 0.5, planeSize/2 - 0.5);
         
+        let isAnyEnemyWalkingNear = false;
 
         enemyObjects.forEach((enemyObj) => {
             const enemyData = gameState.current.enemies.find(e => e.id === enemyObj.id);
@@ -1036,6 +1038,10 @@ export function GameCanvas({
                 }
             }
 
+            if (moving && distanceToPlayer < 40) {
+                isAnyEnemyWalkingNear = true;
+            }
+
             const eLeftLeg = enemyObj.mesh.getObjectByName('leftLegGroup');
             const eRightLeg = enemyObj.mesh.getObjectByName('rightLegGroup');
             const eLeftArm = enemyObj.mesh.getObjectByName('leftArmGroup');
@@ -1113,6 +1119,16 @@ export function GameCanvas({
         } else {
             if (walkAudioRef.current && !walkAudioRef.current.paused) {
                 walkAudioRef.current.pause();
+            }
+        }
+
+        if (isAnyEnemyWalkingNear) {
+            if (enemyWalkAudioRef.current && enemyWalkAudioRef.current.paused) {
+                enemyWalkAudioRef.current.play().catch(e => {});
+            }
+        } else {
+             if (enemyWalkAudioRef.current && !enemyWalkAudioRef.current.paused) {
+                enemyWalkAudioRef.current.pause();
             }
         }
         
@@ -1221,6 +1237,7 @@ export function GameCanvas({
         cancelAnimationFrame(animationFrameId);
         
         if (walkAudioRef.current) walkAudioRef.current.pause();
+        if (enemyWalkAudioRef.current) enemyWalkAudioRef.current.pause();
 
         if (floatingTextContainerRef.current) {
           floatingTextContainerRef.current.innerHTML = '';
