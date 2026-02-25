@@ -50,6 +50,7 @@ export default function GamePage() {
   const playerHealthBarRef = useRef<HTMLDivElement>(null);
   const enemyHealthBarRefs = useRef<(HTMLDivElement | null)[]>([]);
   const floatingTextContainerRef = useRef<HTMLDivElement>(null);
+  const minimapCanvasRef = useRef<HTMLCanvasElement>(null);
   
   const isMobile = useIsMobile();
 
@@ -155,13 +156,16 @@ export default function GamePage() {
         <source src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/bannythecoolio-large-mech-robot-steps-432560.mp3" type="audio/mpeg" />
       </audio>
       
-      <div className="absolute top-4 left-4 z-20">
+      <div className="absolute top-4 left-4 z-20 flex flex-col gap-4">
         <Button asChild variant="outline">
           <Link href="/">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Portfolio
           </Link>
         </Button>
+        <div className="border-2 border-primary/20 rounded-lg overflow-hidden bg-card/80 backdrop-blur-xl hidden md:block">
+            <canvas ref={minimapCanvasRef} width={150} height={150} />
+        </div>
       </div>
 
       <div className="absolute top-4 right-4 z-20 flex items-center gap-4">
@@ -201,6 +205,7 @@ export default function GamePage() {
           playerHealthBarRef={playerHealthBarRef}
           enemyHealthBarRefs={enemyHealthBarRefs}
           floatingTextContainerRef={floatingTextContainerRef}
+          minimapRef={minimapCanvasRef}
         />
       )}
 

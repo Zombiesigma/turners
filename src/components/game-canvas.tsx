@@ -84,13 +84,14 @@ type GameCanvasProps = {
     playerHealthBarRef: React.RefObject<HTMLDivElement>;
     enemyHealthBarRefs: React.MutableRefObject<(HTMLDivElement | null)[]>;
     floatingTextContainerRef: React.RefObject<HTMLDivElement>;
+    minimapRef: React.RefObject<HTMLCanvasElement>;
 };
 
 export function GameCanvas({ 
     score, setScore, setGameOver, collectibleCount, walkAudioRef, enemyWalkAudioRef, gameOverAudioRef,
     onCollect, onAttack, onJump, onEnemyDefeated, joystickDelta, isAttacking, setIsAttacking,
     isJumping, setIsJumping, playerHealth, setPlayerHealth, maxPlayerHealth, enemies, setEnemies,
-    playerHealthBarRef, enemyHealthBarRefs, floatingTextContainerRef
+    playerHealthBarRef, enemyHealthBarRefs, floatingTextContainerRef, minimapRef
 }: GameCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   
@@ -733,6 +734,67 @@ export function GameCanvas({
     const raycaster = new THREE.Raycaster();
     let attackCooldown = 0;
     
+    const drawMinimap = () => {
+        const canvas = minimapRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx || !player) return;
+
+        const mapSize = canvas.width;
+        const scale = mapSize / planeSize;
+
+        // Clear canvas
+        ctx.fillStyle = 'rgba(16, 16, 37, 0.7)';
+        ctx.fillRect(0, 0, mapSize, mapSize);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.strokeRect(0, 0, mapSize, mapSize);
+
+        const transformX = (x: number) => (x + planeSize / 2) * scale;
+        const transformZ = (z: number) => (z + planeSize / 2) * scale;
+
+        // Draw collectibles
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.7)';
+        collectibles.forEach(c => {
+            ctx.beginPath();
+            ctx.arc(transformX(c.position.x), transformZ(c.position.z), 1.5, 0, 2 * Math.PI);
+            ctx.fill();
+        });
+
+        // Draw enemies
+        enemyObjects.forEach(eo => {
+            const enemyData = gameState.current.enemies.find(e => e.id === eo.id);
+            if (enemyData && enemyData.health > 0) {
+                if (eo.id === 'algojo1') {
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+                } else if (eo.id === 'algojo2') {
+                    ctx.fillStyle = 'rgba(148, 0, 211, 0.8)';
+                }
+                ctx.beginPath();
+                ctx.arc(transformX(eo.mesh.position.x), transformZ(eo.mesh.position.z), 4, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        });
+
+        // Draw player
+        const playerX = transformX(player.position.x);
+        const playerZ = transformZ(player.position.z);
+        
+        ctx.save();
+        ctx.translate(playerX, playerZ);
+        ctx.rotate(player.rotation.y);
+
+        ctx.fillStyle = 'yellow';
+        ctx.beginPath();
+        ctx.moveTo(0, -6);
+        ctx.lineTo(5, 6);
+        ctx.lineTo(-5, 6);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+
     const animate = () => {
         animationFrameId = requestAnimationFrame(animate);
         const delta = Math.min(clock.getDelta(), 0.1); 
@@ -1211,6 +1273,7 @@ export function GameCanvas({
         }
         
         renderer.render(scene, camera);
+        drawMinimap();
     };
     
     animate();
