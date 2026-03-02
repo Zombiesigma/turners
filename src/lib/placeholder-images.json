@@ -1,0 +1,106 @@
+{
+  "placeholderImages": [
+    {
+      "id": "profile-picture",
+      "description": "Potret Guntur Padilah",
+      "imageUrl": "https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/IMG-20251221-WA0058.jpg",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "book-cover-main",
+      "description": "Sampul buku 'Beri Ruang Untuk Kelelahan'",
+      "imageUrl": "https://raw.githubusercontent.com/Zombiesigma/Guntur.tr/main/IMG-20250501-WA0008.jpg",
+      "imageHint": "book cover"
+    },
+    {
+      "id": "book-cover-1",
+      "description": "Sampul buku lainnya 1",
+      "imageUrl": "https://images.unsplash.com/photo-1732714403349-05fc43b67042?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxib29rJTIwY292ZXIlMjBhYnN0cmFjdHxlbnwwfHx8fDE3NzE5OTg2MjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "book cover abstract"
+    },
+    {
+      "id": "book-cover-2",
+      "description": "Sampul buku lainnya 2",
+      "imageUrl": "https://images.unsplash.com/photo-1603289847962-9da9640785e3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxib29rJTIwY292ZXIlMjBtaW5pbWFsaXN0fGVufDB8fHx8MTc3MTk5ODYyMnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "book cover minimalist"
+    },
+    {
+      "id": "book-cover-3",
+      "description": "Sampul buku lainnya 3",
+      "imageUrl": "https://images.unsplash.com/photo-1711185892320-5ca2641b253e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxib29rJTIwY292ZXIlMjBmYW50YXN5fGVufDB8fHx8MTc3MTg5MjYzNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "book cover fantasy"
+    },
+    {
+      "id": "book-cover-4",
+      "description": "Sampul buku lainnya 4",
+      "imageUrl": "https://images.unsplash.com/photo-1590172205966-f00987de8de1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxib29rJTIwY292ZXIlMjB0eXBvZ3JhcGh5fGVufDB8fHx8MTc3MTk5ODYyMnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "book cover typography"
+    },
+    {
+      "id": "painting-1",
+      "description": "Sebuah eksplorasi warna dalam kekacauan yang teratur.",
+      "imageUrl": "https://images.unsplash.com/photo-1531056416665-266c4099c928?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMHBhaW50aW5nfGVufDB8fHx8MTc3MTk3MDE3Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract painting"
+    },
+    {
+      "id": "painting-2",
+      "description": "Potret jiwa yang terperangkap dalam tatapan.",
+      "imageUrl": "https://images.unsplash.com/photo-1576503918400-0b982e6a98bf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwb3J0cmFpdCUyMHBhaW50aW5nfGVufDB8fHx8MTc3MTk5ODYyMnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "portrait painting"
+    },
+    {
+      "id": "painting-3",
+      "description": "Pemandangan senja yang melankolis di atas danau.",
+      "imageUrl": "https://images.unsplash.com/photo-1688588426729-dc4f7bdb8fbe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxsYW5kc2NhcGUlMjBwYWludGluZ3xlbnwwfHx8fDE3NzE5MzU2OTl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "landscape painting"
+    },
+    {
+      "id": "painting-4",
+      "description": "Dunia mimpi di mana logika menyerah pada imajinasi.",
+      "imageUrl": "https://images.unsplash.com/photo-1741723972112-6635e4573594?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxzdXJyZWFsJTIwcGFpbnRpbmd8ZW58MHx8fHwxNzcxOTk4NjIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "surreal painting"
+    },
+    {
+      "id": "painting-5",
+      "description": "Cityscape at twilight, oil on canvas.",
+      "imageUrl": "https://images.unsplash.com/photo-1684093026108-6a4ecbb367b5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjaXR5c2NhcGUlMjBwYWludGluZ3xlbnwwfHx8fDE3NzE5OTg2MjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cityscape painting"
+    },
+    {
+      "id": "painting-6",
+      "description": "Still life with fruit and wine.",
+      "imageUrl": "https://images.unsplash.com/photo-1689194147743-300aeffae70f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzdGlsbCUyMGxpZmUlMjBwYWludGluZ3xlbnwwfHx8fDE3NzE5OTg2MjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "still life painting"
+    },
+    {
+      "id": "painting-7",
+      "description": "A ship navigating a stormy sea.",
+      "imageUrl": "https://images.unsplash.com/photo-1645341174773-9b6686e3988a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxzZWFzY2FwZSUyMHBhaW50aW5nfGVufDB8fHx8MTc3MTk5ODYyMnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "seascape painting"
+    },
+    {
+      "id": "painting-8",
+      "description": "Figurative abstract composition.",
+      "imageUrl": "https://images.unsplash.com/photo-1762117863713-ee3dde87c020?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxmaWd1cmF0aXZlJTIwcGFpbnRpbmd8ZW58MHx8fHwxNzcxOTk4NjIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "figurative painting"
+    },
+    {
+      "id": "certificate-web-dev",
+      "description": "Sertifikat Dasar Pemrograman Web Dicoding",
+      "imageUrl": "https://images.unsplash.com/photo-1761671613933-159512988cb3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjZXJ0aWZpY2F0ZSUyMGRvY3VtZW50fGVufDB8fHx8MTc3MTk5ODYyMnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "certificate document"
+    },
+    {
+      "id": "certificate-js-dev",
+      "description": "Sertifikat Dasar Pemrograman JavaScript Dicoding",
+      "imageUrl": "https://images.unsplash.com/photo-1641748182997-f9745e9a0348?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjZXJ0aWZpY2F0ZSUyMHBhcGVyfGVufDB8fHx8MTc3MTk5ODYyMnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "certificate paper"
+    },
+    {
+      "id": "certificate-landing-page",
+      "description": "Sertifikat Pelatihan Landing Page Digitech University",
+      "imageUrl": "https://www.gunturturner.biz.id/IMG_20250619_220843_1750345774887.jpg",
+      "imageHint": "award certificate"
+    }
+  ]
+}
