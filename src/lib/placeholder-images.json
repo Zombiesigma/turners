@@ -45,13 +45,13 @@
     {
       "id": "painting-2",
       "description": "Potret jiwa yang terperangkap dalam tatapan.",
-      "imageUrl": "https://raw.githubusercontent.com/Zombiesigma/Guntur.tr/blob/main/l2.jpg",
+      "imageUrl": "https://raw.githubusercontent.com/Zombiesigma/Guntur.tr/main/l2.jpg",
       "imageHint": "portrait painting"
     },
     {
       "id": "painting-3",
       "description": "Pemandangan senja yang melankolis di atas danau.",
-      "imageUrl": "https://https://raw.githubusercontent.com/Zombiesigma/Guntur.tr/blob/main/l3.jpg",
+      "imageUrl": "https://https://raw.githubusercontent.com/Zombiesigma/Guntur.tr/main/l3.jpg",
       "imageHint": "landscape painting"
     },
     {
@@ -63,7 +63,7 @@
     {
       "id": "painting-5",
       "description": "Cityscape at twilight, oil on canvas.",
-      "imageUrl": "https://https://images.unsplash.com/Zombiesigma/Guntur.tr/blob/main/l4.jpg",
+      "imageUrl": "https://https://images.unsplash.com/Zombiesigma/Guntur.tr/main/l4.jpg",
       "imageHint": "cityscape painting"
     },
     {
