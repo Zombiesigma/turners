@@ -39,19 +39,19 @@
     {
       "id": "painting-1",
       "description": "Sebuah eksplorasi warna dalam kekacauan yang teratur.",
-      "imageUrl": "https://images.unsplash.com/photo-1531056416665-266c4099c928?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMHBhaW50aW5nfGVufDB8fHx8MTc3MTk3MDE3Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://raw.githubusercontent.com/Zombiesigma/Guntur.tr/blob/main/l1.jpg",
       "imageHint": "abstract painting"
     },
     {
       "id": "painting-2",
       "description": "Potret jiwa yang terperangkap dalam tatapan.",
-      "imageUrl": "https://images.unsplash.com/photo-1576503918400-0b982e6a98bf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwb3J0cmFpdCUyMHBhaW50aW5nfGVufDB8fHx8MTc3MTk5ODYyMnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://raw.githubusercontent.com/Zombiesigma/Guntur.tr/blob/main/l2.jpg",
       "imageHint": "portrait painting"
     },
     {
       "id": "painting-3",
       "description": "Pemandangan senja yang melankolis di atas danau.",
-      "imageUrl": "https://images.unsplash.com/photo-1688588426729-dc4f7bdb8fbe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxsYW5kc2NhcGUlMjBwYWludGluZ3xlbnwwfHx8fDE3NzE5MzU2OTl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://https://raw.githubusercontent.com/Zombiesigma/Guntur.tr/blob/main/l3.jpg",
       "imageHint": "landscape painting"
     },
     {
@@ -63,7 +63,7 @@
     {
       "id": "painting-5",
       "description": "Cityscape at twilight, oil on canvas.",
-      "imageUrl": "https://images.unsplash.com/photo-1684093026108-6a4ecbb367b5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjaXR5c2NhcGUlMjBwYWludGluZ3xlbnwwfHx8fDE3NzE5OTg2MjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://https://images.unsplash.com/Zombiesigma/Guntur.tr/blob/main/l4.jpg",
       "imageHint": "cityscape painting"
     },
     {
