@@ -2,16 +2,20 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 
-export default function GalleryPage() {
-  const allPaintings = PlaceHolderImages.filter(p => p.id.startsWith('painting-'));
+const allPaintings = [
+  { id: 'l1', imageUrl: '/img/lukisan/l1.jpg', description: 'Lukisan Abstrak 1', imageHint: 'abstract painting' },
+  { id: 'l2', imageUrl: '/img/lukisan/l2.jpg', description: 'Lukisan Abstrak 2', imageHint: 'abstract painting' },
+  { id: 'l3', imageUrl: '/img/lukisan/l3.jpg', description: 'Lukisan Abstrak 3', imageHint: 'abstract painting' },
+  { id: 'l4', imageUrl: '/img/lukisan/l4.jpg', description: 'Lukisan Abstrak 4', imageHint: 'abstract painting' },
+];
 
+export default function GalleryPage() {
   return (
     <>
       <Header />
