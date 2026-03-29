@@ -17,6 +17,10 @@
           "type": "string",
           "description": "A short summary of the article."
         },
+        "content": {
+          "type": "string",
+          "description": "The full content of the article."
+        },
         "date": {
           "type": "string",
           "format": "date-time",
@@ -34,7 +38,7 @@
           "description": "The ID of the placeholder image for the article."
         }
       },
-      "required": ["title", "slug", "excerpt", "date", "imageId"]
+      "required": ["title", "slug", "excerpt", "date", "imageId", "content"]
     }
   },
   "auth": {

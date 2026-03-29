@@ -34,6 +34,7 @@ const articleSchema = z.object({
   title: z.string().min(5, { message: 'Judul minimal 5 karakter.' }),
   slug: z.string().min(5, { message: 'Slug minimal 5 karakter.' }).regex(/^[a-z0-9-]+$/, { message: 'Slug hanya boleh berisi huruf kecil, angka, dan tanda hubung.' }),
   excerpt: z.string().min(20, { message: 'Kutipan minimal 20 karakter.' }),
+  content: z.string().min(100, { message: 'Konten minimal 100 karakter.' }),
   tags: z.string().min(3, { message: 'Tambahkan setidaknya satu tag, pisahkan dengan koma.' }),
   imageId: z.string().min(1, { message: 'Image ID tidak boleh kosong.' }),
 });
@@ -67,6 +68,7 @@ export default function AdminPage() {
       title: '',
       slug: '',
       excerpt: '',
+      content: '',
       tags: '',
       imageId: `article-image-${Math.floor(Math.random() * 5) + 1}`,
     },
@@ -184,6 +186,7 @@ export default function AdminPage() {
                               <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Judul Artikel</FormLabel><FormControl><Input placeholder="Judul artikel Anda" {...field} /></FormControl><FormMessage /></FormItem>)} />
                               <FormField control={form.control} name="slug" render={({ field }) => (<FormItem><FormLabel>Slug</FormLabel><FormControl><Input placeholder="contoh-slug-artikel" {...field} /></FormControl><FormMessage /></FormItem>)} />
                               <FormField control={form.control} name="excerpt" render={({ field }) => (<FormItem><FormLabel>Kutipan</FormLabel><FormControl><Textarea placeholder="Tulis kutipan singkat di sini..." {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                              <FormField control={form.control} name="content" render={({ field }) => (<FormItem><FormLabel>Konten Artikel</FormLabel><FormControl><Textarea placeholder="Tulis artikel lengkap di sini... Anda bisa menggunakan format Markdown." {...field} className="min-h-[250px]" /></FormControl><FormMessage /></FormItem>)}/>
                               <FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>Tags (pisahkan dengan koma)</FormLabel><FormControl><Input placeholder="Menulis, Teknologi, Kreativitas" {...field} /></FormControl><FormMessage /></FormItem>)}/>
                               <FormField control={form.control} name="imageId" render={({ field }) => (<FormItem><FormLabel>Image ID</FormLabel><FormControl><Input placeholder="article-image-1" {...field} /></FormControl><FormMessage /></FormItem>)}/>
                               <DialogFooter className="pt-4">
