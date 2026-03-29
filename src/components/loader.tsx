@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { Background3D } from './background-3d';
 
 const wittyMessages = [
     "Menyeduh Kopi...",
@@ -55,9 +56,10 @@ export function Loader() {
 
   return (
     <div className={cn(
-      "fixed inset-0 bg-background/90 backdrop-blur-sm z-[200] flex flex-col justify-center items-center transition-opacity duration-1000",
+      "fixed inset-0 bg-background z-[200] flex flex-col justify-center items-center transition-opacity duration-1000",
       loading ? "opacity-100" : "opacity-0 pointer-events-none"
     )}>
+      <Background3D className="z-0" />
       <div className="relative z-10 text-center flex flex-col items-center">
         <Image
           src="/img/logo/logo.png"

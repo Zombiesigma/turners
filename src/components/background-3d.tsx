@@ -2,8 +2,9 @@
 "use client";
 
 import { useEffect, useRef } from 'react';
+import { cn } from '@/lib/utils';
 
-export function Background3D() {
+export function Background3D({ className }: { className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -103,5 +104,5 @@ export function Background3D() {
     }
   }, []);
 
-  return <canvas ref={canvasRef} className="fixed top-0 left-0 -z-10" />;
+  return <canvas ref={canvasRef} className={cn("fixed top-0 left-0 -z-10", className)} />;
 }
