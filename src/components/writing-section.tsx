@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -13,9 +14,8 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
 } from '@/components/ui/carousel';
+import Autoplay from "embla-carousel-autoplay";
 
 type Article = {
   id: string;
@@ -39,6 +39,10 @@ export function WritingSection() {
   const firestore = useFirestore();
   const articlesQuery = firestore ? query(collection(firestore, 'articles'), orderBy('date', 'desc'), limit(3)) : null;
   const { data: articles, loading: articlesLoading } = useCollection<Article>(articlesQuery);
+
+  const plugin = React.useRef(
+    Autoplay({ delay: 2000, stopOnInteraction: true })
+  );
 
   const formatDate = (timestamp: Timestamp | null | undefined) => {
     if (!timestamp) return 'Tanggal tidak diketahui';
@@ -96,10 +100,14 @@ export function WritingSection() {
             <h3 className="mb-8 font-headline text-2xl font-bold">Karya Lainnya</h3>
              <div className="px-12">
               <Carousel
+                plugins={[plugin.current]}
                 opts={{
                   align: 'start',
+                  loop: true,
                 }}
                 className="w-full"
+                onMouseEnter={plugin.current.stop}
+                onMouseLeave={plugin.current.reset}
               >
                 <CarouselContent className="-ml-4">
                   {otherBooks.map((book, index) => (
@@ -121,8 +129,6 @@ export function WritingSection() {
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious />
-                <CarouselNext />
               </Carousel>
             </div>
         </div>
