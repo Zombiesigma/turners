@@ -25,14 +25,21 @@ const useCollection = <T extends DocumentData>(
 
   useEffect(() => {
     if (firestore && q) {
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const data: T[] = [];
-        querySnapshot.forEach((doc) => {
-          data.push({ ...doc.data(), id: doc.id });
-        });
-        setData(data);
-        setLoading(false);
-      });
+      const unsubscribe = onSnapshot(q, 
+        (querySnapshot) => {
+          const data: T[] = [];
+          querySnapshot.forEach((doc) => {
+            data.push({ ...doc.data(), id: doc.id });
+          });
+          setData(data);
+          setLoading(false);
+        },
+        (error) => {
+          console.error("Error fetching collection:", error);
+          setData(null);
+          setLoading(false);
+        }
+      );
       return () => unsubscribe();
     } else {
       setLoading(false);

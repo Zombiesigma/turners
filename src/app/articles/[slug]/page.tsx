@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -27,7 +28,11 @@ export default function ArticlePage() {
   const slug = params.slug as string;
   const firestore = useFirestore();
 
-  const articleQuery = firestore && slug ? query(collection(firestore, 'articles'), where('slug', '==', slug)) : null;
+  const articleQuery = useMemo(() => {
+    if (!firestore || !slug) return null;
+    return query(collection(firestore, 'articles'), where('slug', '==', slug));
+  }, [firestore, slug]);
+
   const { data: articles, loading } = useCollection<Article>(articleQuery);
 
   const article = articles?.[0];

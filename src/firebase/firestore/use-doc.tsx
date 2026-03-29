@@ -18,15 +18,24 @@ const useDoc = <T extends DocumentData>(
 
   useEffect(() => {
     if (firestore && ref) {
-      const unsubscribe = onSnapshot(ref, (doc) => {
-        if (doc.exists()) {
-          setData({ ...doc.data(), id: doc.id });
-        } else {
+      const unsubscribe = onSnapshot(ref, 
+        (doc) => {
+          if (doc.exists()) {
+            setData({ ...doc.data(), id: doc.id });
+          } else {
+            setData(null);
+          }
+          setLoading(false);
+        },
+        (error) => {
+          console.error("Error fetching document:", error);
           setData(null);
+          setLoading(false);
         }
-        setLoading(false);
-      });
+      );
       return () => unsubscribe();
+    } else {
+        setLoading(false);
     }
   }, [firestore, ref]);
 
