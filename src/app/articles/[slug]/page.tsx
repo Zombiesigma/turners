@@ -14,7 +14,7 @@ import { Loader2, ArrowLeft, Calendar, User, Twitter, Facebook, Linkedin, Copy }
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useToast } from '@/hooks/use-toast';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { PlaceHolderImages, type ImagePlaceholder } from '@/lib/placeholder-images';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -30,6 +30,64 @@ type Article = {
   imageUrl: string;
 };
 
+type ShareLink = {
+  name: string;
+  icon: React.ReactNode;
+  href: string;
+};
+
+const AuthorProfileCard = ({ profileImage }: { profileImage: ImagePlaceholder | undefined }) => {
+    return (
+        <Card className="glow-card">
+            <CardHeader className="flex-row gap-4 items-center">
+                {profileImage && (
+                    <Avatar className="h-14 w-14">
+                        <AvatarImage src={profileImage.imageUrl} alt="Guntur Padilah" />
+                        <AvatarFallback>GP</AvatarFallback>
+                    </Avatar>
+                )}
+                <div>
+                    <CardTitle className="text-lg">Guntur Padilah</CardTitle>
+                    <CardDescription>Penulis, Pelukis, Developer</CardDescription>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-muted-foreground">
+                    Penulis buku "Beri Ruang Untuk Kelelahan". Menyatukan kata, warna, dan kode dalam harmoni kreatif.
+                </p>
+            </CardContent>
+        </Card>
+    );
+};
+
+const ArticleShareCard = ({ shareLinks, articleUrl, copyLink }: { shareLinks: ShareLink[], articleUrl: string, copyLink: () => void }) => {
+     return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-lg">Bagikan Artikel Ini</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col space-y-3">
+                <div className="flex space-x-2">
+                    {shareLinks.map(link => (
+                        <Button key={link.name} asChild variant="outline" size="icon" className="rounded-full">
+                            <Link href={link.href} target="_blank" rel="noopener noreferrer" aria-label={`Bagikan di ${link.name}`}>
+                                {link.icon}
+                            </Link>
+                        </Button>
+                    ))}
+                </div>
+                <div className="flex items-center space-x-2 rounded-lg border bg-background p-2">
+                    <p className="text-sm text-muted-foreground truncate">{articleUrl}</p>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={copyLink}>
+                        <Copy size={16} />
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
+
 export default function ArticlePage() {
   const params = useParams();
   const slug = params.slug as string;
@@ -43,9 +101,6 @@ export default function ArticlePage() {
 
   const { data: articles, loading } = useCollection<Article>(articleQuery);
 
-  const article = articles?.[0];
-  const articleUrl = typeof window !== 'undefined' ? window.location.href : '';
-
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -53,6 +108,8 @@ export default function ArticlePage() {
       </div>
     );
   }
+
+  const article = articles?.[0];
 
   if (!article) {
     return (
@@ -73,10 +130,11 @@ export default function ArticlePage() {
     );
   }
 
+  const articleUrl = typeof window !== 'undefined' ? window.location.href : '';
   const profileImage = PlaceHolderImages.find(p => p.id === 'profile-picture');
   const shareText = `Baca artikel menarik dari Guntur Padilah: "${article.title}"`;
 
-  const shareLinks = [
+  const shareLinks: ShareLink[] = [
     {
       name: 'Twitter',
       icon: <Twitter size={20} />,
@@ -169,52 +227,25 @@ export default function ArticlePage() {
                            </ReactMarkdown>
                         </div>
                     </article>
-                    <aside className="lg:col-span-4 mt-12 lg:mt-0">
+                    
+                    {/* Desktop Sidebar */}
+                    <aside className="hidden lg:block lg:col-span-4 mt-12 lg:mt-0">
                         <div className="sticky top-28 space-y-8">
-                            <Card className="glow-card">
-                                <CardHeader className="flex-row gap-4 items-center">
-                                    {profileImage && (
-                                        <Avatar className="h-14 w-14">
-                                            <AvatarImage src={profileImage.imageUrl} alt="Guntur Padilah" />
-                                            <AvatarFallback>GP</AvatarFallback>
-                                        </Avatar>
-                                    )}
-                                    <div>
-                                        <CardTitle className="text-lg">Guntur Padilah</CardTitle>
-                                        <CardDescription>Penulis, Pelukis, Developer</CardDescription>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-sm text-muted-foreground">
-                                        Penulis buku "Beri Ruang Untuk Kelelahan". Menyatukan kata, warna, dan kode dalam harmoni kreatif.
-                                    </p>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-lg">Bagikan Artikel Ini</CardTitle>
-                                </CardHeader>
-                                <CardContent className="flex flex-col space-y-3">
-                                    <div className="flex space-x-2">
-                                        {shareLinks.map(link => (
-                                            <Button key={link.name} asChild variant="outline" size="icon" className="rounded-full">
-                                                <Link href={link.href} target="_blank" rel="noopener noreferrer" aria-label={`Bagikan di ${link.name}`}>
-                                                    {link.icon}
-                                                </Link>
-                                            </Button>
-                                        ))}
-                                    </div>
-                                    <div className="flex items-center space-x-2 rounded-lg border bg-background p-2">
-                                        <p className="text-sm text-muted-foreground truncate">{articleUrl}</p>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={copyLink}>
-                                            <Copy size={16} />
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            <AuthorProfileCard profileImage={profileImage} />
+                            <ArticleShareCard shareLinks={shareLinks} articleUrl={articleUrl} copyLink={copyLink} />
                         </div>
                     </aside>
+                </div>
+                
+                {/* Mobile sections */}
+                <div className="mt-16 space-y-8 lg:hidden">
+                    <Separator />
+                    <h3 className="font-headline text-2xl font-bold text-center gradient-text">Bagikan Artikel</h3>
+                    <ArticleShareCard shareLinks={shareLinks} articleUrl={articleUrl} copyLink={copyLink} />
+                    
+                    <Separator />
+                    <h3 className="font-headline text-2xl font-bold text-center gradient-text">Tentang Penulis</h3>
+                    <AuthorProfileCard profileImage={profileImage} />
                 </div>
             </div>
         </div>
