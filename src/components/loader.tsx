@@ -55,7 +55,7 @@ export function Loader() {
 
   return (
     <div className={cn(
-      "fixed inset-0 bg-background z-[200] flex flex-col justify-center items-center transition-opacity duration-1000",
+      "fixed inset-0 bg-background/90 backdrop-blur-sm z-[200] flex flex-col justify-center items-center transition-opacity duration-1000",
       loading ? "opacity-100" : "opacity-0 pointer-events-none"
     )}>
       <div className="relative z-10 text-center flex flex-col items-center">
