@@ -139,13 +139,9 @@ export function Header() {
             <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen(true)}>
               <Search />
             </Button>
-            {user ? (
+            {user && (
                 <Button variant="outline" size="icon" asChild>
                     <Link href="/admin"><User /></Link>
-                </Button>
-            ) : (
-                <Button variant="outline" asChild>
-                    <Link href="/login">Login</Link>
                 </Button>
             )}
             <ThemeToggle />
@@ -195,13 +191,9 @@ export function Header() {
                         })}
                     </nav>
                      <div className="mt-auto flex justify-around items-center">
-                        {user ? (
+                        {user && (
                            <Button variant="outline" asChild>
                                 <Link href="/admin">Dasbor Admin</Link>
-                            </Button>
-                        ) : (
-                            <Button variant="outline" asChild>
-                                <Link href="/login">Login Admin</Link>
                             </Button>
                         )}
                         <ThemeToggle />
