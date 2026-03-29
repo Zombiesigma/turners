@@ -1,13 +1,13 @@
 "use client";
 
 import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { BadgeCheck, Calendar, CheckCircle, Globe, Hourglass, QrCode, Trophy, User, ZoomIn } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
+import type { ReactNode } from 'react';
 
 type Certificate = {
   id: string;
@@ -18,9 +18,10 @@ type Certificate = {
   description: string;
   ceo?: string;
   credentialId?: string;
-  imageId: string;
+  imageUrl: string;
+  imageHint: string;
   isFeatured?: boolean;
-  features?: { icon: React.ReactNode; text: string }[];
+  features?: { icon: ReactNode; text: string }[];
 };
 
 const certificatesData: Certificate[] = [
@@ -33,7 +34,8 @@ const certificatesData: Certificate[] = [
     description: "Sertifikat kelulusan untuk kursus 'Belajar Dasar Pemrograman Web'. Membangun fondasi kuat dalam HTML, CSS, dan struktur web modern.",
     ceo: "Narenda Wicaksono (CEO)",
     credentialId: "OLZ02DY...",
-    imageId: 'certificate-web-dev',
+    imageUrl: "/img/sertifikat/s1.png",
+    imageHint: "certificate document",
   },
   {
     id: 'cert2',
@@ -44,7 +46,8 @@ const certificatesData: Certificate[] = [
     description: "Sertifikat kompetensi kelulusan untuk kursus 'Belajar Dasar Pemrograman JavaScript'. Penguasaan logika pemrograman dan interaksi dinamis web.",
     ceo: "Narenda Wicaksono (CEO)",
     credentialId: "OLZ02DYJ0X65",
-    imageId: 'certificate-js-dev',
+    imageUrl: "/img/sertifikat/s2.png",
+    imageHint: "certificate paper",
   },
   {
     id: 'cert3',
@@ -52,7 +55,8 @@ const certificatesData: Certificate[] = [
     issuer: "Digitech University",
     date: "Juni 2025",
     description: "Pelatihan pembuatan landing page yang diselenggarakan oleh Digitech University dengan fokus pada desain yang menarik dan konversi yang tinggi.",
-    imageId: 'certificate-landing-page',
+    imageUrl: "https://www.gunturturner.biz.id/IMG_20250619_220843_1750345774887.jpg",
+    imageHint: "award certificate",
     isFeatured: true,
     features: [
       { icon: <Calendar size={16} />, text: "Diterbitkan: Juni 2025" },
@@ -83,9 +87,6 @@ export function CertificatesSection() {
                 
                 <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-2">
                     {certificatesData.map((cert, index) => {
-                        const image = PlaceHolderImages.find(p => p.id === cert.imageId);
-                        if (!image) return null;
-
                         return (
                             <div key={cert.id} className={`animate-in fade-in-up ${cert.isFeatured ? 'lg:col-span-2' : ''}`} style={{ animationDelay: `${index * 100}ms` }}>
                                 <Dialog>
@@ -96,7 +97,7 @@ export function CertificatesSection() {
                                         <CardHeader className="p-0 relative">
                                             <DialogTrigger asChild>
                                                 <div className="cursor-pointer">
-                                                    <Image src={image.imageUrl} alt={cert.title} width={cert.isFeatured ? 1200 : 600} height={cert.isFeatured ? 600 : 300} className={`object-cover ${cert.isFeatured ? 'aspect-[2/1]' : 'aspect-[2/1]'}`} data-ai-hint={image.imageHint} />
+                                                    <Image src={cert.imageUrl} alt={cert.title} width={cert.isFeatured ? 1200 : 600} height={cert.isFeatured ? 600 : 300} className={`object-cover ${cert.isFeatured ? 'aspect-[2/1]' : 'aspect-[2/1]'}`} data-ai-hint={cert.imageHint} />
                                                 </div>
                                             </DialogTrigger>
                                             <div className="absolute top-4 right-4 rounded-full bg-primary/80 px-3 py-1 text-xs font-semibold text-primary-foreground backdrop-blur-sm">{cert.issuer}</div>
@@ -131,7 +132,7 @@ export function CertificatesSection() {
                                         </CardFooter>
                                     </Card>
                                     <DialogContent className="max-w-4xl p-0">
-                                        <Image src={image.imageUrl} alt={cert.title} width={1200} height={800} className="w-full h-auto rounded-lg" data-ai-hint={image.imageHint}/>
+                                        <Image src={cert.imageUrl} alt={cert.title} width={1200} height={800} className="w-full h-auto rounded-lg" data-ai-hint={cert.imageHint}/>
                                     </DialogContent>
                                 </Dialog>
                             </div>
