@@ -1,0 +1,51 @@
+{
+  "entities": {
+    "Article": {
+      "title": "Article",
+      "description": "Represents a blog post or article.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the article."
+        },
+        "slug": {
+          "type": "string",
+          "description": "The URL-friendly slug for the article."
+        },
+        "excerpt": {
+          "type": "string",
+          "description": "A short summary of the article."
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The publication date of the article."
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of tags associated with the article."
+        },
+        "imageId": {
+          "type": "string",
+          "description": "The ID of the placeholder image for the article."
+        }
+      },
+      "required": ["title", "slug", "excerpt", "date", "imageId"]
+    }
+  },
+  "auth": {
+    "providers": ["email"]
+  },
+  "firestore": {
+    "/articles/{articleId}": {
+      "schema": {
+        "$ref": "#/entities/Article"
+      },
+      "description": "Stores individual article documents."
+    }
+  }
+}

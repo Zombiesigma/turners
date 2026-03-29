@@ -21,6 +21,7 @@ import {
   Home,
   Award,
   Contact,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -35,10 +36,12 @@ import { ThemeToggle } from "./theme-toggle";
 import { cn } from "@/lib/utils";
 import { SearchOverlay } from "./search-overlay";
 import { Separator } from "@/components/ui/separator";
+import { useUser } from "@/firebase";
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const { user } = useUser();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -136,6 +139,15 @@ export function Header() {
             <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen(true)}>
               <Search />
             </Button>
+            {user ? (
+                <Button variant="outline" size="icon" asChild>
+                    <Link href="/admin"><User /></Link>
+                </Button>
+            ) : (
+                <Button variant="outline" asChild>
+                    <Link href="/login">Login</Link>
+                </Button>
+            )}
             <ThemeToggle />
           </div>
 
@@ -182,7 +194,16 @@ export function Header() {
                           )
                         })}
                     </nav>
-                    <div className="mt-auto flex justify-center">
+                     <div className="mt-auto flex justify-around items-center">
+                        {user ? (
+                           <Button variant="outline" asChild>
+                                <Link href="/admin">Dasbor Admin</Link>
+                            </Button>
+                        ) : (
+                            <Button variant="outline" asChild>
+                                <Link href="/login">Login Admin</Link>
+                            </Button>
+                        )}
                         <ThemeToggle />
                     </div>
                  </div>

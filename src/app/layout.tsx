@@ -6,6 +6,7 @@ import { Loader } from "@/components/loader";
 import { Background3D } from "@/components/background-3d";
 import { ScrollProgressBar } from "@/components/scroll-progress-bar";
 import { BackToTopButton } from "@/components/back-to-top-button";
+import { FirebaseClientProvider } from "@/firebase/client-provider";
 
 export const metadata: Metadata = {
   title: "Guntur Padilah - Penulis • Pelukis • Web Developer Indonesia",
@@ -46,12 +47,14 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-foreground">
         <ThemeProvider>
-          <Loader />
-          <Background3D />
-          <ScrollProgressBar />
-          {children}
-          <BackToTopButton />
-          <Toaster />
+          <FirebaseClientProvider>
+            <Loader />
+            <Background3D />
+            <ScrollProgressBar />
+            {children}
+            <BackToTopButton />
+            <Toaster />
+          </FirebaseClientProvider>
         </ThemeProvider>
       </body>
     </html>
