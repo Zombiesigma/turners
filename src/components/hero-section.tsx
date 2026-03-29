@@ -75,13 +75,12 @@ export function HeroSection() {
             {profileImage && (
               <div className="relative h-72 w-72 md:h-96 md:w-96 group">
                 <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary via-accent to-primary opacity-50 blur-xl transition duration-1000 group-hover:opacity-75 group-hover:duration-200 animate-pulse"></div>
-                <div className="relative rounded-full overflow-hidden border-4 border-primary/80 shadow-2xl shadow-primary/20">
+                <div className="relative aspect-square h-full w-full rounded-full overflow-hidden border-4 border-primary/80 shadow-2xl shadow-primary/20">
                     <Image
                       src={profileImage.imageUrl}
                       alt="Guntur Padilah"
-                      width={400}
-                      height={400}
-                      className="h-full w-full object-cover"
+                      fill
+                      className="object-cover"
                       priority
                       data-ai-hint={profileImage.imageHint}
                     />
