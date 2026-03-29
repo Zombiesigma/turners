@@ -136,38 +136,46 @@ const projects: {
   },
   {
     icon: <PenTool className="h-10 w-10 text-primary" />,
-    title: 'Writing Assistant AI',
-    description: 'AI-powered writing assistant untuk membantu penulis meningkatkan kualitas tulisan.',
-    rawCode: `const ai = new WritingAI({
-  style: 'creative',
-  language: 'id',
-  genre: 'novel'
+    title: 'Nusakarsa',
+    description: 'Aplikasi sastra digital Indonesia.',
+    rawCode: `import { Nusakarsa } from 'sastra-digital';
+
+const app = new Nusakarsa({
+  platform: 'mobile',
+  features: ['ai-editor', 'marketplace']
 });`,
     code: (
       <>
+        <span className="text-pink-400">import</span>{' '}
+        <span className="text-gray-500">{'{'}</span>{' '}
+        <span className="text-sky-300">Nusakarsa</span>{' '}
+        <span className="text-gray-500">{'}'}</span>{' '}
+        <span className="text-pink-400">from</span>{' '}
+        <span className="text-green-300">{`'sastra-digital'`}</span>
+        <span className="text-gray-500">;</span>
+        <br />
+        <br />
         <span className="text-pink-400">const</span>{' '}
-        <span className="text-sky-300">ai</span>{' '}
+        <span className="text-sky-300">app</span>{' '}
         <span className="text-gray-500">=</span>{' '}
         <span className="text-pink-400">new</span>{' '}
-        <span className="text-teal-300">WritingAI</span>
+        <span className="text-teal-300">Nusakarsa</span>
         <span className="text-gray-500">{'({'}</span>
         <br />
         {'  '}
-        <span className="text-sky-300">style</span>
+        <span className="text-sky-300">platform</span>
         <span className="text-gray-500">:</span>{' '}
-        <span className="text-green-300">{"'creative'"}</span>
+        <span className="text-green-300">{`'mobile'`}</span>
         <span className="text-gray-500">,</span>
         <br />
         {'  '}
-        <span className="text-sky-300">language</span>
+        <span className="text-sky-300">features</span>
         <span className="text-gray-500">:</span>{' '}
-        <span className="text-green-300">{"'id'"}</span>
-        <span className="text-gray-500">,</span>
-        <br />
-        {'  '}
-        <span className="text-sky-300">genre</span>
-        <span className="text-gray-500">:</span>{' '}
-        <span className="text-green-300">{"'novel'"}</span>
+        <span className="text-gray-500">{'['}</span>
+        <span className="text-green-300">{`'ai-editor'`}</span>
+        <span className="text-gray-500">,</span>{' '}
+        <span className="text-green-300">{`'marketplace'`}</span>
+        <span className="text-gray-500">{']'}</span>
         <br />
         <span className="text-gray-500">{'});'}</span>
       </>
@@ -193,6 +201,10 @@ export function DevelopmentSection() {
                    {project.title === 'Elitera' ? (
                     <div className="mb-4 h-24 w-24 rounded-full overflow-hidden relative">
                       <Image src="https://raw.githubusercontent.com/Zombiesigma/elitera-asset/main/uploads/1770616886999-WhatsApp_Image_2026-02-07_at_13.45.35.jpeg" alt="Elitera" fill className="object-cover"/>
+                    </div>
+                  ) : project.title === 'Nusakarsa' ? (
+                    <div className="mb-4 h-24 w-24 rounded-full overflow-hidden relative bg-white p-2">
+                        <Image src="https://raw.githubusercontent.com/Zombiesigma/nusakarsa-assets/main/download.webp?v=1" alt="Nusakarsa" fill className="object-contain"/>
                     </div>
                   ) : (
                     <div className="mb-4 rounded-full bg-primary/10 p-5">
