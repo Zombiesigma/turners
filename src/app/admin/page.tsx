@@ -11,7 +11,7 @@ import { collection, addDoc, serverTimestamp, query, orderBy, doc, deleteDoc, Ti
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -36,7 +36,14 @@ const articleSchema = z.object({
   excerpt: z.string().min(20, { message: 'Kutipan minimal 20 karakter.' }),
   content: z.string().min(100, { message: 'Konten minimal 100 karakter.' }),
   tags: z.string().min(3, { message: 'Tambahkan setidaknya satu tag, pisahkan dengan koma.' }),
-  imageUrl: z.string().url({ message: 'URL gambar tidak valid.' }),
+  imageFile: z
+    .instanceof(FileList)
+    .refine((files) => files?.length > 0, 'File gambar diperlukan.')
+    .refine((files) => files?.[0]?.size <= 5 * 1024 * 1024, `Ukuran file maksimal 5MB.`)
+    .refine(
+      (files) => ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(files?.[0]?.type),
+      'Format yang didukung hanya .jpg, .jpeg, .png, .webp, dan .gif'
+    ),
 });
 
 type Article = {
@@ -70,7 +77,7 @@ export default function AdminPage() {
       excerpt: '',
       content: '',
       tags: '',
-      imageUrl: '',
+      imageFile: undefined,
     },
   });
 
@@ -82,6 +89,38 @@ export default function AdminPage() {
 
   const onAddSubmit = async (values: z.infer<typeof articleSchema>) => {
     if (!firestore) return;
+    form.formState.isSubmitting = true;
+
+    // 1. Upload image
+    let imageUrl = '';
+    const imageFile = values.imageFile[0];
+
+    try {
+      const formData = new FormData();
+      formData.append('file', imageFile);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Gagal mengunggah gambar.');
+      }
+      const result = await response.json();
+      imageUrl = result.imageUrl;
+    } catch (error: any) {
+      toast({
+        title: 'Gagal Mengunggah Gambar',
+        description: error.message,
+        variant: 'destructive',
+      });
+      form.formState.isSubmitting = false;
+      return;
+    }
+
+    // 2. Add article to Firestore
     try {
       const tagsArray = values.tags.split(',').map(tag => tag.trim());
       await addDoc(collection(firestore, 'articles'), {
@@ -89,7 +128,7 @@ export default function AdminPage() {
         slug: values.slug,
         excerpt: values.excerpt,
         content: values.content,
-        imageUrl: values.imageUrl,
+        imageUrl: imageUrl,
         tags: tagsArray,
         date: serverTimestamp(),
       });
@@ -105,6 +144,8 @@ export default function AdminPage() {
         description: error.message,
         variant: 'destructive',
       });
+    } finally {
+       form.formState.isSubmitting = false;
     }
   };
 
@@ -189,10 +230,35 @@ export default function AdminPage() {
                             <form onSubmit={form.handleSubmit(onAddSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1 pr-4">
                               <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Judul Artikel</FormLabel><FormControl><Input placeholder="Judul artikel Anda" {...field} /></FormControl><FormMessage /></FormItem>)} />
                               <FormField control={form.control} name="slug" render={({ field }) => (<FormItem><FormLabel>Slug</FormLabel><FormControl><Input placeholder="contoh-slug-artikel" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                              
+                              <FormField
+                                control={form.control}
+                                name="imageFile"
+                                render={({ field: { onChange, onBlur, name, ref } }) => (
+                                  <FormItem>
+                                    <FormLabel>Gambar Artikel</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="file"
+                                        accept="image/png, image/jpeg, image/webp, image/gif"
+                                        ref={ref}
+                                        name={name}
+                                        onBlur={onBlur}
+                                        onChange={(e) => onChange(e.target.files)}
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Unggah gambar utama untuk artikel Anda (Maks. 5MB).
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
                               <FormField control={form.control} name="excerpt" render={({ field }) => (<FormItem><FormLabel>Kutipan</FormLabel><FormControl><Textarea placeholder="Tulis kutipan singkat di sini..." {...field} /></FormControl><FormMessage /></FormItem>)}/>
                               <FormField control={form.control} name="content" render={({ field }) => (<FormItem><FormLabel>Konten Artikel</FormLabel><FormControl><Textarea placeholder="Tulis artikel lengkap di sini... Anda bisa menggunakan format Markdown." {...field} className="min-h-[250px]" /></FormControl><FormMessage /></FormItem>)}/>
                               <FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>Tags (pisahkan dengan koma)</FormLabel><FormControl><Input placeholder="Menulis, Teknologi, Kreativitas" {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                              <FormField control={form.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input placeholder="https://raw.githubusercontent.com/..." {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                              
                               <DialogFooter className="pt-4">
                                   <DialogClose asChild><Button type="button" variant="secondary">Batal</Button></DialogClose>
                                   <Button type="submit" disabled={form.formState.isSubmitting}>
