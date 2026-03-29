@@ -9,6 +9,13 @@ import { BookText, ShoppingCart, Loader2, ArrowRight, Calendar } from 'lucide-re
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, orderBy, limit, Timestamp } from 'firebase/firestore';
 import { Separator } from '@/components/ui/separator';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
 
 type Article = {
   id: string;
@@ -87,23 +94,36 @@ export function WritingSection() {
 
         <div className="mb-16">
             <h3 className="mb-8 font-headline text-2xl font-bold">Karya Lainnya</h3>
-            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {otherBooks.map((book, index) => (
-                <div key={book?.id} className="animate-in fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
-                  <Card className="overflow-hidden transition-transform duration-300 hover:-translate-y-2 hover:shadow-xl">
-                    <CardContent className="p-0">
-                      <Image
-                        src={book!.imageUrl}
-                        alt={book!.description}
-                        width={400}
-                        height={600}
-                        className="aspect-[2/3] w-full object-cover"
-                        data-ai-hint={book!.imageHint}
-                      />
-                    </CardContent>
-                  </Card>
-                </div>
-              ))}
+             <div className="px-12">
+              <Carousel
+                opts={{
+                  align: 'start',
+                }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-4">
+                  {otherBooks.map((book, index) => (
+                    <CarouselItem key={book?.id} className="pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4">
+                      <div className="animate-in fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
+                        <Card className="overflow-hidden transition-transform duration-300 hover:-translate-y-2 hover:shadow-xl">
+                          <CardContent className="p-0">
+                            <Image
+                              src={book!.imageUrl}
+                              alt={book!.description}
+                              width={400}
+                              height={600}
+                              className="aspect-[2/3] w-full object-cover"
+                              data-ai-hint={book!.imageHint}
+                            />
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious />
+                <CarouselNext />
+              </Carousel>
             </div>
         </div>
 
