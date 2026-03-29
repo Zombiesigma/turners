@@ -11,6 +11,8 @@ import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, ArrowLeft, Calendar, User } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type Article = {
   id: string;
@@ -43,26 +45,6 @@ export default function ArticlePage() {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-    });
-  };
-  
-  const renderContent = (content: string) => {
-    // A simple markdown-like renderer for headings and paragraphs
-    return content.split('\n').map((line, index) => {
-      if (line.startsWith('## ')) {
-        return <h2 key={index} className="font-headline text-3xl md:text-4xl font-bold mt-12 mb-6 gradient-text">{line.substring(3)}</h2>;
-      }
-      if (line.startsWith('### ')) {
-        return <h3 key={index} className="font-headline text-2xl md:text-3xl font-bold mt-10 mb-5">{line.substring(4)}</h3>;
-      }
-      if (line.trim() === '') {
-        return null; // Don't render empty lines
-      }
-      return (
-        <p key={index} className="mb-6 leading-loose text-lg text-foreground/80">
-          {line}
-        </p>
-      );
     });
   };
 
@@ -149,7 +131,9 @@ export default function ArticlePage() {
                         <p className="lead text-xl lg:text-2xl font-normal text-muted-foreground mb-12 text-center">{article.excerpt}</p>
                         
                         <div className="article-content">
-                            {renderContent(article.content)}
+                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {article.content}
+                           </ReactMarkdown>
                         </div>
                     </div>
                 </article>
