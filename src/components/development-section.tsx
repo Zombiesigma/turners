@@ -180,7 +180,7 @@ const app = new Nusakarsa({
         <span className="text-gray-500">{'});'}</span>
       </>
     ),
-    liveLink: '#',
+    liveLink: 'https://nusakarsa.my.id',
     sourceLink: '#',
   },
 ];
