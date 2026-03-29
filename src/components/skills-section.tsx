@@ -108,7 +108,7 @@ export function SkillsSection() {
   const isVisible = useOnScreen(ref);
 
   return (
-    <section id="about" className="py-24">
+    <section id="skills" className="py-24">
       <div ref={ref} className="container mx-auto px-4">
         <div className="text-center">
           <h2 className="mb-16 font-headline text-4xl font-bold md:text-5xl gradient-text">Keahlian & Passion</h2>

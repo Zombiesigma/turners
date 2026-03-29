@@ -60,7 +60,7 @@ export function Header() {
     { href: "/#projects", label: "Proyek", icon: <Code size={20} />, isSub: true },
     { type: 'divider' },
     { href: "/#certificates", label: "Sertifikat", icon: <Award size={20} /> },
-    { href: "/#about", label: "Keahlian", icon: <Wrench size={20} /> },
+    { href: "/#skills", label: "Keahlian", icon: <Wrench size={20} /> },
     { href: "/#contact", label: "Kontak", icon: <Contact size={20} /> },
   ];
 
@@ -125,7 +125,7 @@ export function Header() {
                     </Link>
                   </NavigationMenuItem>
                  <NavigationMenuItem>
-                    <Link href="/#about" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
+                    <Link href="/#skills" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
                       Keahlian
                     </Link>
                   </NavigationMenuItem>
