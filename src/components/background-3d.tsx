@@ -2,96 +2,106 @@
 "use client";
 
 import { useEffect, useRef } from 'react';
-import * as THREE from 'three';
 
 export function Background3D() {
-  const mountRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const mountNode = mountRef.current;
-    if (!mountNode) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ canvas: mountNode, alpha: true, antialias: true });
-
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-
-    // Layer 1
-    const particlesGeometry = new THREE.BufferGeometry();
-    const particlesCount = 5000;
-    const posArray = new Float32Array(particlesCount * 3);
-    for (let i = 0; i < particlesCount * 3; i++) {
-        posArray[i] = (Math.random() - 0.5) * 20;
-    }
-    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-    const particlesMaterial = new THREE.PointsMaterial({ 
-        size: 0.02, 
-        color: 0xFFD700, 
-        transparent: true, 
-        opacity: 0.5,
-        blending: THREE.AdditiveBlending
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
+    window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
     });
-    const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
-    scene.add(particlesMesh);
 
-    // Layer 2
-    const particlesGeometry2 = new THREE.BufferGeometry();
-    const particlesCount2 = 2000;
-    const posArray2 = new Float32Array(particlesCount2 * 3);
-    for (let i = 0; i < particlesCount2 * 3; i++) {
-        posArray2[i] = (Math.random() - 0.5) * 30;
+    const particles: {x: number, y: number, vx: number, vy: number, size: number, color: string}[] = [];
+    const particleCount = 100;
+    const colors = ["#FFD700", "#FF7E00", "#FFFFFF"];
+
+    for (let i = 0; i < particleCount; i++) {
+        particles.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: (Math.random() - 0.5) * 0.5,
+            size: Math.random() * 2 + 1,
+            color: colors[Math.floor(Math.random() * colors.length)]
+        });
     }
-    particlesGeometry2.setAttribute('position', new THREE.BufferAttribute(posArray2, 3));
-    const particlesMaterial2 = new THREE.PointsMaterial({ 
-        size: 0.015,
-        color: 0xADD8E6,
-        transparent: true, 
-        opacity: 0.3,
-        blending: THREE.AdditiveBlending
-    });
-    const particlesMesh2 = new THREE.Points(particlesGeometry2, particlesMaterial2);
-    scene.add(particlesMesh2);
-
-
-    camera.position.z = 5;
-
-    let mouseX = 0, mouseY = 0;
+    
+    let mouse = { x: width/2, y: height/2 };
     const handleMouseMove = (event: MouseEvent) => {
-        mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-        mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+        mouse.x = event.clientX;
+        mouse.y = event.clientY;
     };
     document.addEventListener('mousemove', handleMouseMove);
 
-    const clock = new THREE.Clock();
-    const animate = () => {
+    function animate() {
         requestAnimationFrame(animate);
-        const elapsedTime = clock.getElapsedTime();
+        if (!ctx) return;
+        ctx.clearRect(0, 0, width, height);
 
-        particlesMesh.rotation.y = elapsedTime * 0.02;
-        particlesMesh2.rotation.y = elapsedTime * 0.01;
-        
-        camera.position.x += (mouseX * 0.5 - camera.position.x) * 0.05;
-        camera.position.y += (mouseY * 0.5 - camera.position.y) * 0.05;
-        camera.lookAt(scene.position);
+        particles.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
 
-        renderer.render(scene, camera);
-    };
+            if (p.x < 0 || p.x > width) p.vx *= -1;
+            if (p.y < 0 || p.y > height) p.vy *= -1;
+
+            ctx.beginPath();
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = 0.5;
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Add lines to nearby particles and mouse
+            const connectDistance = 150;
+
+            particles.forEach(p2 => {
+              const dx = p.x - p2.x;
+              const dy = p.y - p2.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < connectDistance) {
+                ctx.beginPath();
+                ctx.strokeStyle = p.color;
+                ctx.globalAlpha = (connectDistance - dist) / connectDistance * 0.2;
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+              }
+            });
+
+            const dxMouse = p.x - mouse.x;
+            const dyMouse = p.y - mouse.y;
+            const distMouse = Math.sqrt(dxMouse*dxMouse + dyMouse*dyMouse);
+            if (distMouse < connectDistance) {
+                 ctx.beginPath();
+                 ctx.strokeStyle = p.color;
+                 ctx.globalAlpha = (connectDistance - distMouse) / connectDistance * 0.1;
+                 ctx.moveTo(p.x, p.y);
+                 ctx.lineTo(mouse.x, mouse.y);
+                 ctx.stroke();
+            }
+        });
+    }
+
     animate();
-
-    const handleResize = () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    };
-    window.addEventListener('resize', handleResize);
-
+    
     return () => {
-        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('resize', () => {
+            if(canvas) {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            }
+        });
         document.removeEventListener('mousemove', handleMouseMove);
-    };
+    }
   }, []);
 
-  return <canvas ref={mountRef} className="fixed top-0 left-0 -z-10" />;
+  return <canvas ref={canvasRef} className="fixed top-0 left-0 -z-10" />;
 }
