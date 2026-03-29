@@ -89,7 +89,6 @@ export default function AdminPage() {
 
   const onAddSubmit = async (values: z.infer<typeof articleSchema>) => {
     if (!firestore) return;
-    form.formState.isSubmitting = true;
 
     // 1. Upload image
     let imageUrl = '';
@@ -116,7 +115,6 @@ export default function AdminPage() {
         description: error.message,
         variant: 'destructive',
       });
-      form.formState.isSubmitting = false;
       return;
     }
 
@@ -144,8 +142,6 @@ export default function AdminPage() {
         description: error.message,
         variant: 'destructive',
       });
-    } finally {
-       form.formState.isSubmitting = false;
     }
   };
 
