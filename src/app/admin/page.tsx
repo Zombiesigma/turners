@@ -37,7 +37,7 @@ const articleSchema = z.object({
   content: z.string().min(100, { message: 'Konten minimal 100 karakter.' }),
   tags: z.string().min(3, { message: 'Tambahkan setidaknya satu tag, pisahkan dengan koma.' }),
   imageFile: z
-    .instanceof(FileList)
+    .any()
     .refine((files) => files?.length > 0, 'File gambar diperlukan.')
     .refine((files) => files?.[0]?.size <= 5 * 1024 * 1024, `Ukuran file maksimal 5MB.`)
     .refine(
@@ -323,3 +323,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    
