@@ -46,6 +46,26 @@ export default function ArticlePage() {
     });
   };
   
+  const renderContent = (content: string) => {
+    // A simple markdown-like renderer for headings and paragraphs
+    return content.split('\n').map((line, index) => {
+      if (line.startsWith('## ')) {
+        return <h2 key={index} className="font-headline text-3xl md:text-4xl font-bold mt-12 mb-6 gradient-text">{line.substring(3)}</h2>;
+      }
+      if (line.startsWith('### ')) {
+        return <h3 key={index} className="font-headline text-2xl md:text-3xl font-bold mt-10 mb-5">{line.substring(4)}</h3>;
+      }
+      if (line.trim() === '') {
+        return null; // Don't render empty lines
+      }
+      return (
+        <p key={index} className="mb-6 leading-loose text-lg text-foreground/80">
+          {line}
+        </p>
+      );
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -73,72 +93,67 @@ export default function ArticlePage() {
     );
   }
 
-  const renderContent = (content: string) => {
-    return content.split('\n').filter(p => p.trim() !== '').map((paragraph, index) => (
-        <p key={index} className="mb-6 leading-relaxed">{paragraph}</p>
-    ));
-  };
-
   return (
     <>
       <Header />
       <main className="py-24 relative z-10">
         <div className="container mx-auto px-4">
-            <article className="max-w-4xl mx-auto">
-                <header className="mb-12 text-center md:text-left">
-                    <div className="mb-6">
-                        <Button asChild variant="outline" size="sm">
-                          <Link href="/articles">
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            Semua Artikel
-                          </Link>
-                        </Button>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 mb-4 justify-center md:justify-start">
-                        {article.tags.map(tag => (
-                            <Badge key={tag} variant="secondary">{tag}</Badge>
-                        ))}
-                    </div>
-
-                    <h1 className="font-headline text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-4 gradient-text">
-                        {article.title}
-                    </h1>
-                    
-                    <div className="flex items-center justify-center md:justify-start gap-6 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                           <User size={14} /> 
-                           <span>Oleh Guntur Padilah</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                           <Calendar size={14} /> 
-                           <span>{formatDate(article.date)}</span>
-                        </div>
-                    </div>
-                </header>
-
-                {article.imageUrl && (
-                    <div className="mb-12 rounded-lg overflow-hidden shadow-2xl shadow-primary/10">
-                        <Image
-                            src={article.imageUrl}
-                            alt={article.title}
-                            width={1200}
-                            height={600}
-                            className="w-full h-auto object-cover aspect-[16/9]"
-                            priority
-                        />
-                    </div>
-                )}
-                
-                <div className="prose-styles max-w-none text-lg text-foreground/90">
-                    <p className="lead text-xl lg:text-2xl font-semibold text-muted-foreground mb-8">{article.excerpt}</p>
-                    
-                    <div className="article-content space-y-6 text-base md:text-lg leading-relaxed">
-                        {renderContent(article.content)}
-                    </div>
+            <div className="max-w-4xl mx-auto">
+                <div className="mb-8">
+                    <Button asChild variant="outline" size="sm">
+                      <Link href="/articles">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Kembali ke Semua Artikel
+                      </Link>
+                    </Button>
                 </div>
+                
+                <article>
+                    <header className="mb-12 text-center">
+                        <div className="flex flex-wrap gap-2 mb-4 justify-center">
+                            {article.tags.map(tag => (
+                                <Badge key={tag} variant="secondary">{tag}</Badge>
+                            ))}
+                        </div>
 
-            </article>
+                        <h1 className="font-headline text-4xl md:text-5xl lg:text-7xl font-bold leading-tight mb-6 gradient-text">
+                            {article.title}
+                        </h1>
+                        
+                        <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                               <User size={14} /> 
+                               <span>Oleh Guntur Padilah</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                               <Calendar size={14} /> 
+                               <span>{formatDate(article.date)}</span>
+                            </div>
+                        </div>
+                    </header>
+
+                    {article.imageUrl && (
+                        <div className="mb-12 rounded-xl overflow-hidden shadow-2xl shadow-primary/10 transition-all duration-500 animate-in fade-in-up">
+                            <Image
+                                src={article.imageUrl}
+                                alt={article.title}
+                                width={1200}
+                                height={600}
+                                className="w-full h-auto object-cover aspect-[16/9]"
+                                priority
+                            />
+                        </div>
+                    )}
+                    
+                    <div className="max-w-3xl mx-auto">
+                        <p className="lead text-xl lg:text-2xl font-normal text-muted-foreground mb-12 text-center">{article.excerpt}</p>
+                        
+                        <div className="article-content">
+                            {renderContent(article.content)}
+                        </div>
+                    </div>
+                </article>
+            </div>
         </div>
       </main>
       <Footer />
