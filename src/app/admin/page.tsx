@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useUser, useAuth, useFirestore, useCollection } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy, doc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, doc, deleteDoc, Timestamp, updateDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,21 +37,19 @@ const articleSchema = z.object({
   excerpt: z.string().min(20, { message: 'Kutipan minimal 20 karakter.' }),
   content: z.string().min(100, { message: 'Konten minimal 100 karakter.' }),
   tags: z.string().min(3, { message: 'Tambahkan setidaknya satu tag, pisahkan dengan koma.' }),
-  imageFile: z
-    .any()
-    .refine((files) => files?.length > 0, 'File gambar diperlukan.')
-    .refine((files) => files?.[0]?.size <= 5 * 1024 * 1024, `Ukuran file maksimal 5MB.`)
-    .refine(
-      (files) => ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(files?.[0]?.type),
-      'Format yang didukung hanya .jpg, .jpeg, .png, .webp, dan .gif'
-    ),
+  imageFile: z.any()
+    .optional()
+    .refine((files) => !files || files.length === 0 || (files?.[0]?.size <= 5 * 1024 * 1024), 'Ukuran file maksimal 5MB.')
+    .refine((files) => !files || files.length === 0 || ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(files?.[0]?.type), 'Format yang didukung hanya .jpg, .jpeg, .png, .webp, dan .gif'),
 });
+
 
 type Article = {
   id: string;
   slug: string;
   title: string;
   excerpt: string;
+  content: string;
   date: Timestamp;
   tags: string[];
   imageUrl: string;
@@ -64,6 +63,8 @@ export default function AdminPage() {
   const { toast } = useToast();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [articleToEdit, setArticleToEdit] = useState<Article | null>(null);
   const [articleToDelete, setArticleToDelete] = useState<Article | null>(null);
 
   const articlesQuery = firestore ? query(collection(firestore, 'articles'), orderBy('date', 'desc')) : null;
@@ -89,6 +90,11 @@ export default function AdminPage() {
 
   const onAddSubmit = async (values: z.infer<typeof articleSchema>) => {
     if (!firestore) return;
+
+    if (!values.imageFile || values.imageFile.length === 0) {
+      form.setError('imageFile', { type: 'manual', message: 'File gambar diperlukan.' });
+      return;
+    }
 
     // 1. Upload image
     let imageUrl = '';
@@ -145,6 +151,83 @@ export default function AdminPage() {
     }
   };
 
+  const handleEditClick = (article: Article) => {
+    setArticleToEdit(article);
+    form.reset({
+      title: article.title,
+      slug: article.slug,
+      excerpt: article.excerpt,
+      content: article.content,
+      tags: article.tags.join(', '),
+      imageFile: undefined,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const onEditSubmit = async (values: z.infer<typeof articleSchema>) => {
+    if (!firestore || !articleToEdit) return;
+
+    let imageUrl = articleToEdit.imageUrl;
+    const imageFile = values.imageFile?.[0];
+
+    // If a new image is provided, upload it
+    if (imageFile) {
+      try {
+        const formData = new FormData();
+        formData.append('file', imageFile);
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Gagal mengunggah gambar baru.');
+        }
+        const result = await response.json();
+        imageUrl = result.imageUrl;
+      } catch (error: any) {
+        toast({
+          title: 'Gagal Mengunggah Gambar',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
+    // Update article in Firestore
+    try {
+      const articleRef = doc(firestore, 'articles', articleToEdit.id);
+      const tagsArray = values.tags.split(',').map(tag => tag.trim());
+
+      await updateDoc(articleRef, {
+        title: values.title,
+        slug: values.slug,
+        excerpt: values.excerpt,
+        content: values.content,
+        imageUrl: imageUrl,
+        tags: tagsArray,
+      });
+
+      toast({
+        title: 'Artikel berhasil diperbarui!',
+        description: `Perubahan pada "${values.title}" telah disimpan.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Gagal memperbarui artikel',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsEditDialogOpen(false);
+      setArticleToEdit(null);
+      form.reset();
+    }
+  };
+
   const handleDeleteArticle = async () => {
     if (!firestore || !articleToDelete) return;
     try {
@@ -171,6 +254,39 @@ export default function AdminPage() {
       router.push('/login');
     }
   };
+  
+  const ArticleFormFields = () => (
+    <>
+      <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Judul Artikel</FormLabel><FormControl><Input placeholder="Judul artikel Anda" {...field} /></FormControl><FormMessage /></FormItem>)} />
+      <FormField control={form.control} name="slug" render={({ field }) => (<FormItem><FormLabel>Slug</FormLabel><FormControl><Input placeholder="contoh-slug-artikel" {...field} /></FormControl><FormMessage /></FormItem>)} />
+      <FormField
+        control={form.control}
+        name="imageFile"
+        render={({ field: { onChange, onBlur, name, ref } }) => (
+          <FormItem>
+            <FormLabel>Gambar Artikel</FormLabel>
+            <FormControl>
+              <Input
+                type="file"
+                accept="image/png, image/jpeg, image/webp, image/gif"
+                ref={ref}
+                name={name}
+                onBlur={onBlur}
+                onChange={(e) => onChange(e.target.files)}
+              />
+            </FormControl>
+            <FormDescription>
+              {isEditDialogOpen ? 'Unggah gambar baru untuk mengganti yang lama (opsional, maks. 5MB).' : 'Unggah gambar utama untuk artikel Anda (Maks. 5MB).'}
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField control={form.control} name="excerpt" render={({ field }) => (<FormItem><FormLabel>Kutipan</FormLabel><FormControl><Textarea placeholder="Tulis kutipan singkat di sini..." {...field} /></FormControl><FormMessage /></FormItem>)}/>
+      <FormField control={form.control} name="content" render={({ field }) => (<FormItem><FormLabel>Konten Artikel</FormLabel><FormControl><Textarea placeholder="Tulis artikel lengkap di sini... Anda bisa menggunakan format Markdown." {...field} className="min-h-[250px]" /></FormControl><FormMessage /></FormItem>)}/>
+      <FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>Tags (pisahkan dengan koma)</FormLabel><FormControl><Input placeholder="Menulis, Teknologi, Kreativitas" {...field} /></FormControl><FormMessage /></FormItem>)}/>
+    </>
+  );
 
   if (userLoading || !user) {
     return (
@@ -213,7 +329,7 @@ export default function AdminPage() {
                 </div>
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button><PlusCircle className="mr-2 h-4 w-4" /> Tambah Artikel</Button>
+                        <Button onClick={() => form.reset()}><PlusCircle className="mr-2 h-4 w-4" /> Tambah Artikel</Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-2xl">
                         <DialogHeader>
@@ -224,37 +340,7 @@ export default function AdminPage() {
                         </DialogHeader>
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(onAddSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1 pr-4">
-                              <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Judul Artikel</FormLabel><FormControl><Input placeholder="Judul artikel Anda" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                              <FormField control={form.control} name="slug" render={({ field }) => (<FormItem><FormLabel>Slug</FormLabel><FormControl><Input placeholder="contoh-slug-artikel" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                              
-                              <FormField
-                                control={form.control}
-                                name="imageFile"
-                                render={({ field: { onChange, onBlur, name, ref } }) => (
-                                  <FormItem>
-                                    <FormLabel>Gambar Artikel</FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        type="file"
-                                        accept="image/png, image/jpeg, image/webp, image/gif"
-                                        ref={ref}
-                                        name={name}
-                                        onBlur={onBlur}
-                                        onChange={(e) => onChange(e.target.files)}
-                                      />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Unggah gambar utama untuk artikel Anda (Maks. 5MB).
-                                    </FormDescription>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-
-                              <FormField control={form.control} name="excerpt" render={({ field }) => (<FormItem><FormLabel>Kutipan</FormLabel><FormControl><Textarea placeholder="Tulis kutipan singkat di sini..." {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                              <FormField control={form.control} name="content" render={({ field }) => (<FormItem><FormLabel>Konten Artikel</FormLabel><FormControl><Textarea placeholder="Tulis artikel lengkap di sini... Anda bisa menggunakan format Markdown." {...field} className="min-h-[250px]" /></FormControl><FormMessage /></FormItem>)}/>
-                              <FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>Tags (pisahkan dengan koma)</FormLabel><FormControl><Input placeholder="Menulis, Teknologi, Kreativitas" {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                              
+                              <ArticleFormFields />
                               <DialogFooter className="pt-4">
                                   <DialogClose asChild><Button type="button" variant="secondary">Batal</Button></DialogClose>
                                   <Button type="submit" disabled={form.formState.isSubmitting}>
@@ -290,7 +376,7 @@ export default function AdminPage() {
                                     {article.date ? article.date.toDate().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Tidak ada tanggal'}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" disabled className="text-muted-foreground cursor-not-allowed">
+                                    <Button variant="ghost" size="icon" onClick={() => handleEditClick(article)}>
                                         <Pencil className="h-4 w-4" />
                                     </Button>
                                     <Button variant="ghost" size="icon" onClick={() => setArticleToDelete(article)}>
@@ -305,6 +391,36 @@ export default function AdminPage() {
           </Card>
         </div>
 
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              setArticleToEdit(null);
+            }
+            setIsEditDialogOpen(isOpen);
+          }}>
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Edit Artikel</DialogTitle>
+                    <DialogDescription>
+                        Perbarui detail untuk artikel &quot;{articleToEdit?.title}&quot;.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onEditSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1 pr-4">
+                        <ArticleFormFields />
+                        <DialogFooter className="pt-4">
+                            <DialogClose asChild><Button type="button" variant="secondary">Batal</Button></DialogClose>
+                            <Button type="submit" disabled={form.formState.isSubmitting}>
+                              {form.formState.isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : 'Simpan Perubahan'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+
+
+        {/* Delete Alert Dialog */}
         <AlertDialog open={!!articleToDelete} onOpenChange={() => setArticleToDelete(null)}>
             <AlertDialogContent>
                 <AlertDialogHeader>
@@ -323,5 +439,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
