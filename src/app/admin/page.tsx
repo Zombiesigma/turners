@@ -138,8 +138,8 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-24">
+    <div className="min-h-screen">
+      <main className="container mx-auto px-4 py-24 relative z-10">
         <div className="relative mb-12">
             <div className="absolute top-0 left-0">
                 <Button asChild variant="outline">
