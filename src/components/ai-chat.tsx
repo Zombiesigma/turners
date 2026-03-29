@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
 import { Loader2, Send, Sparkles, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -25,7 +24,6 @@ const TypingIndicator = () => (
 );
 
 export function AiChat() {
-  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
@@ -68,10 +66,6 @@ export function AiChat() {
         }
     }
   }, [messages]);
-
-  if (pathname === '/game') {
-    return null;
-  }
 
   return (
     <TooltipProvider>

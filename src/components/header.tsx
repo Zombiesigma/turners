@@ -21,7 +21,6 @@ import {
   Home,
   Award,
   Contact,
-  Gamepad2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -58,7 +57,6 @@ export function Header() {
     { type: 'divider' },
     { href: "/#certificates", label: "Sertifikat", icon: <Award size={20} /> },
     { href: "/#about", label: "Keahlian", icon: <Wrench size={20} /> },
-    { href: "/game", label: "3D Game", icon: <Gamepad2 size={20} /> },
     { href: "/#contact", label: "Kontak", icon: <Contact size={20} /> },
   ];
 
@@ -127,11 +125,6 @@ export function Header() {
                       Keahlian
                     </Link>
                   </NavigationMenuItem>
-                <NavigationMenuItem>
-                    <Link href="/game" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
-                      3D Game
-                    </Link>
-                </NavigationMenuItem>
                  <NavigationMenuItem>
                     <Link href="/#contact" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
                       Kontak
