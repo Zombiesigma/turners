@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useParams, usePathname } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useFirestore, useCollection } from '@/firebase';
@@ -44,10 +44,37 @@ export default function ArticlePage() {
   const { data: articles, loading } = useCollection<Article>(articleQuery);
 
   const article = articles?.[0];
-  const profileImage = PlaceHolderImages.find(p => p.id === 'profile-picture');
-
   const articleUrl = typeof window !== 'undefined' ? window.location.href : '';
-  const shareText = article ? `Baca artikel menarik dari Guntur Padilah: "${article.title}"` : '';
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!article) {
+    return (
+        <>
+            <Header />
+            <main className="container mx-auto px-4 py-40 relative z-10 text-center">
+                 <h1 className="font-headline text-5xl font-bold md:text-6xl gradient-text">404</h1>
+                 <p className="mt-4 text-lg text-muted-foreground">Artikel tidak ditemukan.</p>
+                 <Button asChild variant="outline" className="mt-8">
+                  <Link href="/articles">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Kembali ke Semua Artikel
+                  </Link>
+                </Button>
+            </main>
+            <Footer />
+        </>
+    );
+  }
+
+  const profileImage = PlaceHolderImages.find(p => p.id === 'profile-picture');
+  const shareText = `Baca artikel menarik dari Guntur Padilah: "${article.title}"`;
 
   const shareLinks = [
     {
@@ -80,33 +107,6 @@ export default function ArticlePage() {
     navigator.clipboard.writeText(articleUrl);
     toast({ title: "Tautan disalin ke clipboard!" });
   };
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!article) {
-    return (
-        <>
-            <Header />
-            <main className="container mx-auto px-4 py-40 relative z-10 text-center">
-                 <h1 className="font-headline text-5xl font-bold md:text-6xl gradient-text">404</h1>
-                 <p className="mt-4 text-lg text-muted-foreground">Artikel tidak ditemukan.</p>
-                 <Button asChild variant="outline" className="mt-8">
-                  <Link href="/articles">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Kembali ke Semua Artikel
-                  </Link>
-                </Button>
-            </main>
-            <Footer />
-        </>
-    );
-  }
 
   return (
     <>
