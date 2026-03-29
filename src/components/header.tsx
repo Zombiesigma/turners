@@ -7,7 +7,7 @@ import {
   Code,
   Feather,
   Github,
-  Image,
+  Image as ImageIcon,
   Landmark,
   Laptop,
   Menu,
@@ -22,6 +22,7 @@ import {
   Award,
   Contact,
   User,
+  Camera
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -104,10 +105,10 @@ export function Header() {
                         <MegaMenuItem href="/#writing" icon={<ScrollText size={16}/>} title="Puisi" description="Kumpulan puisi"/>
                       </div>
                       <div className="flex flex-col gap-1">
-                        <h3 className="font-bold font-headline text-primary px-3 py-2 flex items-center gap-2"><Palette size={16}/> Lukisan</h3>
-                        <MegaMenuItem href="/#paintings" icon={<Image size={16}/>} title="Galeri Lukisan" description="Karya seni visual"/>
+                        <h3 className="font-bold font-headline text-primary px-3 py-2 flex items-center gap-2"><Palette size={16}/> Seni Visual</h3>
+                        <MegaMenuItem href="/gallery" icon={<ImageIcon size={16}/>} title="Galeri Lukisan" description="Karya seni visual"/>
+                        <MegaMenuItem href="/photos" icon={<Camera size={16}/>} title="Galeri Foto" description="Koleksi foto personal"/>
                         <MegaMenuItem href="/#paintings" icon={<Landmark size={16}/>} title="Pameran" description="Eksibisi terkini"/>
-                        <MegaMenuItem href="/#paintings" icon={<Paintbrush size={16}/>} title="Komisi" description="Layanan lukisan"/>
                       </div>
                       <div className="flex flex-col gap-1">
                         <h3 className="font-bold font-headline text-primary px-3 py-2 flex items-center gap-2"><Code size={16}/> Development</h3>

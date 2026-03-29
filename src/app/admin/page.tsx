@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft, PlusCircle, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Background3D } from '@/components/background-3d';
+import Image from 'next/image';
 
 type Article = {
   id: string;
@@ -33,12 +34,20 @@ type Article = {
 };
 
 type Painting = {
+  id: string;
+  slug: string;
+  title: string;
+  year: number;
+  createdAt: Timestamp;
+};
+
+type Photo = {
     id: string;
-    slug: string;
-    title: string;
-    year: number;
+    caption: string;
+    imageUrl: string;
     createdAt: Timestamp;
 };
+
 
 export default function AdminPage() {
   const { user, loading: userLoading } = useUser();
@@ -49,12 +58,16 @@ export default function AdminPage() {
 
   const [articleToDelete, setArticleToDelete] = useState<Article | null>(null);
   const [paintingToDelete, setPaintingToDelete] = useState<Painting | null>(null);
+  const [photoToDelete, setPhotoToDelete] = useState<Photo | null>(null);
 
   const articlesQuery = firestore ? query(collection(firestore, 'articles'), orderBy('date', 'desc')) : null;
   const { data: articles, loading: articlesLoading } = useCollection<Article>(articlesQuery);
 
   const paintingsQuery = firestore ? query(collection(firestore, 'paintings'), orderBy('createdAt', 'desc')) : null;
   const { data: paintings, loading: paintingsLoading } = useCollection<Painting>(paintingsQuery);
+
+  const photosQuery = firestore ? query(collection(firestore, 'photos'), orderBy('createdAt', 'desc')) : null;
+  const { data: photos, loading: photosLoading } = useCollection<Photo>(photosQuery);
   
   useEffect(() => {
     if (!userLoading && !user) {
@@ -62,18 +75,38 @@ export default function AdminPage() {
     }
   }, [user, userLoading, router]);
 
-  const handleDelete = async (type: 'article' | 'painting') => {
+  const handleDelete = async (type: 'article' | 'painting' | 'photo') => {
     if (!firestore) return;
-    const itemToDelete = type === 'article' ? articleToDelete : paintingToDelete;
-    const collectionName = type === 'article' ? 'articles' : 'paintings';
+    
+    let itemToDelete;
+    let collectionName: string;
+    let itemTitle: string | undefined;
+
+    switch (type) {
+        case 'article':
+            itemToDelete = articleToDelete;
+            collectionName = 'articles';
+            itemTitle = articleToDelete?.title;
+            break;
+        case 'painting':
+            itemToDelete = paintingToDelete;
+            collectionName = 'paintings';
+            itemTitle = paintingToDelete?.title;
+            break;
+        case 'photo':
+            itemToDelete = photoToDelete;
+            collectionName = 'photos';
+            itemTitle = photoToDelete?.caption || 'Foto';
+            break;
+    }
 
     if (!itemToDelete) return;
 
     try {
       await deleteDoc(doc(firestore, collectionName, itemToDelete.id));
       toast({
-        title: `${type === 'article' ? 'Artikel' : 'Lukisan'} berhasil dihapus!`,
-        description: `"${itemToDelete.title}" telah dihapus.`,
+        title: `${type.charAt(0).toUpperCase() + type.slice(1)} berhasil dihapus!`,
+        description: `"${itemTitle}" telah dihapus.`,
       });
     } catch (error: any) {
       toast({
@@ -82,11 +115,11 @@ export default function AdminPage() {
         variant: 'destructive',
       });
     } finally {
-      if (type === 'article') {
-        setArticleToDelete(null);
-      } else {
-        setPaintingToDelete(null);
-      }
+        switch (type) {
+            case 'article': setArticleToDelete(null); break;
+            case 'painting': setPaintingToDelete(null); break;
+            case 'photo': setPhotoToDelete(null); break;
+        }
     }
   };
 
@@ -133,9 +166,10 @@ export default function AdminPage() {
           </div>
 
           <Tabs defaultValue="articles" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="articles">Manajemen Artikel</TabsTrigger>
                 <TabsTrigger value="paintings">Manajemen Lukisan</TabsTrigger>
+                <TabsTrigger value="photos">Manajemen Foto</TabsTrigger>
             </TabsList>
             <TabsContent value="articles">
                 <Card>
@@ -241,6 +275,63 @@ export default function AdminPage() {
                     </CardContent>
                 </Card>
             </TabsContent>
+            <TabsContent value="photos">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>Foto</CardTitle>
+                            <CardDescription>Tambah, edit, atau hapus foto di galeri personal Anda.</CardDescription>
+                        </div>
+                        <Button asChild>
+                            <Link href="/admin/photos/editor/new">
+                                <PlusCircle className="mr-2 h-4 w-4" /> Tambah Foto
+                            </Link>
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Foto</TableHead>
+                                    <TableHead>Keterangan</TableHead>
+                                    <TableHead className="hidden md:table-cell">Tanggal</TableHead>
+                                    <TableHead className="text-right">Aksi</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {photosLoading && (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center py-12">
+                                            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {!photosLoading && photos && photos.map(photo => (
+                                    <TableRow key={photo.id}>
+                                        <TableCell>
+                                            <Image src={photo.imageUrl} alt={photo.caption || 'Foto'} width={80} height={80} className="rounded-md object-cover aspect-square"/>
+                                        </TableCell>
+                                        <TableCell className="font-medium max-w-[250px] truncate">{photo.caption || '-'}</TableCell>
+                                        <TableCell className="hidden md:table-cell">
+                                            {photo.createdAt ? photo.createdAt.toDate().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Tidak ada tanggal'}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" asChild>
+                                                <Link href={`/admin/photos/editor/${photo.id}`}>
+                                                    <Pencil className="h-4 w-4" />
+                                                </Link>
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => setPhotoToDelete(photo)}>
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </TabsContent>
           </Tabs>
         </div>
 
@@ -271,6 +362,21 @@ export default function AdminPage() {
                 <AlertDialogFooter>
                     <AlertDialogCancel>Batal</AlertDialogCancel>
                     <AlertDialogAction onClick={() => handleDelete('painting')}>Hapus</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={!!photoToDelete} onOpenChange={() => setPhotoToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Anda Yakin?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Aksi ini tidak bisa dibatalkan. Foto dengan keterangan &quot;{photoToDelete?.caption || 'Tanpa Keterangan'}&quot; akan dihapus secara permanen.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleDelete('photo')}>Hapus</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

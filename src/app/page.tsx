@@ -3,6 +3,7 @@ import { HeroSection } from "@/components/hero-section";
 import { StatsSection } from "@/components/stats-section";
 import { WritingSection } from "@/components/writing-section";
 import { PaintingsSection } from "@/components/paintings-section";
+import { PhotosSection } from "@/components/photos-section";
 import { CertificatesSection } from "@/components/certificates-section";
 import { DevelopmentSection } from "@/components/development-section";
 import { SkillsSection } from "@/components/skills-section";
@@ -18,6 +19,7 @@ export default function Home() {
         <StatsSection />
         <WritingSection />
         <PaintingsSection />
+        <PhotosSection />
         <CertificatesSection />
         <DevelopmentSection />
         <SkillsSection />

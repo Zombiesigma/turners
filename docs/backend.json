@@ -74,6 +74,28 @@
         }
       },
       "required": ["title", "slug", "description", "year", "imageUrl", "createdAt"]
+    },
+    "Photo": {
+      "title": "Photo",
+      "description": "Represents a single photo in the personal gallery.",
+      "type": "object",
+      "properties": {
+        "caption": {
+          "type": "string",
+          "description": "A short caption for the photo."
+        },
+        "imageUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "The full URL of the photo."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the photo was added."
+        }
+      },
+      "required": ["imageUrl", "createdAt"]
     }
   },
   "auth": {
@@ -91,6 +113,12 @@
         "$ref": "#/entities/Painting"
       },
       "description": "Stores individual painting documents."
+    },
+    "/photos/{photoId}": {
+      "schema": {
+        "$ref": "#/entities/Photo"
+      },
+      "description": "Stores individual photo documents for the personal gallery."
     }
   }
 }
