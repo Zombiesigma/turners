@@ -4,26 +4,40 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
+const wittyMessages = [
+    "Menyeduh Kopi...",
+    "Merangkai Kata...",
+    "Mencampur Warna...",
+    "Menulis Kode...",
+    "Menunggu Inspirasi...",
+];
+
 export function Loader() {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [visible, setVisible] = useState(true);
+  const [message, setMessage] = useState(wittyMessages[0]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const progressInterval = setInterval(() => {
         setProgress(oldProgress => {
             if (oldProgress >= 100) {
-                clearInterval(interval);
+                clearInterval(progressInterval);
                 setTimeout(() => setLoading(false), 500);
                 return 100;
             }
             const diff = Math.random() * 10;
             return Math.min(oldProgress + diff, 100);
         });
-    }, 150);
+    }, 200);
+
+    const messageInterval = setInterval(() => {
+        setMessage(wittyMessages[Math.floor(Math.random() * wittyMessages.length)]);
+    }, 2000);
 
     return () => {
-        clearInterval(interval);
+        clearInterval(progressInterval);
+        clearInterval(messageInterval);
     };
   }, []);
 
@@ -44,10 +58,11 @@ export function Loader() {
       loading ? "opacity-100" : "opacity-0 pointer-events-none"
     )}>
       <div className="relative z-10 text-center">
-        <p className="text-lg font-mono uppercase tracking-widest text-primary/80 animate-pulse">Menyiapkan Kanvas Kreatif...</p>
-        <div className="mt-4 w-48 h-1 bg-primary/20 rounded-full overflow-hidden">
+        <h1 className="text-8xl font-bold font-headline gradient-text mb-4 animate-pulse">GP.</h1>
+        <p className="text-lg font-mono uppercase tracking-widest text-muted-foreground transition-all duration-300">{message}</p>
+        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 mt-8 w-64 h-1 bg-primary/10 rounded-full overflow-hidden">
           <div 
-            className="h-full bg-primary rounded-full transition-all duration-300"
+            className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
