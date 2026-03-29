@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription as DialogDesc } from '@/components/ui/dialog';
 import { BadgeCheck, Calendar, CheckCircle, Globe, Hourglass, QrCode, Trophy, User, ZoomIn } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
@@ -132,6 +132,10 @@ export function CertificatesSection() {
                                         </CardFooter>
                                     </Card>
                                     <DialogContent className="max-w-4xl p-0">
+                                        <DialogHeader className="sr-only">
+                                          <DialogTitle>{cert.title}</DialogTitle>
+                                          <DialogDesc>{cert.description}</DialogDesc>
+                                        </DialogHeader>
                                         <Image src={cert.imageUrl} alt={cert.title} width={1200} height={800} className="w-full h-auto rounded-lg" data-ai-hint={cert.imageHint}/>
                                     </DialogContent>
                                 </Dialog>

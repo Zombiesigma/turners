@@ -9,7 +9,7 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, orderBy, Timestamp } from 'firebase/firestore';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 type Photo = {
   id: string;
@@ -73,7 +73,11 @@ export default function PhotosPage() {
                         </CardContent>
                     </Card>
                     <DialogContent className="max-w-4xl p-2 bg-transparent border-0">
-                        <Image src={photo.imageUrl} alt={photo.caption} width={1600} height={1600} className="w-full h-auto rounded-lg object-contain max-h-[90vh]" />
+                        <DialogHeader className="sr-only">
+                           <DialogTitle>Photo: {photo.caption || "Untitled"}</DialogTitle>
+                           <DialogDescription>{photo.caption || 'A personal photo from the gallery.'}</DialogDescription>
+                        </DialogHeader>
+                        <Image src={photo.imageUrl} alt={photo.caption || 'Personal photo'} width={1600} height={1600} className="w-full h-auto rounded-lg object-contain max-h-[90vh]" />
                          {photo.caption && <p className="text-center text-white p-2 bg-black/50 rounded-b-lg">{photo.caption}</p>}
                     </DialogContent>
                 </Dialog>
