@@ -4,6 +4,7 @@ import { Github, Instagram, Mail, MessageCircle } from 'lucide-react';
 const breadcrumbs = [
   { href: "/#home", label: "Beranda" },
   { href: "/#writing", label: "Tulisan" },
+  { href: "/articles", label: "Artikel" },
   { href: "/#paintings", label: "Lukisan" },
   { href: "/#certificates", label: "Sertifikat" },
   { href: "/#contact", label: "Kontak" },

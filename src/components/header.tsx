@@ -97,7 +97,7 @@ export function Header() {
                       <div className="flex flex-col gap-1">
                         <h3 className="font-bold font-headline text-primary px-3 py-2 flex items-center gap-2"><Feather size={16}/> Tulisan</h3>
                         <MegaMenuItem href="/#writing" icon={<BookOpen size={16}/>} title="Novel & Cerita" description="Karya fiksi terbaru"/>
-                        <MegaMenuItem href="/#writing" icon={<Newspaper size={16}/>} title="Artikel & Esai" description="Tulisan non-fiksi"/>
+                        <MegaMenuItem href="/articles" icon={<Newspaper size={16}/>} title="Artikel & Esai" description="Tulisan non-fiksi"/>
                         <MegaMenuItem href="/#writing" icon={<ScrollText size={16}/>} title="Puisi" description="Kumpulan puisi"/>
                       </div>
                       <div className="flex flex-col gap-1">

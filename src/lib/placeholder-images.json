@@ -101,6 +101,36 @@
       "description": "Sertifikat Pelatihan Landing Page Digitech University",
       "imageUrl": "https://www.gunturturner.biz.id/IMG_20250619_220843_1750345774887.jpg",
       "imageHint": "award certificate"
+    },
+    {
+      "id": "article-image-1",
+      "description": "A person writing in a notebook.",
+      "imageUrl": "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3cml0aW5nfGVufDB8fHx8MTc3MjE2NzYxNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "writing notebook"
+    },
+    {
+      "id": "article-image-2",
+      "description": "Abstract digital art representing technology.",
+      "imageUrl": "https://images.unsplash.com/photo-1550745165-9bc0b252726a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx0ZWNobm9sb2d5fGVufDB8fHx8MTc3MjE2NzYxNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "technology abstract"
+    },
+    {
+      "id": "article-image-3",
+      "description": "A painter's studio with canvases and brushes.",
+      "imageUrl": "https://images.unsplash.com/photo-1513364776144-60967b0f800f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhcnQlMjBzdHVkaW98ZW58MHx8fHwxNzcyMTY3NjE1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "art studio"
+    },
+    {
+      "id": "article-image-4",
+      "description": "Person meditating on a cliff.",
+      "imageUrl": "https://images.unsplash.com/photo-1506126613408-444d39A4d348?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtZWRpdGF0aW9ufGVufDB8fHx8MTc3MjE2NzYxNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "meditation philosophy"
+    },
+    {
+      "id": "article-image-5",
+      "description": "A person coding on a laptop.",
+      "imageUrl": "https://images.unsplash.com/photo-1542831371-29b0f74f9713?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjb2Rpbmd8ZW58MHx8fHwxNzcyMTY3NjE1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "coding programming"
     }
   ]
 }
