@@ -5,14 +5,29 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useUser, useAuth, useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useUser, useAuth, useFirestore, useCollection } from '@/firebase';
+import { collection, addDoc, serverTimestamp, query, orderBy, doc, deleteDoc, Timestamp } from 'firebase/firestore';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, PlusCircle, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 const articleSchema = z.object({
@@ -23,12 +38,28 @@ const articleSchema = z.object({
   imageId: z.string().min(1, { message: 'Image ID tidak boleh kosong.' }),
 });
 
+type Article = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  date: Timestamp;
+  tags: string[];
+  imageId: string;
+};
+
 export default function AdminPage() {
   const { user, loading: userLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [articleToDelete, setArticleToDelete] = useState<Article | null>(null);
+
+  const articlesQuery = firestore ? query(collection(firestore, 'articles'), orderBy('date', 'desc')) : null;
+  const { data: articles, loading: articlesLoading } = useCollection<Article>(articlesQuery);
 
   const form = useForm<z.infer<typeof articleSchema>>({
     resolver: zodResolver(articleSchema),
@@ -37,7 +68,7 @@ export default function AdminPage() {
       slug: '',
       excerpt: '',
       tags: '',
-      imageId: 'article-image-1',
+      imageId: `article-image-${Math.floor(Math.random() * 5) + 1}`,
     },
   });
 
@@ -47,7 +78,7 @@ export default function AdminPage() {
     }
   }, [user, userLoading, router]);
 
-  const onSubmit = async (values: z.infer<typeof articleSchema>) => {
+  const onAddSubmit = async (values: z.infer<typeof articleSchema>) => {
     if (!firestore) return;
     try {
       const tagsArray = values.tags.split(',').map(tag => tag.trim());
@@ -61,6 +92,7 @@ export default function AdminPage() {
         description: `Artikel "${values.title}" telah dipublikasikan.`,
       });
       form.reset();
+      setIsAddDialogOpen(false);
     } catch (error: any) {
       toast({
         title: 'Gagal menambahkan artikel',
@@ -69,6 +101,26 @@ export default function AdminPage() {
       });
     }
   };
+
+  const handleDeleteArticle = async () => {
+    if (!firestore || !articleToDelete) return;
+    try {
+      await deleteDoc(doc(firestore, 'articles', articleToDelete.id));
+      toast({
+        title: 'Artikel berhasil dihapus!',
+        description: `Artikel "${articleToDelete.title}" telah dihapus.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Gagal menghapus artikel',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setArticleToDelete(null);
+    }
+  };
+
 
   const handleLogout = async () => {
     if (auth) {
@@ -102,7 +154,7 @@ export default function AdminPage() {
             </h1>
         </div>
 
-        <div className="mx-auto max-w-2xl">
+        <div className="mx-auto max-w-4xl">
           <div className="mb-8 flex justify-between items-center">
             <p className="text-muted-foreground">Selamat datang, {user.email}</p>
             <Button onClick={handleLogout} variant="outline">
@@ -110,86 +162,94 @@ export default function AdminPage() {
             </Button>
           </div>
 
-          <h2 className="mb-6 font-headline text-2xl font-bold">Tambah Artikel Baru</h2>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Judul Artikel</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Judul artikel Anda" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="slug"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Slug</FormLabel>
-                    <FormControl>
-                      <Input placeholder="contoh-slug-artikel" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="excerpt"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Kutipan</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Tulis kutipan singkat di sini..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="tags"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tags (pisahkan dengan koma)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Menulis, Teknologi, Kreativitas" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="imageId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Image ID</FormLabel>
-                    <FormControl>
-                      <Input placeholder="article-image-1" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menerbitkan...
-                  </>
-                ) : (
-                  'Terbitkan Artikel'
-                )}
-              </Button>
-            </form>
-          </Form>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle>Manajemen Artikel</CardTitle>
+                    <CardDescription>Tambah, edit, atau hapus artikel portofolio Anda.</CardDescription>
+                </div>
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button><PlusCircle className="mr-2 h-4 w-4" /> Tambah Artikel</Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>Tambah Artikel Baru</DialogTitle>
+                            <DialogDescription>
+                                Isi formulir di bawah ini untuk mempublikasikan artikel baru.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onAddSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1 pr-4">
+                              <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Judul Artikel</FormLabel><FormControl><Input placeholder="Judul artikel Anda" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                              <FormField control={form.control} name="slug" render={({ field }) => (<FormItem><FormLabel>Slug</FormLabel><FormControl><Input placeholder="contoh-slug-artikel" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                              <FormField control={form.control} name="excerpt" render={({ field }) => (<FormItem><FormLabel>Kutipan</FormLabel><FormControl><Textarea placeholder="Tulis kutipan singkat di sini..." {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                              <FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>Tags (pisahkan dengan koma)</FormLabel><FormControl><Input placeholder="Menulis, Teknologi, Kreativitas" {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                              <FormField control={form.control} name="imageId" render={({ field }) => (<FormItem><FormLabel>Image ID</FormLabel><FormControl><Input placeholder="article-image-1" {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                              <DialogFooter className="pt-4">
+                                  <DialogClose asChild><Button type="button" variant="secondary">Batal</Button></DialogClose>
+                                  <Button type="submit" disabled={form.formState.isSubmitting}>
+                                    {form.formState.isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menerbitkan...</> : 'Terbitkan Artikel'}
+                                  </Button>
+                              </DialogFooter>
+                            </form>
+                        </Form>
+                    </DialogContent>
+                </Dialog>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[50%]">Judul</TableHead>
+                            <TableHead className="hidden md:table-cell">Tanggal</TableHead>
+                            <TableHead className="text-right">Aksi</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {articlesLoading && (
+                            <TableRow>
+                                <TableCell colSpan={3} className="text-center py-12">
+                                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                                </TableCell>
+                            </TableRow>
+                        )}
+                        {!articlesLoading && articles && articles.map(article => (
+                            <TableRow key={article.id}>
+                                <TableCell className="font-medium">{article.title}</TableCell>
+                                <TableCell className="hidden md:table-cell">
+                                    {article.date ? article.date.toDate().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Tidak ada tanggal'}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <Button variant="ghost" size="icon" disabled className="text-muted-foreground cursor-not-allowed">
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={() => setArticleToDelete(article)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+          </Card>
         </div>
+
+        <AlertDialog open={!!articleToDelete} onOpenChange={() => setArticleToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Anda Yakin?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Aksi ini tidak bisa dibatalkan. Artikel &quot;{articleToDelete?.title}&quot; akan dihapus secara permanen dari database.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteArticle}>Hapus</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
       </main>
     </div>
   );
