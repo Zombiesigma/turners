@@ -40,6 +40,40 @@
         }
       },
       "required": ["title", "slug", "excerpt", "date", "imageUrl", "content", "tags"]
+    },
+    "Painting": {
+      "title": "Painting",
+      "description": "Represents a single painting in the gallery.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the painting."
+        },
+        "slug": {
+          "type": "string",
+          "description": "The URL-friendly slug for the painting."
+        },
+        "description": {
+          "type": "string",
+          "description": "The story or description behind the painting."
+        },
+        "year": {
+          "type": "number",
+          "description": "The year the painting was created."
+        },
+        "imageUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "The full URL of the painting's image."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the painting was added."
+        }
+      },
+      "required": ["title", "slug", "description", "year", "imageUrl", "createdAt"]
     }
   },
   "auth": {
@@ -51,6 +85,12 @@
         "$ref": "#/entities/Article"
       },
       "description": "Stores individual article documents."
+    },
+    "/paintings/{paintingId}": {
+      "schema": {
+        "$ref": "#/entities/Painting"
+      },
+      "description": "Stores individual painting documents."
     }
   }
 }

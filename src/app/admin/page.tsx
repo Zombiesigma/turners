@@ -8,6 +8,7 @@ import { collection, query, orderBy, doc, deleteDoc, Timestamp } from 'firebase/
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,16 +25,19 @@ import { Loader2, ArrowLeft, PlusCircle, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Background3D } from '@/components/background-3d';
 
-
 type Article = {
   id: string;
   slug: string;
   title: string;
-  excerpt: string;
-  content: string;
   date: Timestamp;
-  tags: string[];
-  imageUrl: string;
+};
+
+type Painting = {
+    id: string;
+    slug: string;
+    title: string;
+    year: number;
+    createdAt: Timestamp;
 };
 
 export default function AdminPage() {
@@ -44,9 +48,13 @@ export default function AdminPage() {
   const { toast } = useToast();
 
   const [articleToDelete, setArticleToDelete] = useState<Article | null>(null);
+  const [paintingToDelete, setPaintingToDelete] = useState<Painting | null>(null);
 
   const articlesQuery = firestore ? query(collection(firestore, 'articles'), orderBy('date', 'desc')) : null;
   const { data: articles, loading: articlesLoading } = useCollection<Article>(articlesQuery);
+
+  const paintingsQuery = firestore ? query(collection(firestore, 'paintings'), orderBy('createdAt', 'desc')) : null;
+  const { data: paintings, loading: paintingsLoading } = useCollection<Painting>(paintingsQuery);
   
   useEffect(() => {
     if (!userLoading && !user) {
@@ -54,22 +62,31 @@ export default function AdminPage() {
     }
   }, [user, userLoading, router]);
 
-  const handleDeleteArticle = async () => {
-    if (!firestore || !articleToDelete) return;
+  const handleDelete = async (type: 'article' | 'painting') => {
+    if (!firestore) return;
+    const itemToDelete = type === 'article' ? articleToDelete : paintingToDelete;
+    const collectionName = type === 'article' ? 'articles' : 'paintings';
+
+    if (!itemToDelete) return;
+
     try {
-      await deleteDoc(doc(firestore, 'articles', articleToDelete.id));
+      await deleteDoc(doc(firestore, collectionName, itemToDelete.id));
       toast({
-        title: 'Artikel berhasil dihapus!',
-        description: `Artikel "${articleToDelete.title}" telah dihapus.`,
+        title: `${type === 'article' ? 'Artikel' : 'Lukisan'} berhasil dihapus!`,
+        description: `"${itemToDelete.title}" telah dihapus.`,
       });
     } catch (error: any) {
       toast({
-        title: 'Gagal menghapus artikel',
+        title: `Gagal menghapus ${type}`,
         description: error.message,
         variant: 'destructive',
       });
     } finally {
-      setArticleToDelete(null);
+      if (type === 'article') {
+        setArticleToDelete(null);
+      } else {
+        setPaintingToDelete(null);
+      }
     }
   };
 
@@ -107,7 +124,7 @@ export default function AdminPage() {
             </h1>
         </div>
 
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-6xl">
           <div className="mb-8 flex justify-between items-center">
             <p className="text-muted-foreground">Selamat datang, {user.email}</p>
             <Button onClick={handleLogout} variant="outline">
@@ -115,71 +132,145 @@ export default function AdminPage() {
             </Button>
           </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                    <CardTitle>Manajemen Artikel</CardTitle>
-                    <CardDescription>Tambah, edit, atau hapus artikel portofolio Anda.</CardDescription>
-                </div>
-                 <Button asChild>
-                    <Link href="/admin/editor/new">
-                        <PlusCircle className="mr-2 h-4 w-4" /> Tambah Artikel
-                    </Link>
-                </Button>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[50%]">Judul</TableHead>
-                            <TableHead className="hidden md:table-cell">Tanggal</TableHead>
-                            <TableHead className="text-right">Aksi</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {articlesLoading && (
-                            <TableRow>
-                                <TableCell colSpan={3} className="text-center py-12">
-                                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-                                </TableCell>
-                            </TableRow>
-                        )}
-                        {!articlesLoading && articles && articles.map(article => (
-                            <TableRow key={article.id}>
-                                <TableCell className="font-medium">{article.title}</TableCell>
-                                <TableCell className="hidden md:table-cell">
-                                    {article.date ? article.date.toDate().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Tidak ada tanggal'}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" asChild>
-                                        <Link href={`/admin/editor/${article.id}`}>
-                                            <Pencil className="h-4 w-4" />
-                                        </Link>
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => setArticleToDelete(article)}>
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
-          </Card>
+          <Tabs defaultValue="articles" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="articles">Manajemen Artikel</TabsTrigger>
+                <TabsTrigger value="paintings">Manajemen Lukisan</TabsTrigger>
+            </TabsList>
+            <TabsContent value="articles">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>Artikel</CardTitle>
+                            <CardDescription>Tambah, edit, atau hapus artikel portofolio Anda.</CardDescription>
+                        </div>
+                        <Button asChild>
+                            <Link href="/admin/editor/new">
+                                <PlusCircle className="mr-2 h-4 w-4" /> Tambah Artikel
+                            </Link>
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[50%]">Judul</TableHead>
+                                    <TableHead className="hidden md:table-cell">Tanggal</TableHead>
+                                    <TableHead className="text-right">Aksi</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {articlesLoading && (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="text-center py-12">
+                                            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {!articlesLoading && articles && articles.map(article => (
+                                    <TableRow key={article.id}>
+                                        <TableCell className="font-medium">{article.title}</TableCell>
+                                        <TableCell className="hidden md:table-cell">
+                                            {article.date ? article.date.toDate().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Tidak ada tanggal'}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" asChild>
+                                                <Link href={`/admin/editor/${article.id}`}>
+                                                    <Pencil className="h-4 w-4" />
+                                                </Link>
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => setArticleToDelete(article)}>
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="paintings">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>Lukisan</CardTitle>
+                            <CardDescription>Tambah, edit, atau hapus lukisan di galeri Anda.</CardDescription>
+                        </div>
+                        <Button asChild>
+                            <Link href="/admin/paintings/editor/new">
+                                <PlusCircle className="mr-2 h-4 w-4" /> Tambah Lukisan
+                            </Link>
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[50%]">Judul</TableHead>
+                                    <TableHead className="hidden md:table-cell">Tahun</TableHead>
+                                    <TableHead className="text-right">Aksi</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {paintingsLoading && (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="text-center py-12">
+                                            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {!paintingsLoading && paintings && paintings.map(painting => (
+                                    <TableRow key={painting.id}>
+                                        <TableCell className="font-medium">{painting.title}</TableCell>
+                                        <TableCell className="hidden md:table-cell">{painting.year}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" asChild>
+                                                <Link href={`/admin/paintings/editor/${painting.id}`}>
+                                                    <Pencil className="h-4 w-4" />
+                                                </Link>
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => setPaintingToDelete(painting)}>
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+          </Tabs>
         </div>
 
-        {/* Delete Alert Dialog */}
+        {/* Delete Dialogs */}
         <AlertDialog open={!!articleToDelete} onOpenChange={() => setArticleToDelete(null)}>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Anda Yakin?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Aksi ini tidak bisa dibatalkan. Artikel &quot;{articleToDelete?.title}&quot; akan dihapus secara permanen dari database.
+                        Aksi ini tidak bisa dibatalkan. Artikel &quot;{articleToDelete?.title}&quot; akan dihapus secara permanen.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Batal</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteArticle}>Hapus</AlertDialogAction>
+                    <AlertDialogAction onClick={() => handleDelete('article')}>Hapus</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={!!paintingToDelete} onOpenChange={() => setPaintingToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Anda Yakin?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Aksi ini tidak bisa dibatalkan. Lukisan &quot;{paintingToDelete?.title}&quot; akan dihapus secara permanen.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleDelete('painting')}>Hapus</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
