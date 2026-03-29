@@ -1,9 +1,24 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookText, ShoppingCart } from 'lucide-react';
+import { BookText, ShoppingCart, Loader2, ArrowRight, Calendar } from 'lucide-react';
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, query, orderBy, limit, Timestamp } from 'firebase/firestore';
+import { Separator } from '@/components/ui/separator';
+
+type Article = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  date: Timestamp;
+  tags: string[];
+  imageUrl: string;
+};
 
 export function WritingSection() {
   const featuredBook = PlaceHolderImages.find(p => p.id === 'book-cover-main');
@@ -14,6 +29,19 @@ export function WritingSection() {
     PlaceHolderImages.find(p => p.id === 'book-cover-4'),
   ].filter(Boolean) as typeof PlaceHolderImages;
 
+  const firestore = useFirestore();
+  const articlesQuery = firestore ? query(collection(firestore, 'articles'), orderBy('date', 'desc'), limit(3)) : null;
+  const { data: articles, loading: articlesLoading } = useCollection<Article>(articlesQuery);
+
+  const formatDate = (timestamp: Timestamp | null | undefined) => {
+    if (!timestamp) return 'Tanggal tidak diketahui';
+    return timestamp.toDate().toLocaleDateString('id-ID', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  }
+
   return (
     <section id="writing" className="py-24">
       <div className="container mx-auto px-4">
@@ -21,6 +49,7 @@ export function WritingSection() {
           <h2 className="mb-16 font-headline text-4xl font-bold md:text-5xl gradient-text">Dunia Tulisan</h2>
         </div>
         
+        {/* --- BOOKS --- */}
         {featuredBook && (
           <div className="mb-16 grid items-center gap-12 md:grid-cols-2 lg:mb-24">
             <div className="animate-in fade-in-up">
@@ -56,25 +85,80 @@ export function WritingSection() {
           </div>
         )}
 
-        <h3 className="mb-8 font-headline text-2xl font-bold">Karya Lainnya</h3>
-        <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-          {otherBooks.map((book, index) => (
-            <div key={book?.id} className="animate-in fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
-              <Card className="overflow-hidden transition-transform duration-300 hover:-translate-y-2 hover:shadow-xl">
-                <CardContent className="p-0">
-                  <Image
-                    src={book!.imageUrl}
-                    alt={book!.description}
-                    width={400}
-                    height={600}
-                    className="aspect-[2/3] w-full object-cover"
-                    data-ai-hint={book!.imageHint}
-                  />
-                </CardContent>
-              </Card>
+        <div className="mb-16">
+            <h3 className="mb-8 font-headline text-2xl font-bold">Karya Lainnya</h3>
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {otherBooks.map((book, index) => (
+                <div key={book?.id} className="animate-in fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
+                  <Card className="overflow-hidden transition-transform duration-300 hover:-translate-y-2 hover:shadow-xl">
+                    <CardContent className="p-0">
+                      <Image
+                        src={book!.imageUrl}
+                        alt={book!.description}
+                        width={400}
+                        height={600}
+                        className="aspect-[2/3] w-full object-cover"
+                        data-ai-hint={book!.imageHint}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              ))}
             </div>
-          ))}
         </div>
+
+        <Separator className="my-24" />
+
+        {/* --- ARTICLES --- */}
+        <div>
+          <div className="text-center mb-16">
+            <h3 className="font-headline text-4xl font-bold">Artikel Terbaru</h3>
+            <p className="mt-4 text-lg text-muted-foreground">Pikiran, ide, dan refleksi yang baru saja saya tuangkan.</p>
+          </div>
+            {articlesLoading && (
+               <div className="flex justify-center items-center h-40">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary"/>
+               </div>
+            )}
+
+            {!articlesLoading && articles && (
+              <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+                {articles.map((article, index) => (
+                  <div key={article.id} className="animate-in fade-in-up" style={{ animationDelay: `${index * 50}ms` }}>
+                    <Card className="flex h-full flex-col overflow-hidden transition-all duration-300 group glow-card hover:-translate-y-2">
+                      <CardHeader>
+                         <Link href={`/articles/${article.slug}`} className="block">
+                           <CardTitle className="group-hover:text-primary transition-colors">{article.title}</CardTitle>
+                         </Link>
+                         <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2">
+                             <Calendar size={14} />
+                             <span>{formatDate(article.date)}</span>
+                         </div>
+                      </CardHeader>
+                      <CardContent className="flex-grow">
+                        <p className="text-muted-foreground text-sm leading-relaxed line-clamp-3">{article.excerpt}</p>
+                      </CardContent>
+                      <CardFooter>
+                          <Button asChild variant="link" className="p-0 font-semibold text-primary">
+                              <Link href={`/articles/${article.slug}`}>
+                                  Baca Selengkapnya <ArrowRight className="ml-2 transition-transform duration-300 group-hover:translate-x-1" size={16} />
+                              </Link>
+                          </Button>
+                      </CardFooter>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="mt-12 text-center">
+                <Button asChild size="lg">
+                    <Link href="/articles">
+                        Lihat Semua Artikel <ArrowRight className="ml-2"/>
+                    </Link>
+                </Button>
+            </div>
+        </div>
+
       </div>
     </section>
   );
