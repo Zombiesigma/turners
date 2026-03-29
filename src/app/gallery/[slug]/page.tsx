@@ -68,7 +68,7 @@ export default function PaintingDetailPage() {
       <Header />
       <main className="py-24 relative z-10">
         <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-6xl mx-auto">
                 <div className="mb-8">
                     <Button asChild variant="outline" size="sm">
                       <Link href="/gallery">
@@ -78,36 +78,42 @@ export default function PaintingDetailPage() {
                     </Button>
                 </div>
                 
-                <header className="mb-12">
-                    <h1 className="font-headline text-4xl md:text-6xl font-bold leading-tight mb-4 gradient-text">
-                        {painting.title}
-                    </h1>
+                <div className="grid lg:grid-cols-2 lg:gap-x-16 items-start">
+                    <div className="lg:sticky lg:top-28 animate-in fade-in-up">
+                        {painting.imageUrl && (
+                            <div className="rounded-xl overflow-hidden shadow-2xl shadow-primary/10">
+                                <Image
+                                    src={painting.imageUrl}
+                                    alt={painting.title}
+                                    width={1200}
+                                    height={1200}
+                                    className="w-full h-auto object-contain"
+                                    priority
+                                />
+                            </div>
+                        )}
+                    </div>
                     
-                    <div className="flex items-center gap-2 text-lg text-muted-foreground">
-                       <Calendar size={16} /> 
-                       <span>Tahun {painting.year}</span>
+                    <div className="mt-12 lg:mt-0 animate-in fade-in-up" style={{ animationDelay: '150ms' }}>
+                        <header className="mb-12">
+                            <h1 className="font-headline text-4xl md:text-5xl font-bold leading-tight mb-4 gradient-text">
+                                {painting.title}
+                            </h1>
+                            
+                            <div className="flex items-center gap-2 text-lg text-muted-foreground">
+                               <Calendar size={16} /> 
+                               <span>Tahun {painting.year}</span>
+                            </div>
+                        </header>
+                        
+                        <div>
+                            <h2 className="font-headline text-2xl font-bold mb-4">Cerita di Balik Lukisan</h2>
+                            <Separator className="mb-8" />
+                            <article className="prose prose-lg dark:prose-invert max-w-none text-muted-foreground leading-relaxed">
+                               <p>{painting.description}</p>
+                            </article>
+                        </div>
                     </div>
-                </header>
-
-                {painting.imageUrl && (
-                    <div className="mb-12 rounded-xl overflow-hidden shadow-2xl shadow-primary/10 transition-all duration-500 animate-in fade-in-up">
-                        <Image
-                            src={painting.imageUrl}
-                            alt={painting.title}
-                            width={1200}
-                            height={900}
-                            className="w-full h-auto object-contain"
-                            priority
-                        />
-                    </div>
-                )}
-                
-                <div className="max-w-3xl">
-                    <h2 className="font-headline text-2xl font-bold mb-4">Cerita di Balik Lukisan</h2>
-                    <Separator className="mb-8" />
-                    <article className="prose prose-lg dark:prose-invert max-w-none text-muted-foreground leading-relaxed">
-                       <p>{painting.description}</p>
-                    </article>
                 </div>
             </div>
         </div>
