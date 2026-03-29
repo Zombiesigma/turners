@@ -1,16 +1,21 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
 
 export default function GalleryPage() {
   const allPaintings = PlaceHolderImages.filter(p => p.id.startsWith('painting-'));
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-24">
+    <>
+      <Header />
+      <main className="container mx-auto px-4 py-24 relative z-10">
         <div className="relative mb-16 text-center">
             <div className="absolute top-0 left-0">
                 <Button asChild variant="outline">
@@ -51,6 +56,7 @@ export default function GalleryPage() {
           ))}
         </div>
       </main>
-    </div>
+      <Footer />
+    </>
   );
 }

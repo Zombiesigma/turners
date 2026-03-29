@@ -10,6 +10,8 @@ import { ArrowLeft, Calendar, Loader2, ArrowRight } from 'lucide-react';
 import { useCollection } from '@/firebase';
 import { collection, query, orderBy, Timestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
+import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
 
 export type Article = {
   id: string;
@@ -37,8 +39,9 @@ export default function ArticlesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-24">
+    <>
+      <Header />
+      <main className="container mx-auto px-4 py-24 relative z-10">
         <div className="relative mb-16 text-center">
           <div className="absolute top-0 left-0">
             <Button asChild variant="outline">
@@ -106,6 +109,7 @@ export default function ArticlesPage() {
           </div>
         )}
       </main>
-    </div>
+      <Footer />
+    </>
   );
 }

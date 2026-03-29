@@ -1,3 +1,5 @@
+"use client";
+
 import Link from 'next/link';
 import { Github, Instagram, Mail, MessageCircle } from 'lucide-react';
 
