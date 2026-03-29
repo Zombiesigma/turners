@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
@@ -18,7 +18,7 @@ const formSchema = z.object({
   password: z.string().min(6, { message: 'Password minimal 6 karakter.' }),
 });
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const { toast } = useToast();
   const auth = useAuth();
   const router = useRouter();
@@ -37,16 +37,20 @@ export default function LoginPage() {
         return;
     }
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      await createUserWithEmailAndPassword(auth, values.email, values.password);
       toast({
-        title: 'Login Berhasil!',
-        description: 'Anda akan diarahkan ke dasbor admin.',
+        title: 'Pendaftaran Berhasil!',
+        description: 'Akun Anda telah dibuat. Anda akan diarahkan ke dasbor admin.',
       });
       router.push('/admin');
     } catch (error: any) {
+       let description = 'Terjadi kesalahan. Silakan coba lagi.';
+      if (error.code === 'auth/email-already-in-use') {
+        description = 'Alamat email ini sudah terdaftar.';
+      }
       toast({
-        title: 'Gagal Login',
-        description: 'Email atau password salah. Silakan coba lagi.',
+        title: 'Gagal Mendaftar',
+        description: description,
         variant: 'destructive',
       });
     }
@@ -60,10 +64,10 @@ export default function LoginPage() {
                 GP.
             </Link>
             <h2 className="mt-6 text-3xl font-bold tracking-tight">
-                Login Admin
+                Daftar Akun Admin
             </h2>
             <p className="mt-2 text-muted-foreground">
-                Masuk untuk mengelola konten portofolio Anda.
+                Buat akun baru untuk mengelola konten.
             </p>
         </div>
         <Form {...form}>
@@ -95,14 +99,14 @@ export default function LoginPage() {
               )}
             />
             <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Masuk...</> : 'Masuk'}
+              {form.formState.isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mendaftar...</> : 'Daftar'}
             </Button>
           </form>
         </Form>
         <p className="text-center text-sm text-muted-foreground">
-          Belum punya akun?{' '}
-          <Link href="/register" className="font-medium text-primary hover:underline">
-            Daftar di sini
+          Sudah punya akun?{' '}
+          <Link href="/login" className="font-medium text-primary hover:underline">
+            Login di sini
           </Link>
         </p>
       </div>
