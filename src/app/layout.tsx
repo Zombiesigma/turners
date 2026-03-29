@@ -6,7 +6,6 @@ import { Loader } from "@/components/loader";
 import { Background3D } from "@/components/background-3d";
 import { ScrollProgressBar } from "@/components/scroll-progress-bar";
 import { BackToTopButton } from "@/components/back-to-top-button";
-import { AiChat } from "@/components/ai-chat";
 
 export const metadata: Metadata = {
   title: "Guntur Padilah - Penulis • Pelukis • Web Developer Indonesia",
@@ -51,7 +50,6 @@ export default function RootLayout({
           <Background3D />
           <ScrollProgressBar />
           {children}
-          <AiChat />
           <BackToTopButton />
           <Toaster />
         </ThemeProvider>
