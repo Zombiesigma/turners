@@ -5,7 +5,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useFirestore, useCollection } from '@/firebase';
 import { collection, query, where, Timestamp } from 'firebase/firestore';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,7 @@ type Article = {
   content: string;
   date: Timestamp;
   tags: string[];
-  imageId: string;
+  imageUrl: string;
 };
 
 export default function ArticlePage() {
@@ -32,7 +31,6 @@ export default function ArticlePage() {
   const { data: articles, loading } = useCollection<Article>(articleQuery);
 
   const article = articles?.[0];
-  const image = article ? PlaceHolderImages.find(p => p.id === article.imageId) : null;
 
   const formatDate = (timestamp: Timestamp | null | undefined) => {
     if (!timestamp) return 'Tanggal tidak diketahui';
@@ -114,16 +112,15 @@ export default function ArticlePage() {
                     </div>
                 </header>
 
-                {image && (
+                {article.imageUrl && (
                     <div className="mb-12 rounded-lg overflow-hidden shadow-2xl shadow-primary/10">
                         <Image
-                            src={image.imageUrl}
+                            src={article.imageUrl}
                             alt={article.title}
                             width={1200}
                             height={600}
                             className="w-full h-auto object-cover aspect-[16/9]"
                             priority
-                            data-ai-hint={image.imageHint}
                         />
                     </div>
                 )}

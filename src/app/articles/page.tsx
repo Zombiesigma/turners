@@ -2,7 +2,6 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +19,7 @@ export type Article = {
   excerpt: string;
   date: Timestamp;
   tags: string[];
-  imageId: string;
+  imageUrl: string;
 };
 
 export default function ArticlesPage() {
@@ -66,8 +65,7 @@ export default function ArticlesPage() {
         {!loading && articles && (
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             {articles.map((article, index) => {
-              const image = PlaceHolderImages.find(p => p.id === article.imageId);
-              if (!image) return null;
+              if (!article.imageUrl) return null;
 
               return (
                 <div key={article.id} className="animate-in fade-in-up" style={{ animationDelay: `${index * 50}ms` }}>
@@ -75,12 +73,11 @@ export default function ArticlesPage() {
                     <Link href={`/articles/${article.slug}`} className="flex flex-col h-full bg-card">
                         <div className="relative overflow-hidden">
                             <Image
-                                src={image.imageUrl}
+                                src={article.imageUrl}
                                 alt={article.title}
                                 width={600}
                                 height={400}
                                 className="w-full h-auto aspect-[3/2] object-cover transition-transform duration-500 group-hover:scale-105"
-                                data-ai-hint={image.imageHint}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                             <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">

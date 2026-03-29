@@ -36,7 +36,7 @@ const articleSchema = z.object({
   excerpt: z.string().min(20, { message: 'Kutipan minimal 20 karakter.' }),
   content: z.string().min(100, { message: 'Konten minimal 100 karakter.' }),
   tags: z.string().min(3, { message: 'Tambahkan setidaknya satu tag, pisahkan dengan koma.' }),
-  imageId: z.string().min(1, { message: 'Image ID tidak boleh kosong.' }),
+  imageUrl: z.string().url({ message: 'URL gambar tidak valid.' }),
 });
 
 type Article = {
@@ -46,7 +46,7 @@ type Article = {
   excerpt: string;
   date: Timestamp;
   tags: string[];
-  imageId: string;
+  imageUrl: string;
 };
 
 export default function AdminPage() {
@@ -70,7 +70,7 @@ export default function AdminPage() {
       excerpt: '',
       content: '',
       tags: '',
-      imageId: `article-image-${Math.floor(Math.random() * 5) + 1}`,
+      imageUrl: '',
     },
   });
 
@@ -85,7 +85,11 @@ export default function AdminPage() {
     try {
       const tagsArray = values.tags.split(',').map(tag => tag.trim());
       await addDoc(collection(firestore, 'articles'), {
-        ...values,
+        title: values.title,
+        slug: values.slug,
+        excerpt: values.excerpt,
+        content: values.content,
+        imageUrl: values.imageUrl,
         tags: tagsArray,
         date: serverTimestamp(),
       });
@@ -188,7 +192,7 @@ export default function AdminPage() {
                               <FormField control={form.control} name="excerpt" render={({ field }) => (<FormItem><FormLabel>Kutipan</FormLabel><FormControl><Textarea placeholder="Tulis kutipan singkat di sini..." {...field} /></FormControl><FormMessage /></FormItem>)}/>
                               <FormField control={form.control} name="content" render={({ field }) => (<FormItem><FormLabel>Konten Artikel</FormLabel><FormControl><Textarea placeholder="Tulis artikel lengkap di sini... Anda bisa menggunakan format Markdown." {...field} className="min-h-[250px]" /></FormControl><FormMessage /></FormItem>)}/>
                               <FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>Tags (pisahkan dengan koma)</FormLabel><FormControl><Input placeholder="Menulis, Teknologi, Kreativitas" {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                              <FormField control={form.control} name="imageId" render={({ field }) => (<FormItem><FormLabel>Image ID</FormLabel><FormControl><Input placeholder="article-image-1" {...field} /></FormControl><FormMessage /></FormItem>)}/>
+                              <FormField control={form.control} name="imageUrl" render={({ field }) => (<FormItem><FormLabel>Image URL</FormLabel><FormControl><Input placeholder="https://raw.githubusercontent.com/..." {...field} /></FormControl><FormMessage /></FormItem>)}/>
                               <DialogFooter className="pt-4">
                                   <DialogClose asChild><Button type="button" variant="secondary">Batal</Button></DialogClose>
                                   <Button type="submit" disabled={form.formState.isSubmitting}>

@@ -33,12 +33,13 @@
           },
           "description": "A list of tags associated with the article."
         },
-        "imageId": {
+        "imageUrl": {
           "type": "string",
-          "description": "The ID of the placeholder image for the article."
+          "format": "uri",
+          "description": "The full URL of the article's feature image, hosted on GitHub."
         }
       },
-      "required": ["title", "slug", "excerpt", "date", "imageId", "content"]
+      "required": ["title", "slug", "excerpt", "date", "imageUrl", "content", "tags"]
     }
   },
   "auth": {
